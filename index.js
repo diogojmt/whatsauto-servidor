@@ -39,6 +39,40 @@ function carregarDadosTFLF() {
   }
 }
 
+// ---------- Carregar dados do ISS ----------
+let dadosISS = [];
+
+function carregarDadosISS() {
+  try {
+    const conteudo = fs.readFileSync("ISS_Arapiraca.txt", "utf8");
+    const linhas = conteudo.split("\n");
+    
+    dadosISS = [];
+    
+    // Pula a primeira linha (cabeçalho)
+    for (let i = 1; i < linhas.length; i++) {
+      const linha = linhas[i].trim();
+      if (linha) {
+        const colunas = linha.split("|");
+        if (colunas.length >= 7) {
+          dadosISS.push({
+            codigoItem: colunas[0],
+            descricaoItem: colunas[1],
+            codigoSubitem: colunas[2],
+            descricaoSubitem: colunas[3],
+            aliquota: colunas[4],
+            percentualDeducao: colunas[5],
+            tributacaoForaArapiraca: colunas[6]
+          });
+        }
+      }
+    }
+    console.log(`✅ Carregados ${dadosISS.length} registros do ISS`);
+  } catch (error) {
+    console.error("❌ Erro ao carregar dados do ISS:", error);
+  }
+}
+
 // Função para buscar por CNAE (desconsiderando letras iniciais)
 function buscarPorCNAE(digitosCNAE) {
   if (!digitosCNAE || digitosCNAE.length < 4) {
@@ -54,8 +88,23 @@ function buscarPorCNAE(digitosCNAE) {
   return resultados;
 }
 
+// Função para buscar por código de serviço (item da Lei Complementar 116/2003)
+function buscarPorCodigoServico(digitosServico) {
+  if (!digitosServico || digitosServico.length < 3) {
+    return null;
+  }
+  
+  const resultados = dadosISS.filter(item => {
+    // Busca exata pelo código do subitem
+    return item.codigoSubitem.includes(digitosServico);
+  });
+  
+  return resultados;
+}
+
 // Carregar dados na inicialização
 carregarDadosTFLF();
+carregarDadosISS();
 
 // ---------- LOG bruto ----------
 app.use((req, res, next) => {
@@ -92,7 +141,7 @@ Escolha uma das opções abaixo digitando o número:
 
 *1* - 📄 Segunda via de DAM's
 *2* - 📄 Certidões de Regularidade Fiscal
-*3* - 🧾 NFSe
+*3* - 🧾 NFSe e ISSQN
 *4* - 📋 Lista de Substitutos Tributários
 *5* - 💰 TFLF 2025
 *0* - 👋 Encerrar Atendimento
@@ -380,28 +429,30 @@ Para facilitar a consulta tenha em mãos o código de autenticidade da certidão
 Digite *2* para voltar às opções de certidões, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
-  // Navegação com "3" - retorna ao menu NFSe se digitado sozinho
+  // Navegação com "3" - retorna ao menu NFSe e ISSQN se digitado sozinho
   if (msgLimpa.trim() === "3") {
-    return `🧾 *NFSe*
+    return `🧾 *NFSe e ISSQN*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
 
 *3.1* - 🌐 Acesso ao Site para Emissão
 *3.2* - ❓ Dúvidas e Reclamações
 *3.3* - 📖 Manuais de Utilização do Sistema
+*3.4* - 📊 Alíquota, Deduções e Local de Tributação
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
   // Navegação por números - opção 3 do menu principal
   if (msgLimpa.includes("opcao 3")) {
-    return `🧾 *NFSe*
+    return `🧾 *NFSe e ISSQN*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
 
 *3.1* - 🌐 Acesso ao Site para Emissão
 *3.2* - ❓ Dúvidas e Reclamações
 *3.3* - 📖 Manuais de Utilização do Sistema
+*3.4* - 📊 Alíquota, Deduções e Local de Tributação
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
@@ -593,6 +644,23 @@ https://www.e-nfs.com.br/arapiraca/temp/DOC_294.PDF
 Digite *3.3* para voltar aos manuais, *3* para NFSe, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
+  if (msgLimpa.trim() === "3.4" || msgLimpa.includes("opcao 3.4")) {
+    return `📊 *Alíquota, Deduções e Local de Tributação*
+
+${nome}, para consultar informações sobre alíquotas, deduções e local de tributação:
+
+📝 *Digite o código do item de serviço:*
+• Conforme Lei Complementar 116/2003
+• Mínimo 3 dígitos
+• Exemplo: 102 (para Programação)
+• Exemplo: 1402 (para Assistência técnica)
+• Apenas números, sem letras
+
+O sistema buscará todas as atividades que contenham esses dígitos.
+
+Digite *3* para voltar ao menu NFSe e ISSQN, *menu* para o menu principal ou *0* para encerrar.`;
+  }
+
   if (msgLimpa.trim() === "4" || msgLimpa.includes("opcao 4")) {
     return `📋 *Lista de Substitutos Tributários*
 
@@ -645,6 +713,71 @@ https://web.arapiraca.al.gov.br/wp-content/uploads/2021/01/TFLF2020a20251.pdf
 Este documento contém o Anexo I da Lei 2.342/2003 - CTM de Arapiraca com todos os códigos de atividades e respectivos valores da Taxa de Funcionamento e Localização de Atividades (TFLF) de 2020 a 2025.
 
 Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para encerrar.`;
+  }
+
+  // Verificar se é um código de serviço ISS (números com 3 dígitos exatos para verificar primeiro)
+  const codigoNumeros = msgLimpa.replace(/[^0-9]/g, "");
+  if (codigoNumeros.length === 3 && dadosISS.length > 0) {
+    const resultados = buscarPorCodigoServico(codigoNumeros);
+    
+    if (resultados && resultados.length > 0) {
+      if (resultados.length === 1) {
+        const item = resultados[0];
+        return `📊 *Informações do ISS - Item ${item.codigoSubitem}*
+
+${nome}, aqui estão as informações para o serviço:
+
+🏷️ *Item:* ${item.codigoItem} - ${item.descricaoItem}
+📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
+
+💰 *Tributação:*
+• Alíquota: ${(parseFloat(item.aliquota) * 100).toFixed(1)}%
+• Dedução permitida: ${item.percentualDeducao}
+• Permite tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
+      } else {
+        let resposta = `🔍 *Resultados da busca por "${codigoNumeros}"*
+
+${nome}, encontrei ${resultados.length} serviços que contêm esses dígitos:
+
+`;
+        
+        const max = Math.min(resultados.length, 8); // Limita a 8 resultados
+        for (let i = 0; i < max; i++) {
+          const item = resultados[i];
+          resposta += `*${i + 1}.* Item ${item.codigoSubitem}
+${item.descricaoSubitem}
+💰 Alíquota: ${(parseFloat(item.aliquota) * 100).toFixed(1)}%
+
+`;
+        }
+        
+        if (resultados.length > 8) {
+          resposta += `... e mais ${resultados.length - 8} serviços.
+
+`;
+        }
+        
+        resposta += `Para ver as informações completas de um serviço específico, digite o código do subitem completo.
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
+        
+        return resposta;
+      }
+    } else {
+      return `❌ *Nenhum serviço encontrado*
+
+${nome}, não encontrei nenhum serviço com o código "${codigoNumeros}".
+
+💡 *Dicas:*
+• Verifique se digitou pelo menos 3 dígitos
+• Use apenas números (sem letras)
+• Exemplo: 102 para Programação
+• Exemplo: 1402 para Assistência técnica
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o menu principal.`;
+    }
   }
 
   // Verificar se é um código CNAE (números com pelo menos 4 dígitos)
@@ -710,6 +843,58 @@ ${nome}, não encontrei nenhuma atividade com o código "${codigoCNAE}".
 • Exemplo: 4711 para comércio varejista
 
 Digite *5.2* para baixar a planilha completa, *5.1* para nova consulta ou *menu* para o menu principal.`;
+    }
+  }
+
+  // Verificar se é um código de serviço ISS com 4 dígitos (após tentar CNAE)
+  if (codigoCNAE.length === 4 && dadosISS.length > 0) {
+    const resultadosISS = buscarPorCodigoServico(codigoCNAE);
+    
+    if (resultadosISS && resultadosISS.length > 0) {
+      if (resultadosISS.length === 1) {
+        const item = resultadosISS[0];
+        return `📊 *Informações do ISS - Item ${item.codigoSubitem}*
+
+${nome}, aqui estão as informações para o serviço:
+
+🏷️ *Item:* ${item.codigoItem} - ${item.descricaoItem}
+📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
+
+💰 *Tributação:*
+• Alíquota: ${(parseFloat(item.aliquota) * 100).toFixed(1)}%
+• Dedução permitida: ${item.percentualDeducao}
+• Permite tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
+      } else {
+        let resposta = `🔍 *Resultados da busca ISS por "${codigoCNAE}"*
+
+${nome}, encontrei ${resultadosISS.length} serviços que contêm esses dígitos:
+
+`;
+        
+        const max = Math.min(resultadosISS.length, 8); // Limita a 8 resultados
+        for (let i = 0; i < max; i++) {
+          const item = resultadosISS[i];
+          resposta += `*${i + 1}.* Item ${item.codigoSubitem}
+${item.descricaoSubitem}
+💰 Alíquota: ${(parseFloat(item.aliquota) * 100).toFixed(1)}%
+
+`;
+        }
+        
+        if (resultadosISS.length > 8) {
+          resposta += `... e mais ${resultadosISS.length - 8} serviços.
+
+`;
+        }
+        
+        resposta += `Para ver as informações completas de um serviço específico, digite o código do subitem completo.
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
+        
+        return resposta;
+      }
     }
   }
 
@@ -779,8 +964,8 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
     return `${nome}, digite *2* para ver todas as opções sobre certidões ou acesse o Portal do Contribuinte.`;
   }
 
-  if (msgLimpa.includes("nota fiscal") || msgLimpa.includes("nfse") || msgLimpa.includes("nfs-e")) {
-    return `${nome}, digite *3* para ver todas as opções sobre NFSe.`;
+  if (msgLimpa.includes("nota fiscal") || msgLimpa.includes("nfse") || msgLimpa.includes("nfs-e") || msgLimpa.includes("issqn") || msgLimpa.includes("iss")) {
+    return `${nome}, digite *3* para ver todas as opções sobre NFSe e ISSQN.`;
   }
 
   if (msgLimpa.includes("substituto tributario") || msgLimpa.includes("substitutos")) {
