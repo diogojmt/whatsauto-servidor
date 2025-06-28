@@ -1,6 +1,61 @@
 const express = require("express");
 const qs = require("querystring"); // módulo nativo do Node
+const fs = require("fs");
 const app = express();
+
+// ---------- Carregar dados da TFLF ----------
+let dadosTFLF = [];
+
+function carregarDadosTFLF() {
+  try {
+    const conteudo = fs.readFileSync("vlr_tlf_20_25.txt", "utf8");
+    const linhas = conteudo.split("\n");
+    
+    dadosTFLF = [];
+    
+    // Pula a primeira linha (cabeçalho)
+    for (let i = 1; i < linhas.length; i++) {
+      const linha = linhas[i].trim();
+      if (linha) {
+        const colunas = linha.split("|");
+        if (colunas.length >= 9) {
+          dadosTFLF.push({
+            codigo: colunas[0],
+            cnae: colunas[1],
+            descricao: colunas[2],
+            tflf2020: colunas[3],
+            tflf2021: colunas[4],
+            tflf2022: colunas[5],
+            tflf2023: colunas[6],
+            tflf2024: colunas[7],
+            tflf2025: colunas[8]
+          });
+        }
+      }
+    }
+    console.log(`✅ Carregados ${dadosTFLF.length} registros da TFLF`);
+  } catch (error) {
+    console.error("❌ Erro ao carregar dados da TFLF:", error);
+  }
+}
+
+// Função para buscar por CNAE (desconsiderando letras iniciais)
+function buscarPorCNAE(digitosCNAE) {
+  if (!digitosCNAE || digitosCNAE.length < 4) {
+    return null;
+  }
+  
+  const resultados = dadosTFLF.filter(item => {
+    // Remove letras do início da CNAE e mantém só números
+    const cnaeNumeros = item.cnae.replace(/^[A-Za-z]+/, "");
+    return cnaeNumeros.includes(digitosCNAE);
+  });
+  
+  return resultados;
+}
+
+// Carregar dados na inicialização
+carregarDadosTFLF();
 
 // ---------- LOG bruto ----------
 app.use((req, res, next) => {
@@ -39,7 +94,7 @@ Escolha uma das opções abaixo digitando o número:
 *2* - 📄 Certidões de Regularidade Fiscal
 *3* - 🧾 NFSe
 *4* - 📋 Lista de Substitutos Tributários
-*5* - 💰 Valor da TFLF 2025
+*5* - 💰 TFLF 2025
 *0* - 👋 Encerrar Atendimento
 
 Digite o número da opção desejada ou descreva sua dúvida.`;
@@ -553,17 +608,109 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
   if (msgLimpa.trim() === "5" || msgLimpa.includes("opcao 5")) {
-    return `💰 *Valor da TFLF 2025*
+    return `💰 *TFLF 2025*
 
-${nome}, para consultar os valores da TFLF 2025:
+${nome}, escolha uma das opções abaixo digitando o número:
+
+*5.1* - 🔍 Consultar Valores por CNAE
+*5.2* - 📋 Baixar Anexo I do CTM (Planilha Geral)
+
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+  }
+
+  if (msgLimpa.trim() === "5.1" || msgLimpa.includes("opcao 5.1")) {
+    return `🔍 *Consultar Valores por CNAE*
+
+${nome}, para consultar o valor da TFLF por atividade:
+
+📝 *Digite o código CNAE da sua atividade:*
+• Mínimo 4 dígitos
+• Exemplo: 4711 (para comércio varejista)
+• Apenas números, sem letras
+
+O sistema buscará todas as atividades que contenham esses dígitos.
+
+Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para encerrar.`;
+  }
+
+  if (msgLimpa.trim() === "5.2" || msgLimpa.includes("opcao 5.2")) {
+    return `📋 *Baixar Anexo I do CTM (Planilha Geral)*
+
+${nome}, para consultar a planilha completa com todos os valores da TFLF 2025:
 
 🔗 *Link de acesso:*
 https://web.arapiraca.al.gov.br/wp-content/uploads/2021/01/TFLF2020a20251.pdf
 
 📝 *Orientações ao contribuinte:*
-Anexo I da Lei 2.342/2003 - CTM de Arapiraca
+Este documento contém o Anexo I da Lei 2.342/2003 - CTM de Arapiraca com todos os códigos de atividades e respectivos valores da Taxa de Funcionamento e Localização de Atividades (TFLF) de 2020 a 2025.
 
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para encerrar.`;
+  }
+
+  // Verificar se é um código CNAE (números com pelo menos 4 dígitos)
+  const codigoCNAE = msgLimpa.replace(/[^0-9]/g, "");
+  if (codigoCNAE.length >= 4 && dadosTFLF.length > 0) {
+    const resultados = buscarPorCNAE(codigoCNAE);
+    
+    if (resultados && resultados.length > 0) {
+      if (resultados.length === 1) {
+        const item = resultados[0];
+        return `📊 *Valores da TFLF - CNAE ${item.cnae}*
+
+${nome}, aqui estão os valores para a atividade:
+
+🏷️ *Descrição:* ${item.descricao}
+
+💰 *Valores da TFLF:*
+• 2020: R$ ${item.tflf2020}
+• 2021: R$ ${item.tflf2021}
+• 2022: R$ ${item.tflf2022}
+• 2023: R$ ${item.tflf2023}
+• 2024: R$ ${item.tflf2024}
+• 2025: R$ ${item.tflf2025}
+
+Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal ou *0* para encerrar.`;
+      } else {
+        let resposta = `🔍 *Resultados da busca por "${codigoCNAE}"*
+
+${nome}, encontrei ${resultados.length} atividades que contêm esses dígitos:
+
+`;
+        
+        const max = Math.min(resultados.length, 10); // Limita a 10 resultados
+        for (let i = 0; i < max; i++) {
+          const item = resultados[i];
+          resposta += `*${i + 1}.* CNAE ${item.cnae}
+${item.descricao}
+💰 TFLF 2025: R$ ${item.tflf2025}
+
+`;
+        }
+        
+        if (resultados.length > 10) {
+          resposta += `... e mais ${resultados.length - 10} atividades.
+
+`;
+        }
+        
+        resposta += `Para ver os valores completos de uma atividade específica, digite o código CNAE completo.
+
+Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal ou *0* para encerrar.`;
+        
+        return resposta;
+      }
+    } else {
+      return `❌ *Nenhuma atividade encontrada*
+
+${nome}, não encontrei nenhuma atividade com o código "${codigoCNAE}".
+
+💡 *Dicas:*
+• Verifique se digitou pelo menos 4 dígitos
+• Use apenas números (sem letras)
+• Exemplo: 4711 para comércio varejista
+
+Digite *5.2* para baixar a planilha completa, *5.1* para nova consulta ou *menu* para o menu principal.`;
+    }
   }
 
   // Navegação específica de volta aos menus anteriores
@@ -618,7 +765,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
   if (msgLimpa.includes("valor tflf") || msgLimpa.includes("tflf 2025")) {
-    return `${nome}, digite *5* para consultar os valores da TFLF 2025.`;
+    return `${nome}, digite *5* para acessar as opções da TFLF 2025: consultar por CNAE ou baixar planilha completa.`;
   }
 
   // Resposta padrão para mensagens não reconhecidas
@@ -631,7 +778,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
 • Digite *2* para Certidões de Regularidade Fiscal
 • Digite *3* para NFSe
 • Digite *4* para Lista de Substitutos Tributários
-• Digite *5* para Valor da TFLF 2025
+• Digite *5* para TFLF 2025
 • Digite *0* para encerrar o atendimento
 
 🏛️ *Ou compareça pessoalmente:*
