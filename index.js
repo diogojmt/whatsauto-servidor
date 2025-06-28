@@ -102,6 +102,27 @@ function buscarPorCodigoServico(digitosServico) {
   return resultados;
 }
 
+// Função para buscar por descrição de serviço
+function buscarPorDescricaoServico(termoBusca) {
+  if (!termoBusca || termoBusca.length < 3) {
+    return null;
+  }
+  
+  const termo = termoBusca.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+  
+  const resultados = dadosISS.filter(item => {
+    const descricaoLimpa = item.descricaoSubitem.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+    
+    return descricaoLimpa.includes(termo);
+  });
+  
+  return resultados;
+}
+
 // Carregar dados na inicialização
 carregarDadosTFLF();
 carregarDadosISS();
@@ -649,14 +670,19 @@ Digite *3.3* para voltar aos manuais, *3* para NFSe, *menu* para o menu principa
 
 ${nome}, para consultar informações sobre alíquotas, deduções e local de tributação:
 
-📝 *Digite o código do item de serviço:*
+📝 *Formas de consulta:*
+
+🔢 *Por código do item de serviço:*
 • Conforme Lei Complementar 116/2003
 • Mínimo 3 dígitos
 • Exemplo: 102 (para Programação)
 • Exemplo: 1402 (para Assistência técnica)
-• Apenas números, sem letras
 
-O sistema buscará todas as atividades que contenham esses dígitos.
+📝 *Por descrição do serviço:*
+• Digite parte da descrição da atividade
+• Mínimo 3 caracteres
+• Exemplo: "programação" ou "assistência"
+• Exemplo: "medicina" ou "engenharia"
 
 Digite *3* para voltar ao menu NFSe e ISSQN, *menu* para o menu principal ou *0* para encerrar.`;
   }
@@ -715,6 +741,69 @@ Este documento contém o Anexo I da Lei 2.342/2003 - CTM de Arapiraca com todos 
 Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
+  // Verificar se é uma busca por descrição de serviço (texto com pelo menos 3 caracteres e não apenas números)
+  const contemLetras = /[a-zA-Z]/.test(msgLimpa);
+  if (contemLetras && msgLimpa.length >= 3 && dadosISS.length > 0) {
+    const resultados = buscarPorDescricaoServico(msgLimpa);
+    
+    if (resultados && resultados.length > 0) {
+      if (resultados.length === 1) {
+        const item = resultados[0];
+        return `📊 *Informações do ISS - Item ${item.codigoSubitem}*
+
+${nome}, aqui estão as informações para o serviço:
+
+🏷️ *Item:* ${item.codigoItem} - ${item.descricaoItem}
+📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
+
+💰 *Informações Tributárias:*
+• Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+• Dedução da base de cálculo: ${item.percentualDeducao}
+• Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
+      } else {
+        let resposta = `🔍 *Resultados da busca por "${msgLimpa}"*
+
+${nome}, encontrei ${resultados.length} serviços relacionados:
+
+`;
+        
+        const max = Math.min(resultados.length, 10);
+        for (let i = 0; i < max; i++) {
+          const item = resultados[i];
+          resposta += `*${i + 1}.* Item ${item.codigoSubitem} - ${item.descricaoSubitem}
+💰 Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+
+`;
+        }
+        
+        if (resultados.length > 10) {
+          resposta += `... e mais ${resultados.length - 10} serviços.
+
+`;
+        }
+        
+        resposta += `Para ver as informações completas de um serviço específico, digite o código do item (ex: ${resultados[0].codigoSubitem}).
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
+        
+        return resposta;
+      }
+    } else {
+      return `❌ *Nenhum serviço encontrado*
+
+${nome}, não encontrei nenhum serviço com a descrição "${msgLimpa}".
+
+💡 *Dicas:*
+• Tente usar termos mais gerais (ex: "medicina" em vez de "médico")
+• Verifique a grafia das palavras
+• Use pelo menos 3 caracteres
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o menu principal.`;
+    }
+  }
+
   // Verificar se é um código de serviço ISS (números com 3 dígitos exatos para verificar primeiro)
   const codigoNumeros = msgLimpa.replace(/[^0-9]/g, "");
   if (codigoNumeros.length === 3 && dadosISS.length > 0) {
@@ -730,10 +819,10 @@ ${nome}, aqui estão as informações para o serviço:
 🏷️ *Item:* ${item.codigoItem} - ${item.descricaoItem}
 📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
 
-💰 *Tributação:*
-• Alíquota: ${(parseFloat(item.aliquota) * 100).toFixed(1)}%
-• Dedução permitida: ${item.percentualDeducao}
-• Permite tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
+💰 *Informações Tributárias:*
+• Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+• Dedução da base de cálculo: ${item.percentualDeducao}
+• Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
 
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
       } else {
@@ -748,7 +837,7 @@ ${nome}, encontrei ${resultados.length} serviços que contêm esses dígitos:
           const item = resultados[i];
           resposta += `*${i + 1}.* Item ${item.codigoSubitem}
 ${item.descricaoSubitem}
-💰 Alíquota: ${(parseFloat(item.aliquota) * 100).toFixed(1)}%
+💰 Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
 
 `;
         }
@@ -860,10 +949,10 @@ ${nome}, aqui estão as informações para o serviço:
 🏷️ *Item:* ${item.codigoItem} - ${item.descricaoItem}
 📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
 
-💰 *Tributação:*
-• Alíquota: ${(parseFloat(item.aliquota) * 100).toFixed(1)}%
-• Dedução permitida: ${item.percentualDeducao}
-• Permite tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
+💰 *Informações Tributárias:*
+• Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+• Dedução da base de cálculo: ${item.percentualDeducao}
+• Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
 
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
       } else {
@@ -878,7 +967,7 @@ ${nome}, encontrei ${resultadosISS.length} serviços que contêm esses dígitos:
           const item = resultadosISS[i];
           resposta += `*${i + 1}.* Item ${item.codigoSubitem}
 ${item.descricaoSubitem}
-💰 Alíquota: ${(parseFloat(item.aliquota) * 100).toFixed(1)}%
+💰 Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
 
 `;
         }
