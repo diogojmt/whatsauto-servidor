@@ -662,12 +662,12 @@ ${nome}, aqui estão os valores para a atividade:
 🏷️ *Descrição:* ${item.descricao}
 
 💰 *Valores da TFLF:*
-• 2020: R$ ${parseFloat(item.tflf2020).toFixed(2)}
-• 2021: R$ ${parseFloat(item.tflf2021).toFixed(2)}
-• 2022: R$ ${parseFloat(item.tflf2022).toFixed(2)}
-• 2023: R$ ${parseFloat(item.tflf2023).toFixed(2)}
-• 2024: R$ ${parseFloat(item.tflf2024).toFixed(2)}
-• 2025: R$ ${parseFloat(item.tflf2025).toFixed(2)}
+• 2020: R$ ${parseFloat(item.tflf2020.replace(',', '.')).toFixed(2).replace('.', ',')}
+• 2021: R$ ${parseFloat(item.tflf2021.replace(',', '.')).toFixed(2).replace('.', ',')}
+• 2022: R$ ${parseFloat(item.tflf2022.replace(',', '.')).toFixed(2).replace('.', ',')}
+• 2023: R$ ${parseFloat(item.tflf2023.replace(',', '.')).toFixed(2).replace('.', ',')}
+• 2024: R$ ${parseFloat(item.tflf2024.replace(',', '.')).toFixed(2).replace('.', ',')}
+• 2025: R$ ${parseFloat(item.tflf2025.replace(',', '.')).toFixed(2).replace('.', ',')}
 
 Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal ou *0* para encerrar.`;
       } else {
@@ -682,7 +682,7 @@ ${nome}, encontrei ${resultados.length} atividades que contêm esses dígitos:
           const item = resultados[i];
           resposta += `*${i + 1}.* CNAE ${item.cnae}
 ${item.descricao}
-💰 TFLF 2025: R$ ${parseFloat(item.tflf2025).toFixed(2)}
+💰 TFLF 2025: R$ ${parseFloat(item.tflf2025.replace(',', '.')).toFixed(2).replace('.', ',')}
 
 `;
         }
