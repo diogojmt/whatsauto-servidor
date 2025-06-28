@@ -658,7 +658,7 @@ app.post("/", (req, res) => {
 
   res.json({
     reply: resposta,
-  });
+  }); 
 });
 
 // GET simples
