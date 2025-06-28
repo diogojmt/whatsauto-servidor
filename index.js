@@ -183,6 +183,40 @@ function gerarResposta(message, sender) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
 
+  // Verificar mensagens de agradecimento para encerrar cordialmente
+  if (
+    msgLimpa.includes("obrigado") ||
+    msgLimpa.includes("obrigada") ||
+    msgLimpa.includes("valeu") ||
+    msgLimpa.includes("muito obrigado") ||
+    msgLimpa.includes("muito obrigada") ||
+    msgLimpa.includes("grato") ||
+    msgLimpa.includes("grata") ||
+    msgLimpa.includes("agradeco") ||
+    msgLimpa.includes("brigado") ||
+    msgLimpa.includes("brigada") ||
+    msgLimpa.includes("thanks") ||
+    msgLimpa.includes("thx") ||
+    msgLimpa.includes("vlw") ||
+    msgLimpa.includes("obg")
+  ) {
+    return `😊 *Atendimento Finalizado*
+
+${nome}, foi um prazer ajudá-lo(a) hoje! 
+
+✅ Sua consulta foi atendida com sucesso.
+
+Caso precise de mais informações sobre tributos municipais, estarei sempre aqui para ajudar.
+
+💡 *Lembre-se:*
+• Portal do Contribuinte: https://arapiraca.abaco.com.br/eagata/portal/
+• NFSe: https://www.e-nfs.com.br/arapiraca/portal/
+
+Tenha um excelente dia! 👋
+
+*Atendimento encerrado automaticamente*`;
+  }
+
   // Retorno ao menu principal - palavra-chave "menu"
   if (msgLimpa.includes("menu") || msgLimpa.includes("inicio")) {
     return gerarMenuPrincipal(nome);
