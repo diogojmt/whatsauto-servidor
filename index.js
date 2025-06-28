@@ -89,14 +89,19 @@ function buscarPorCNAE(digitosCNAE) {
 }
 
 // Função para buscar por código de serviço (item da Lei Complementar 116/2003)
-function buscarPorCodigoServico(digitosServico) {
+function buscarPorCodigoServico(digitosServico, buscaExata = false) {
   if (!digitosServico || digitosServico.length < 3) {
     return null;
   }
   
   const resultados = dadosISS.filter(item => {
-    // Busca exata pelo código do subitem
-    return item.codigoSubitem.includes(digitosServico);
+    if (buscaExata) {
+      // Busca exata pelo código do subitem
+      return item.codigoSubitem === digitosServico;
+    } else {
+      // Busca que contém os dígitos
+      return item.codigoSubitem.includes(digitosServico);
+    }
   });
   
   return resultados;
@@ -807,12 +812,13 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
   // Verificar se é um código de serviço ISS (números com 3 dígitos exatos para verificar primeiro)
   const codigoNumeros = msgLimpa.replace(/[^0-9]/g, "");
   if (codigoNumeros.length === 3 && dadosISS.length > 0) {
-    const resultados = buscarPorCodigoServico(codigoNumeros);
+    // Primeiro tenta busca exata
+    let resultados = buscarPorCodigoServico(codigoNumeros, true);
     
     if (resultados && resultados.length > 0) {
-      if (resultados.length === 1) {
-        const item = resultados[0];
-        return `📊 *Informações do ISS - Item ${item.codigoSubitem}*
+      // Encontrou resultado exato
+      const item = resultados[0];
+      return `📊 *Informações do ISS - Item ${item.codigoSubitem}*
 
 ${nome}, aqui estão as informações para o serviço:
 
@@ -825,10 +831,14 @@ ${nome}, aqui estão as informações para o serviço:
 • Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
 
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
-      } else {
+    } else {
+      // Se não encontrou busca exata, tenta busca que contém
+      resultados = buscarPorCodigoServico(codigoNumeros, false);
+      
+      if (resultados && resultados.length > 0) {
         let resposta = `🔍 *Resultados da busca por "${codigoNumeros}"*
 
-${nome}, encontrei ${resultados.length} serviços que contêm esses dígitos:
+${nome}, não encontrei um código exato "${codigoNumeros}", mas encontrei ${resultados.length} serviços que contêm esses dígitos:
 
 `;
         
@@ -853,9 +863,8 @@ ${item.descricaoSubitem}
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
         
         return resposta;
-      }
-    } else {
-      return `❌ *Nenhum serviço encontrado*
+      } else {
+        return `❌ *Nenhum serviço encontrado*
 
 ${nome}, não encontrei nenhum serviço com o código "${codigoNumeros}".
 
@@ -866,6 +875,7 @@ ${nome}, não encontrei nenhum serviço com o código "${codigoNumeros}".
 • Exemplo: 1402 para Assistência técnica
 
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o menu principal.`;
+      }
     }
   }
 
@@ -937,12 +947,13 @@ Digite *5.2* para baixar a planilha completa, *5.1* para nova consulta ou *menu*
 
   // Verificar se é um código de serviço ISS com 4 dígitos (após tentar CNAE)
   if (codigoCNAE.length === 4 && dadosISS.length > 0) {
-    const resultadosISS = buscarPorCodigoServico(codigoCNAE);
+    // Primeiro tenta busca exata
+    let resultadosISS = buscarPorCodigoServico(codigoCNAE, true);
     
     if (resultadosISS && resultadosISS.length > 0) {
-      if (resultadosISS.length === 1) {
-        const item = resultadosISS[0];
-        return `📊 *Informações do ISS - Item ${item.codigoSubitem}*
+      // Encontrou resultado exato
+      const item = resultadosISS[0];
+      return `📊 *Informações do ISS - Item ${item.codigoSubitem}*
 
 ${nome}, aqui estão as informações para o serviço:
 
@@ -955,10 +966,14 @@ ${nome}, aqui estão as informações para o serviço:
 • Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
 
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
-      } else {
+    } else {
+      // Se não encontrou busca exata, tenta busca que contém
+      resultadosISS = buscarPorCodigoServico(codigoCNAE, false);
+      
+      if (resultadosISS && resultadosISS.length > 0) {
         let resposta = `🔍 *Resultados da busca ISS por "${codigoCNAE}"*
 
-${nome}, encontrei ${resultadosISS.length} serviços que contêm esses dígitos:
+${nome}, não encontrei um código exato "${codigoCNAE}", mas encontrei ${resultadosISS.length} serviços que contêm esses dígitos:
 
 `;
         
