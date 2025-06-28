@@ -731,6 +731,29 @@ Para um novo atendimento, digite *menu* ou inicie uma nova conversa.
 Tenha um ótimo dia! 😊`;
   }
 
+  // Mensagens de agradecimento - encerra o atendimento
+  if (
+    msgLimpa.includes("obrigado") ||
+    msgLimpa.includes("obrigada") ||
+    msgLimpa.includes("valeu") ||
+    msgLimpa.includes("muito obrigado") ||
+    msgLimpa.includes("muito obrigada") ||
+    msgLimpa.includes("brigado") ||
+    msgLimpa.includes("brigada") ||
+    msgLimpa.includes("gracas") ||
+    msgLimpa.includes("agradeco")
+  ) {
+    return `😊 *De nada, ${nome}!*
+
+Foi um prazer ajudá-lo(a) hoje!
+
+🏛️ *Prefeitura de Arapiraca - Secretaria da Fazenda*
+
+Para um novo atendimento, digite *menu* ou inicie uma nova conversa.
+
+Tenha um ótimo dia! 👋`;
+  }
+
   if (msgLimpa.includes("atendente")) {
     return `👨‍💼 *Solicitação de Atendimento Humano*
 
