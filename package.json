@@ -1,16 +1,23 @@
 {
-  "name": "nodejs",
+  "name": "whatauto-servidor",
   "version": "1.0.0",
-  "description": "",
+  "description": "Servidor Express para chatbot WhatsAuto (Contribuintes Arapiraca)",
   "main": "index.js",
+  "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^22.13.11",
     "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
