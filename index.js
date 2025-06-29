@@ -10,9 +10,9 @@ function carregarDadosTFLF() {
   try {
     const conteudo = fs.readFileSync("vlr_tlf_20_25.txt", "utf8");
     const linhas = conteudo.split("\n");
-    
+
     dadosTFLF = [];
-    
+
     // Pula a primeira linha (cabeçalho)
     for (let i = 1; i < linhas.length; i++) {
       const linha = linhas[i].trim();
@@ -28,7 +28,7 @@ function carregarDadosTFLF() {
             tflf2022: colunas[5],
             tflf2023: colunas[6],
             tflf2024: colunas[7],
-            tflf2025: colunas[8]
+            tflf2025: colunas[8],
           });
         }
       }
@@ -46,9 +46,9 @@ function carregarDadosISS() {
   try {
     const conteudo = fs.readFileSync("ISS_Arapiraca.txt", "utf8");
     const linhas = conteudo.split("\n");
-    
+
     dadosISS = [];
-    
+
     // Pula a primeira linha (cabeçalho)
     for (let i = 1; i < linhas.length; i++) {
       const linha = linhas[i].trim();
@@ -62,7 +62,7 @@ function carregarDadosISS() {
             descricaoSubitem: colunas[3],
             aliquota: colunas[4],
             percentualDeducao: colunas[5],
-            tributacaoForaArapiraca: colunas[6]
+            tributacaoForaArapiraca: colunas[6],
           });
         }
       }
@@ -78,13 +78,13 @@ function buscarPorCNAE(digitosCNAE) {
   if (!digitosCNAE || digitosCNAE.length < 4) {
     return null;
   }
-  
-  const resultados = dadosTFLF.filter(item => {
+
+  const resultados = dadosTFLF.filter((item) => {
     // Remove letras do início da CNAE e mantém só números
     const cnaeNumeros = item.cnae.replace(/^[A-Za-z]+/, "");
     return cnaeNumeros.includes(digitosCNAE);
   });
-  
+
   return resultados;
 }
 
@@ -93,8 +93,8 @@ function buscarPorCodigoServico(digitosServico, buscaExata = false) {
   if (!digitosServico || digitosServico.length < 3) {
     return null;
   }
-  
-  const resultados = dadosISS.filter(item => {
+
+  const resultados = dadosISS.filter((item) => {
     if (buscaExata) {
       // Busca exata pelo código do subitem
       return item.codigoSubitem === digitosServico;
@@ -103,7 +103,7 @@ function buscarPorCodigoServico(digitosServico, buscaExata = false) {
       return item.codigoSubitem.includes(digitosServico);
     }
   });
-  
+
   return resultados;
 }
 
@@ -112,19 +112,21 @@ function buscarPorDescricaoServico(termoBusca) {
   if (!termoBusca || termoBusca.length < 3) {
     return null;
   }
-  
-  const termo = termoBusca.toLowerCase()
+
+  const termo = termoBusca
+    .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
-  
-  const resultados = dadosISS.filter(item => {
-    const descricaoLimpa = item.descricaoSubitem.toLowerCase()
+
+  const resultados = dadosISS.filter((item) => {
+    const descricaoLimpa = item.descricaoSubitem
+      .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
-    
+
     return descricaoLimpa.includes(termo);
   });
-  
+
   return resultados;
 }
 
@@ -572,10 +574,7 @@ Digite *3* para voltar às opções de NFSe, *menu* para o menu principal ou *0*
   }
 
   // Navegação por números - opção 3.3 do menu NFSe
-  if (
-    msgLimpa.includes("opcao 3.3") ||
-    msgLimpa.includes("manuais nfse")
-  ) {
+  if (msgLimpa.includes("opcao 3.3") || msgLimpa.includes("manuais nfse")) {
     return `📖 *Manuais de Utilização do Sistema*
 
 ${nome}, escolha um dos manuais abaixo digitando o número:
@@ -784,7 +783,7 @@ Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para en
   const contemLetras = /[a-zA-Z]/.test(msgLimpa);
   if (contemLetras && msgLimpa.length >= 3 && dadosISS.length > 0) {
     const resultados = buscarPorDescricaoServico(msgLimpa);
-    
+
     if (resultados && resultados.length > 0) {
       if (resultados.length === 1) {
         const item = resultados[0];
@@ -796,7 +795,7 @@ ${nome}, aqui estão as informações para o serviço:
 📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
 
 💰 *Informações Tributárias:*
-• Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+• Alíquota: ${(parseFloat(item.aliquota.replace(",", ".")) * 100).toFixed(1)}%
 • Dedução da base de cálculo: ${item.percentualDeducao}
 • Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
 
@@ -807,26 +806,28 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu pr
 ${nome}, encontrei ${resultados.length} serviços relacionados:
 
 `;
-        
+
         const max = Math.min(resultados.length, 10);
         for (let i = 0; i < max; i++) {
           const item = resultados[i];
-          resposta += `*${i + 1}.* Item ${item.codigoSubitem} - ${item.descricaoSubitem}
-💰 Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+          resposta += `*${i + 1}.* Item ${item.codigoSubitem} - ${
+            item.descricaoSubitem
+          }
+💰 Alíquota: ${(parseFloat(item.aliquota.replace(",", ".")) * 100).toFixed(1)}%
 
 `;
         }
-        
+
         if (resultados.length > 10) {
           resposta += `... e mais ${resultados.length - 10} serviços.
 
 `;
         }
-        
+
         resposta += `Para ver as informações completas de um serviço específico, digite o código do item (ex: ${resultados[0].codigoSubitem}).
 
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
-        
+
         return resposta;
       }
     } else {
@@ -848,7 +849,7 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
   if (codigoNumeros.length === 3 && dadosISS.length > 0) {
     // Primeiro tenta busca exata
     let resultados = buscarPorCodigoServico(codigoNumeros, true);
-    
+
     if (resultados && resultados.length > 0) {
       // Encontrou resultado exato
       const item = resultados[0];
@@ -860,7 +861,7 @@ ${nome}, aqui estão as informações para o serviço:
 📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
 
 💰 *Informações Tributárias:*
-• Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+• Alíquota: ${(parseFloat(item.aliquota.replace(",", ".")) * 100).toFixed(1)}%
 • Dedução da base de cálculo: ${item.percentualDeducao}
 • Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
 
@@ -868,34 +869,34 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu pr
     } else {
       // Se não encontrou busca exata, tenta busca que contém
       resultados = buscarPorCodigoServico(codigoNumeros, false);
-      
+
       if (resultados && resultados.length > 0) {
         let resposta = `🔍 *Resultados da busca por "${codigoNumeros}"*
 
 ${nome}, não encontrei um código exato "${codigoNumeros}", mas encontrei ${resultados.length} serviços que contêm esses dígitos:
 
 `;
-        
+
         const max = Math.min(resultados.length, 8); // Limita a 8 resultados
         for (let i = 0; i < max; i++) {
           const item = resultados[i];
           resposta += `*${i + 1}.* Item ${item.codigoSubitem}
 ${item.descricaoSubitem}
-💰 Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+💰 Alíquota: ${(parseFloat(item.aliquota.replace(",", ".")) * 100).toFixed(1)}%
 
 `;
         }
-        
+
         if (resultados.length > 8) {
           resposta += `... e mais ${resultados.length - 8} serviços.
 
 `;
         }
-        
+
         resposta += `Para ver as informações completas de um serviço específico, digite o código do subitem completo.
 
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
-        
+
         return resposta;
       } else {
         return `❌ *Nenhum serviço encontrado*
@@ -917,7 +918,7 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
   const codigoCNAE = msgLimpa.replace(/[^0-9]/g, "");
   if (codigoCNAE.length >= 4 && dadosTFLF.length > 0) {
     const resultados = buscarPorCNAE(codigoCNAE);
-    
+
     if (resultados && resultados.length > 0) {
       if (resultados.length === 1) {
         const item = resultados[0];
@@ -928,12 +929,24 @@ ${nome}, aqui estão os valores para a atividade:
 🏷️ *Descrição:* ${item.descricao}
 
 💰 *Valores da TFLF:*
-• 2020: R$ ${parseFloat(item.tflf2020.replace(',', '.')).toFixed(2).replace('.', ',')}
-• 2021: R$ ${parseFloat(item.tflf2021.replace(',', '.')).toFixed(2).replace('.', ',')}
-• 2022: R$ ${parseFloat(item.tflf2022.replace(',', '.')).toFixed(2).replace('.', ',')}
-• 2023: R$ ${parseFloat(item.tflf2023.replace(',', '.')).toFixed(2).replace('.', ',')}
-• 2024: R$ ${parseFloat(item.tflf2024.replace(',', '.')).toFixed(2).replace('.', ',')}
-• 2025: R$ ${parseFloat(item.tflf2025.replace(',', '.')).toFixed(2).replace('.', ',')}
+• 2020: R$ ${parseFloat(item.tflf2020.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2021: R$ ${parseFloat(item.tflf2021.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2022: R$ ${parseFloat(item.tflf2022.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2023: R$ ${parseFloat(item.tflf2023.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2024: R$ ${parseFloat(item.tflf2024.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2025: R$ ${parseFloat(item.tflf2025.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
 
 Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal ou *0* para encerrar.`;
       } else {
@@ -942,27 +955,29 @@ Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal 
 ${nome}, encontrei ${resultados.length} atividades que contêm esses dígitos:
 
 `;
-        
+
         const max = Math.min(resultados.length, 10); // Limita a 10 resultados
         for (let i = 0; i < max; i++) {
           const item = resultados[i];
           resposta += `*${i + 1}.* CNAE ${item.cnae}
 ${item.descricao}
-💰 TFLF 2025: R$ ${parseFloat(item.tflf2025.replace(',', '.')).toFixed(2).replace('.', ',')}
+💰 TFLF 2025: R$ ${parseFloat(item.tflf2025.replace(",", "."))
+            .toFixed(2)
+            .replace(".", ",")}
 
 `;
         }
-        
+
         if (resultados.length > 10) {
           resposta += `... e mais ${resultados.length - 10} atividades.
 
 `;
         }
-        
+
         resposta += `Para ver os valores completos de uma atividade específica, digite o código CNAE completo.
 
 Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal ou *0* para encerrar.`;
-        
+
         return resposta;
       }
     } else {
@@ -983,7 +998,7 @@ Digite *5.2* para baixar a planilha completa, *5.1* para nova consulta ou *menu*
   if (codigoCNAE.length === 4 && dadosISS.length > 0) {
     // Primeiro tenta busca exata
     let resultadosISS = buscarPorCodigoServico(codigoCNAE, true);
-    
+
     if (resultadosISS && resultadosISS.length > 0) {
       // Encontrou resultado exato
       const item = resultadosISS[0];
@@ -995,7 +1010,7 @@ ${nome}, aqui estão as informações para o serviço:
 📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
 
 💰 *Informações Tributárias:*
-• Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+• Alíquota: ${(parseFloat(item.aliquota.replace(",", ".")) * 100).toFixed(1)}%
 • Dedução da base de cálculo: ${item.percentualDeducao}
 • Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
 
@@ -1003,34 +1018,34 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu pr
     } else {
       // Se não encontrou busca exata, tenta busca que contém
       resultadosISS = buscarPorCodigoServico(codigoCNAE, false);
-      
+
       if (resultadosISS && resultadosISS.length > 0) {
         let resposta = `🔍 *Resultados da busca ISS por "${codigoCNAE}"*
 
 ${nome}, não encontrei um código exato "${codigoCNAE}", mas encontrei ${resultadosISS.length} serviços que contêm esses dígitos:
 
 `;
-        
+
         const max = Math.min(resultadosISS.length, 8); // Limita a 8 resultados
         for (let i = 0; i < max; i++) {
           const item = resultadosISS[i];
           resposta += `*${i + 1}.* Item ${item.codigoSubitem}
 ${item.descricaoSubitem}
-💰 Alíquota: ${(parseFloat(item.aliquota.replace(',', '.')) * 100).toFixed(1)}%
+💰 Alíquota: ${(parseFloat(item.aliquota.replace(",", ".")) * 100).toFixed(1)}%
 
 `;
         }
-        
+
         if (resultadosISS.length > 8) {
           resposta += `... e mais ${resultadosISS.length - 8} serviços.
 
 `;
         }
-        
+
         resposta += `Para ver as informações completas de um serviço específico, digite o código do subitem completo.
 
 Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
-        
+
         return resposta;
       }
     }
@@ -1042,7 +1057,11 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu pr
   }
 
   // Navegação com "0" - sempre encerra no menu principal
-  if (msgLimpa.trim() === "0" || msgLimpa.includes("opcao 0") || msgLimpa.includes("encerrar")) {
+  if (
+    msgLimpa.trim() === "0" ||
+    msgLimpa.includes("opcao 0") ||
+    msgLimpa.includes("encerrar")
+  ) {
     return `👋 *Encerrando Atendimento*
 
 ${nome}, agradecemos por utilizar nossos serviços digitais!
@@ -1102,11 +1121,20 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
     return `${nome}, digite *2* para ver todas as opções sobre certidões ou acesse o Portal do Contribuinte.`;
   }
 
-  if (msgLimpa.includes("nota fiscal") || msgLimpa.includes("nfse") || msgLimpa.includes("nfs-e") || msgLimpa.includes("issqn") || msgLimpa.includes("iss")) {
+  if (
+    msgLimpa.includes("nota fiscal") ||
+    msgLimpa.includes("nfse") ||
+    msgLimpa.includes("nfs-e") ||
+    msgLimpa.includes("issqn") ||
+    msgLimpa.includes("iss")
+  ) {
     return `${nome}, digite *3* para ver todas as opções sobre NFSe e ISSQN.`;
   }
 
-  if (msgLimpa.includes("substituto tributario") || msgLimpa.includes("substitutos")) {
+  if (
+    msgLimpa.includes("substituto tributario") ||
+    msgLimpa.includes("substitutos")
+  ) {
     return `${nome}, digite *4* para consultar a Lista de Substitutos Tributários.`;
   }
 
@@ -1151,7 +1179,7 @@ app.post("/", (req, res) => {
 
   res.json({
     reply: resposta,
-  }); 
+  });
 });
 
 // GET simples
