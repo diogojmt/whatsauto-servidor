@@ -1188,9 +1188,7 @@ app.post("/", (req, res) => {
   // Se for mensagem do sistema, não responder (evitar loop)
   if (ehMensagemDoSistema) {
     console.log('🔄 Mensagem do sistema detectada - Não respondendo para evitar loop');
-    return res.json({
-      reply: 'Sistema: Loop evitado'
-    });
+    return res.status(200).end(); // Não envia resposta para evitar loop
   }
 
   const resposta = gerarResposta(message, sender);
@@ -1217,7 +1215,7 @@ app.post("/mensagem", (req, res) => {
   // Se for mensagem do sistema, não responder (evitar loop)
   if (ehMensagemDoSistema) {
     console.log('🔄 Mensagem do sistema detectada - Não respondendo para evitar loop');
-    return res.send('Sistema: Loop evitado');
+    return res.status(200).end(); // Não envia resposta para evitar loop
   }
   
   const resposta = gerarResposta(message, sender);
