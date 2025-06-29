@@ -298,7 +298,7 @@ Tenha um excelente dia! 👋
 
   // Navegação com "1" - exibe instruções do Portal de Segunda Via
   if (msgLimpa.trim() === "1") {
-    definirEstadoUsuario(sender, 'opcao_1_dams');
+    definirEstadoUsuario(sender, 'menu_principal');
     return criarRespostaComMidia(
       `📄 *Segunda via de DAM's*
 
@@ -313,18 +313,6 @@ https://arapiraca.abaco.com.br/eagata/portal/
 
 📧 *Dúvidas ou informações:*
 smfaz@arapiraca.al.gov.br
-
----
-
-*Opções específicas disponíveis:*
-
-*1.1* - 🏠 IPTU 2025
-*1.2* - 🏪 TFLF 2025
-*1.3* - 🧾 ISSQN Próprio 2025
-*1.4* - 📋 ISSQN Retido 2025
-*1.5* - 💰 Outras Taxas/Encargos 2025
-*1.6* - 📊 Outras Dívidas Diversas 2025
-*1.7* - ⚖️ Débitos Inscritos em Dívida Ativa
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
       'Portal_2_vias.png'
@@ -333,7 +321,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
 
   // Navegação por números - opção 1 do menu principal
   if (msgLimpa.includes("opcao 1")) {
-    definirEstadoUsuario(sender, 'opcao_1_dams');
+    definirEstadoUsuario(sender, 'menu_principal');
     return criarRespostaComMidia(
       `📄 *Segunda via de DAM's*
 
@@ -349,148 +337,12 @@ https://arapiraca.abaco.com.br/eagata/portal/
 📧 *Dúvidas ou informações:*
 smfaz@arapiraca.al.gov.br
 
----
-
-*Opções específicas disponíveis:*
-
-*1.1* - 🏠 IPTU 2025
-*1.2* - 🏪 TFLF 2025
-*1.3* - 🧾 ISSQN Próprio 2025
-*1.4* - 📋 ISSQN Retido 2025
-*1.5* - 💰 Outras Taxas/Encargos 2025
-*1.6* - 📊 Outras Dívidas Diversas 2025
-*1.7* - ⚖️ Débitos Inscritos em Dívida Ativa
-
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
       'Portal_2_vias.png'
     );
   }
 
-  if (
-    msgLimpa.trim() === "1.1" ||
-    msgLimpa.includes("opcao 1.1") ||
-    msgLimpa.includes("iptu 2025")
-  ) {
-    return `🏠 *IPTU 2025*
 
-${nome}, para emitir a segunda via do IPTU 2025:
-
-🔗 *Link de acesso:*
-https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?12,iptu
-
-📝 *Orientações ao contribuinte:*
-Para facilitar a consulta tenha em mãos o número da Inscrição do Imóvel
-
-Digite *1* para voltar às opções de DAM's, *menu* para o menu principal ou *0* para encerrar.`;
-  }
-
-  if (
-    msgLimpa.trim() === "1.2" ||
-    msgLimpa.includes("opcao 1.2") ||
-    msgLimpa.includes("tflf 2025")
-  ) {
-    return `🏪 *TFLF 2025*
-
-${nome}, para emitir a segunda via do TFLF 2025:
-
-🔗 *Link de acesso:*
-https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?15,tflf
-
-📝 *Orientações ao contribuinte:*
-Para facilitar a consulta tenha em mãos o número da Inscrição Municipal, CPF ou CNPJ
-
-Digite *1* para voltar às opções de DAM's, *menu* para o menu principal ou *0* para encerrar.`;
-  }
-
-  if (
-    msgLimpa.trim() === "1.3" ||
-    msgLimpa.includes("opcao 1.3") ||
-    msgLimpa.includes("issqn proprio")
-  ) {
-    return `🧾 *ISSQN Próprio 2025*
-
-${nome}, para emitir a segunda via do ISSQN Próprio 2025:
-
-🔗 *Link de acesso:*
-https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?13,issqn
-
-📝 *Orientações ao contribuinte:*
-Para facilitar a consulta tenha em mãos o número da Inscrição Municipal, CPF ou CNPJ
-
-Digite *1* para voltar às opções de DAM's, *menu* para o menu principal ou *0* para encerrar.`;
-  }
-
-  if (
-    msgLimpa.trim() === "1.4" ||
-    msgLimpa.includes("opcao 1.4") ||
-    msgLimpa.includes("issqn retido")
-  ) {
-    return `📋 *ISSQN Retido 2025*
-
-${nome}, para emitir a segunda via do ISSQN Retido 2025:
-
-🔗 *Link de acesso:*
-https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?14,substituicao-tributaria
-
-📝 *Orientações ao contribuinte:*
-Para facilitar a consulta tenha em mãos o número da Inscrição Municipal, CPF ou CNPJ
-
-Digite *1* para voltar às opções de DAM's, *menu* para o menu principal ou *0* para encerrar.`;
-  }
-
-  if (
-    msgLimpa.trim() === "1.5" ||
-    msgLimpa.includes("opcao 1.5") ||
-    msgLimpa.includes("outras taxas")
-  ) {
-    return `💰 *Outras Taxas/Encargos 2025*
-
-${nome}, para emitir a segunda via de Outras Taxas/Encargos 2025:
-
-🔗 *Link de acesso:*
-https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?16,taxas-enc-pecuniarios
-
-📝 *Orientações ao contribuinte:*
-Para facilitar a consulta tenha em mãos o número do CPF ou CNPJ
-
-Digite *1* para voltar às opções de DAM's, *menu* para o menu principal ou *0* para encerrar.`;
-  }
-
-  if (
-    msgLimpa.trim() === "1.6" ||
-    msgLimpa.includes("opcao 1.6") ||
-    msgLimpa.includes("dividas diversas")
-  ) {
-    return `📊 *Outras Dívidas Diversas 2025*
-
-${nome}, para emitir a segunda via de Outras Dívidas Diversas 2025:
-
-🔗 *Link de acesso:*
-https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?43,divida-diversa
-
-📝 *Orientações ao contribuinte:*
-Para facilitar a consulta tenha em mãos o número do CPF ou CNPJ
-
-Digite *1* para voltar às opções de DAM's, *menu* para o menu principal ou *0* para encerrar.`;
-  }
-
-  if (
-    msgLimpa.trim() === "1.7" ||
-    msgLimpa.includes("opcao 1.7") ||
-    msgLimpa.includes("divida ativa")
-  ) {
-    return `⚖️ *Débitos Inscritos em Dívida Ativa*
-
-${nome}, para emitir a segunda via de Débitos Inscritos em Dívida Ativa:
-
-🔗 *Link de acesso:*
-https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?11,divida-ativa
-
-📝 *Orientações ao contribuinte:*
-Para facilitar a consulta tenha em mãos a Inscrição do Imóvel ou a Inscrição Municipal
-
-Digite *1* para voltar às opções de DAM's, *menu* para o menu principal ou *0* para encerrar.`;
-  }
 
   // Navegação com "2" - retorna ao menu Certidões se digitado sozinho
   if (msgLimpa.trim() === "2") {
