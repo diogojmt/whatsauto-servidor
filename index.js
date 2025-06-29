@@ -226,6 +226,11 @@ function criarRespostaComMidia(texto, imagemPath = null, req = null) {
         "https://github.com/diogojmt/whatsauto-servidor/blob/main/imagens/Portal_2_vias.png?raw=true";
     }
 
+    if (imagemPath === "Portal_3_vias.png") {
+      linkImagem =
+        "https://github.com/diogojmt/whatsauto-servidor/blob/main/imagens/Portal_3_vias.png?raw=true";
+    }
+
     if (linkImagem) {
       return {
         type: "media",
@@ -357,44 +362,52 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
     );
   }
 
-  // Navegação com "2" - retorna ao menu Certidões se digitado sozinho
+  // Navegação com "2" - exibe instruções do Portal de Certidões e Autenticações
   if (msgLimpa.trim() === "2") {
-    definirEstadoUsuario(sender, "opcao_2_certidoes");
-    return `📄 *Certidões de Regularidade Fiscal*
+    definirEstadoUsuario(sender, "menu_principal");
+    return criarRespostaComMidia(
+      `📄 *Certidões de Regularidade Fiscal e Autenticações*
 
-${nome}, escolha uma das opções abaixo digitando o número:
+${nome}, para emitir certidões e autenticações, siga as instruções:
 
-*2.1* - 🏘️ Certidão Imobiliária
-*2.2* - 📋 Certidão Geral  
-*2.3* - ✅ Autenticidade
+🔗 *Acesse o link:*
+https://arapiraca.abaco.com.br/eagata/portal/
 
-🌐 Portal do Contribuinte: https://arapiraca.abaco.com.br/eagata/portal/
+📋 *Instruções:*
+• No portal, escolha uma das opções disponíveis para Emissão de Certidões/Autenticações de Documentos
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
 
-Para dúvidas, procure a Secretaria da Fazenda:
-📍 Rua Samaritana, 1.180 - Bairro Santa Edwiges - Próximo ao Shopping
-🗺️ https://maps.google.com/?q=Rua+Samaritana,+1180,+Arapiraca,+AL
+📧 *Dúvidas ou informações:*
+smfaz@arapiraca.al.gov.br
 
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+      "Portal_3_vias.png",
+      req
+    );
   }
 
   // Navegação por números - opção 2 do menu principal
   if (msgLimpa.includes("opcao 2")) {
-    definirEstadoUsuario(sender, "opcao_2_certidoes");
-    return `📄 *Certidões de Regularidade Fiscal*
+    definirEstadoUsuario(sender, "menu_principal");
+    return criarRespostaComMidia(
+      `📄 *Certidões de Regularidade Fiscal e Autenticações*
 
-${nome}, escolha uma das opções abaixo digitando o número:
+${nome}, para emitir certidões e autenticações, siga as instruções:
 
-*2.1* - 🏘️ Certidão Imobiliária
-*2.2* - 📋 Certidão Geral  
-*2.3* - ✅ Autenticidade
+🔗 *Acesse o link:*
+https://arapiraca.abaco.com.br/eagata/portal/
 
-🌐 Portal do Contribuinte: https://arapiraca.abaco.com.br/eagata/portal/
+📋 *Instruções:*
+• No portal, escolha uma das opções disponíveis para Emissão de Certidões/Autenticações de Documentos
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
 
-Para dúvidas, procure a Secretaria da Fazenda:
-📍 Rua Samaritana, 1.180 - Bairro Santa Edwiges - Próximo ao Shopping
-🗺️ https://maps.google.com/?q=Rua+Samaritana,+1180,+Arapiraca,+AL
+📧 *Dúvidas ou informações:*
+smfaz@arapiraca.al.gov.br
 
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+      "Portal_3_vias.png",
+      req
+    );
   }
 
   if (
@@ -459,9 +472,10 @@ Digite *2* para voltar às opções de certidões, *menu* para o menu principal 
 ${nome}, escolha uma das opções abaixo digitando o número:
 
 *3.1* - 🌐 Acesso ao Site para Emissão
-*3.2* - ❓ Dúvidas e Reclamações
+*3.2* - ❓ Dúvidas e Reclamações do Sistema
 *3.3* - 📖 Manuais de Utilização do Sistema
-*3.4* - 📊 Alíquota, Deduções e Local de Tributação
+-----------------------------------------------------===============
+*3.4* - 📊 Alíquota, Deduções e Local de Tributação do ISS
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
