@@ -230,8 +230,7 @@ function criarRespostaComMidia(texto, imagemPath = null, req = null) {
         type: 'media',
         text: `${texto}
 
-🖼️ *Clique aqui para ver a imagem de apoio*
-${linkImagem}`,
+🖼️ *Veja a imagem de apoio abaixo*`,
         media: linkImagem
       };
     }
