@@ -130,6 +130,29 @@ function buscarPorDescricaoServico(termoBusca) {
   return resultados;
 }
 
+// Função para buscar por descrição de CNAE
+function buscarPorDescricaoCNAE(termoBusca) {
+  if (!termoBusca || termoBusca.length < 3) {
+    return null;
+  }
+
+  const termo = termoBusca
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+
+  const resultados = dadosTFLF.filter((item) => {
+    const descricaoLimpa = item.descricao
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return descricaoLimpa.includes(termo);
+  });
+
+  return resultados;
+}
+
 // Carregar dados na inicialização
 carregarDadosTFLF();
 carregarDadosISS();
@@ -177,6 +200,17 @@ Escolha uma das opções abaixo digitando o número:
 Digite o número da opção desejada ou descreva sua dúvida.`;
 }
 
+// ---------- Controle de Estados do Atendimento ----------
+const estadosUsuario = new Map(); // Armazena o estado atual de cada usuário
+
+function obterEstadoUsuario(sender) {
+  return estadosUsuario.get(sender) || 'menu_principal';
+}
+
+function definirEstadoUsuario(sender, estado) {
+  estadosUsuario.set(sender, estado);
+}
+
 // ---------- Função para gerar respostas automáticas ----------
 function gerarResposta(message, sender) {
   const nome = sender || "cidadão";
@@ -184,6 +218,8 @@ function gerarResposta(message, sender) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
+  
+  const estadoAtual = obterEstadoUsuario(sender);
 
   // Verificar mensagens de agradecimento para encerrar cordialmente
   if (
@@ -221,6 +257,7 @@ Tenha um excelente dia! 👋
 
   // Retorno ao menu principal - palavra-chave "menu"
   if (msgLimpa.includes("menu") || msgLimpa.includes("inicio")) {
+    definirEstadoUsuario(sender, 'menu_principal');
     return gerarMenuPrincipal(nome);
   }
 
@@ -236,11 +273,13 @@ Tenha um excelente dia! 👋
     msgLimpa.trim() === "hi" ||
     msgLimpa.trim() === "hello"
   ) {
+    definirEstadoUsuario(sender, 'menu_principal');
     return gerarMenuPrincipal(nome);
   }
 
   // Navegação com "1" - retorna ao menu DAMs se digitado sozinho
   if (msgLimpa.trim() === "1") {
+    definirEstadoUsuario(sender, 'opcao_1_dams');
     return `📄 *Segunda via de DAM's*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -258,6 +297,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
 
   // Navegação por números - opção 1 do menu principal
   if (msgLimpa.includes("opcao 1")) {
+    definirEstadoUsuario(sender, 'opcao_1_dams');
     return `📄 *Segunda via de DAM's*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -401,6 +441,7 @@ Digite *1* para voltar às opções de DAM's, *menu* para o menu principal ou *0
 
   // Navegação com "2" - retorna ao menu Certidões se digitado sozinho
   if (msgLimpa.trim() === "2") {
+    definirEstadoUsuario(sender, 'opcao_2_certidoes');
     return `📄 *Certidões de Regularidade Fiscal*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -420,6 +461,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
 
   // Navegação por números - opção 2 do menu principal
   if (msgLimpa.includes("opcao 2")) {
+    definirEstadoUsuario(sender, 'opcao_2_certidoes');
     return `📄 *Certidões de Regularidade Fiscal*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -493,6 +535,7 @@ Digite *2* para voltar às opções de certidões, *menu* para o menu principal 
 
   // Navegação com "3" - retorna ao menu NFSe e ISSQN se digitado sozinho
   if (msgLimpa.trim() === "3") {
+    definirEstadoUsuario(sender, 'opcao_3_nfse');
     return `🧾 *NFSe e ISSQN*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -507,6 +550,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
 
   // Navegação por números - opção 3 do menu principal
   if (msgLimpa.includes("opcao 3")) {
+    definirEstadoUsuario(sender, 'opcao_3_nfse');
     return `🧾 *NFSe e ISSQN*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -704,6 +748,7 @@ Digite *3.3* para voltar aos manuais, *3* para NFSe, *menu* para o menu principa
   }
 
   if (msgLimpa.trim() === "3.4" || msgLimpa.includes("opcao 3.4")) {
+    definirEstadoUsuario(sender, 'consulta_iss');
     return `📊 *Alíquota, Deduções e Local de Tributação*
 
 ${nome}, para consultar informações sobre alíquotas, deduções e local de tributação:
@@ -740,6 +785,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
   if (msgLimpa.trim() === "5" || msgLimpa.includes("opcao 5")) {
+    definirEstadoUsuario(sender, 'opcao_5_tflf');
     return `💰 *TFLF 2025*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -751,16 +797,25 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
   if (msgLimpa.trim() === "5.1" || msgLimpa.includes("opcao 5.1")) {
+    definirEstadoUsuario(sender, 'consulta_cnae');
     return `🔍 *Consultar Valores por CNAE*
 
 ${nome}, para consultar o valor da TFLF por atividade:
 
-📝 *Digite o código CNAE da sua atividade:*
+📝 *Formas de consulta:*
+
+🔢 *Por código CNAE:*
 • Mínimo 4 dígitos
 • Exemplo: 4711 (para comércio varejista)
 • Apenas números, sem letras
 
-O sistema buscará todas as atividades que contenham esses dígitos.
+📝 *Por descrição da atividade:*
+• Digite parte da descrição da atividade
+• Mínimo 3 caracteres
+• Exemplo: "comercio" ou "transporte"
+• Exemplo: "servicos" ou "industria"
+
+O sistema buscará todas as atividades que contenham os termos digitados.
 
 Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para encerrar.`;
   }
@@ -780,8 +835,9 @@ Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para en
   }
 
   // Verificar se é uma busca por descrição de serviço (texto com pelo menos 3 caracteres e não apenas números)
+  // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
   const contemLetras = /[a-zA-Z]/.test(msgLimpa);
-  if (contemLetras && msgLimpa.length >= 3 && dadosISS.length > 0) {
+  if (contemLetras && msgLimpa.length >= 3 && dadosISS.length > 0 && estadoAtual === 'consulta_iss') {
     const resultados = buscarPorDescricaoServico(msgLimpa);
 
     if (resultados && resultados.length > 0) {
@@ -845,8 +901,9 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
   }
 
   // Verificar se é um código de serviço ISS (números com 3 dígitos exatos para verificar primeiro)
+  // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
   const codigoNumeros = msgLimpa.replace(/[^0-9]/g, "");
-  if (codigoNumeros.length === 3 && dadosISS.length > 0) {
+  if (codigoNumeros.length === 3 && dadosISS.length > 0 && estadoAtual === 'consulta_iss') {
     // Primeiro tenta busca exata
     let resultados = buscarPorCodigoServico(codigoNumeros, true);
 
@@ -914,9 +971,90 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
     }
   }
 
+  // Verificar se é uma busca por descrição de CNAE (texto com pelo menos 3 caracteres e não apenas números)
+  // SOMENTE quando o usuário estiver na opção 5.1 (consulta_cnae)
+  if (contemLetras && msgLimpa.length >= 3 && dadosTFLF.length > 0 && estadoAtual === 'consulta_cnae') {
+    const resultados = buscarPorDescricaoCNAE(msgLimpa);
+
+    if (resultados && resultados.length > 0) {
+      if (resultados.length === 1) {
+        const item = resultados[0];
+        return `📊 *Valores da TFLF - CNAE ${item.cnae}*
+
+${nome}, aqui estão os valores para a atividade:
+
+🏷️ *Descrição:* ${item.descricao}
+
+💰 *Valores da TFLF:*
+• 2020: R$ ${parseFloat(item.tflf2020.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2021: R$ ${parseFloat(item.tflf2021.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2022: R$ ${parseFloat(item.tflf2022.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2023: R$ ${parseFloat(item.tflf2023.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2024: R$ ${parseFloat(item.tflf2024.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+• 2025: R$ ${parseFloat(item.tflf2025.replace(",", "."))
+          .toFixed(2)
+          .replace(".", ",")}
+
+Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal ou *0* para encerrar.`;
+      } else {
+        let resposta = `🔍 *Resultados da busca por "${msgLimpa}"*
+
+${nome}, encontrei ${resultados.length} atividades relacionadas:
+
+`;
+
+        const max = Math.min(resultados.length, 10);
+        for (let i = 0; i < max; i++) {
+          const item = resultados[i];
+          resposta += `*${i + 1}.* CNAE ${item.cnae}
+${item.descricao}
+💰 TFLF 2025: R$ ${parseFloat(item.tflf2025.replace(",", "."))
+            .toFixed(2)
+            .replace(".", ",")}
+
+`;
+        }
+
+        if (resultados.length > 10) {
+          resposta += `... e mais ${resultados.length - 10} atividades.
+
+`;
+        }
+
+        resposta += `Para ver os valores completos de uma atividade específica, digite o código CNAE completo.
+
+Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal ou *0* para encerrar.`;
+
+        return resposta;
+      }
+    } else {
+      return `❌ *Nenhuma atividade encontrada*
+
+${nome}, não encontrei nenhuma atividade com a descrição "${msgLimpa}".
+
+💡 *Dicas:*
+• Tente usar termos mais gerais (ex: "comercio" em vez de "comercial")
+• Verifique a grafia das palavras
+• Use pelo menos 3 caracteres
+
+Digite *5.1* para nova consulta, *5* para menu TFLF ou *menu* para o menu principal.`;
+    }
+  }
+
   // Verificar se é um código CNAE (números com pelo menos 4 dígitos)
+  // SOMENTE quando o usuário estiver na opção 5.1 (consulta_cnae)
   const codigoCNAE = msgLimpa.replace(/[^0-9]/g, "");
-  if (codigoCNAE.length >= 4 && dadosTFLF.length > 0) {
+  if (codigoCNAE.length >= 4 && dadosTFLF.length > 0 && estadoAtual === 'consulta_cnae') {
     const resultados = buscarPorCNAE(codigoCNAE);
 
     if (resultados && resultados.length > 0) {
@@ -995,7 +1133,8 @@ Digite *5.2* para baixar a planilha completa, *5.1* para nova consulta ou *menu*
   }
 
   // Verificar se é um código de serviço ISS com 4 dígitos (após tentar CNAE)
-  if (codigoCNAE.length === 4 && dadosISS.length > 0) {
+  // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
+  if (codigoCNAE.length === 4 && dadosISS.length > 0 && estadoAtual === 'consulta_iss') {
     // Primeiro tenta busca exata
     let resultadosISS = buscarPorCodigoServico(codigoCNAE, true);
 
