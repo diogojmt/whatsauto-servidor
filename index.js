@@ -2,7 +2,6 @@ const express = require("express");
 const qs = require("querystring"); // módulo nativo do Node
 const fs = require("fs");
 const path = require("path");
-const axios = require("axios");
 const app = express();
 
 // ---------- Carregar dados da TFLF ----------
@@ -155,95 +154,6 @@ function buscarPorDescricaoCNAE(termoBusca) {
   return resultados;
 }
 
-// ---------- Função para emitir certidão geral ----------
-async function emitirCertidaoGeral(cpf) {
-  try {
-    // Criar instância do axios para manter sessão
-    const client = axios.create({
-      withCredentials: true,
-      timeout: 30000,
-    });
-
-    console.log("🔍 Acessando portal para obter GXState...");
-
-    // 1. Fazer GET para obter GXState
-    const getResponse = await client.get(
-      "https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral",
-      { maxRedirects: 0 }
-    );
-
-    // 👇 Log do HTML retornado para debug
-    console.log("🔎 HTML retornado do portal:");
-    console.log(getResponse.data);
-
-    // Salvar em arquivo para análise
-    const fs = require("fs");
-    fs.writeFileSync("html_portal.txt", getResponse.data);
-    console.log("📁 HTML salvo em html_portal.txt para análise");
-
-    // 2. Extrair GXState usando regex
-    const gxStateMatch = getResponse.data.match(/GXState\s*=\s*"([^"]+)"/);
-    let gxState;
-
-    if (!gxStateMatch) {
-      // Tentar buscar com outras variações do regex
-      const gxStateMatch2 = getResponse.data.match(
-        /name="GXState"[^>]*value="([^"]+)"/
-      );
-      if (!gxStateMatch2) {
-        console.log(
-          "❌ GXState não encontrado no HTML. Veja o arquivo html_portal.txt para analisar."
-        );
-        throw new Error("Não foi possível capturar o GXState");
-      }
-      gxState = gxStateMatch2[1];
-      console.log("✅ GXState encontrado com regex alternativo");
-    } else {
-      gxState = gxStateMatch[1];
-      console.log("✅ GXState capturado com sucesso");
-    }
-
-    // 3. Montar payload do POST
-    const payload = qs.stringify({
-      vTIPODEBITO: 1,
-      vTIPOINSCRICAO: 1,
-      vTIPOCONTRIBUINTE: 2,
-      vPESSOATIPO: 1,
-      vCONTRIBUINTECPFCNPJ: cpf,
-      GXState: gxState,
-      _EventName: "EENTER.",
-    });
-
-    console.log("📤 Enviando requisição para gerar certidão...");
-
-    // 4. Fazer POST para gerar certidão
-    const postResponse = await client.post(
-      "https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral",
-      payload,
-      {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        responseType: "arraybuffer",
-      }
-    );
-
-    // 5. Salvar PDF no disco
-    const fileName = `certidao_${cpf}.pdf`;
-    const filePath = path.join(__dirname, fileName);
-
-    fs.writeFileSync(filePath, postResponse.data);
-    console.log(`✅ Certidão salva como: ${fileName}`);
-
-    return filePath;
-  } catch (error) {
-    console.error("❌ Erro ao emitir certidão:", error.message);
-    throw new Error(
-      "Não foi possível emitir a certidão. Tente novamente em alguns minutos."
-    );
-  }
-}
-
 // Carregar dados na inicialização
 carregarDadosTFLF();
 carregarDadosISS();
@@ -321,8 +231,7 @@ function criarRespostaComMidia(texto, imagemPath = null, req = null) {
         type: "media",
         text: `${texto}
 
-🖼️ *Clique aqui para ver a imagem de apoio*
-${linkImagem}`,
+🖼️ *Veja a imagem de apoio abaixo*`,
         media: linkImagem,
       };
     }
@@ -334,7 +243,7 @@ ${linkImagem}`,
 }
 
 // ---------- Função para gerar respostas automáticas ----------
-async function gerarResposta(message, sender, req = null) {
+function gerarResposta(message, sender, req = null) {
   const nome = sender || "cidadão";
   const msgLimpa = message
     .toLowerCase()
@@ -383,70 +292,6 @@ Tenha um excelente dia! 👋
     return gerarMenuPrincipal(nome);
   }
 
-  // Processamento de CPF/CNPJ para emissão de certidão
-  if (estadoAtual === "emitir_certidao_coletando_cpf") {
-    const cpfCnpj = msgLimpa.replace(/[^0-9]/g, ""); // Remove tudo que não é número
-
-    // Validar se tem pelo menos 11 dígitos (CPF mínimo)
-    if (cpfCnpj.length < 11) {
-      return `❌ *CPF/CNPJ inválido*
-
-${nome}, o número informado deve ter pelo menos 11 dígitos.
-
-📝 *Exemplos válidos:*
-• CPF: 12345678901 (11 dígitos)
-• CNPJ: 12345678000190 (14 dígitos)
-
-Digite novamente o CPF ou CNPJ com apenas números, ou *menu* para voltar ao menu principal.`;
-    }
-
-    try {
-      // Informar que está processando
-      console.log(`🔄 Processando certidão para CPF/CNPJ: ${cpfCnpj}`);
-
-      // Chamar função para emitir certidão
-      const caminhoArquivo = await emitirCertidaoGeral(cpfCnpj);
-
-      // Resetar estado do usuário
-      definirEstadoUsuario(sender, "menu_principal");
-
-      // Retornar resposta com arquivo PDF
-      return {
-        type: "media",
-        text: `✅ *Certidão Geral emitida com sucesso!*
-
-${nome}, sua certidão foi gerada e está sendo enviada como anexo.
-
-📄 *Documento:* Certidão Geral - CPF/CNPJ: ${cpfCnpj}
-🏛️ *Município:* Arapiraca/AL
-
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
-        media: caminhoArquivo,
-        media_type: "document",
-      };
-    } catch (error) {
-      console.error("❌ Erro ao processar certidão:", error.message);
-
-      // Resetar estado do usuário em caso de erro
-      definirEstadoUsuario(sender, "menu_principal");
-
-      return `❌ *Erro ao gerar certidão*
-
-${nome}, não foi possível gerar a certidão no momento.
-
-🔧 *Possíveis causas:*
-• Sistema temporariamente indisponível
-• CPF/CNPJ não encontrado na base de dados
-• Erro de conexão com o portal
-
-💡 *Tente novamente:*
-• Digite *1* para nova tentativa
-• Acesse diretamente: https://arapiraca.abaco.com.br/eagata/portal/
-
-Digite *menu* para voltar ao menu principal.`;
-    }
-  }
-
   // Menu principal - saudações e palavras-chave
   if (
     msgLimpa.includes("ola") ||
@@ -463,20 +308,28 @@ Digite *menu* para voltar ao menu principal.`;
     return gerarMenuPrincipal(nome);
   }
 
-  // Navegação com "1" - solicita CPF/CNPJ para emitir certidão
+  // Navegação com "1" - exibe instruções do Portal de Segunda Via
   if (msgLimpa.trim() === "1") {
-    definirEstadoUsuario(sender, "emitir_certidao_coletando_cpf");
-    return `📄 *Certidão Geral - Portal de Arapiraca*
+    definirEstadoUsuario(sender, "menu_principal");
+    return criarRespostaComMidia(
+      `📄 *Segunda via de DAM's*
 
-${nome}, vou gerar sua certidão automaticamente!
+${nome}, para emitir a segunda via de DAMs, siga as instruções:
 
-Ok, digite o CPF ou CNPJ com apenas números.
+🔗 *Acesse o link:*
+https://arapiraca.abaco.com.br/eagata/portal/
 
-📝 *Exemplo:*
-• CPF: 12345678901
-• CNPJ: 12345678000190
+📋 *Instruções:*
+• No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
 
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+📧 *Dúvidas ou informações:*
+smfaz@arapiraca.al.gov.br
+
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+      "Portal_2_vias.png",
+      req
+    );
   }
 
   // Navegação por números - opção 1 do menu principal
@@ -1322,7 +1175,7 @@ Tenha um ótimo dia! 👋`;
   }
 
   if (msgLimpa.includes("atendente")) {
-    return `👨‍💼 *Solicitação de Atendimento Humano*   
+    return `👨‍💼 *Solicitação de Atendimento Humano*
 
 ${nome}, para falar com um atendente, procure diretamente:
 
@@ -1389,7 +1242,7 @@ Secretaria da Fazenda Municipal
 }
 
 // ---------- Rota principal ----------
-app.post("/", async (req, res) => {
+app.post("/", (req, res) => {
   // Se JSON falhou, tenta decodificar req.rawBody como urlencoded
   if (!req.body || Object.keys(req.body).length === 0) {
     req.body = qs.parse(req.rawBody);
@@ -1415,21 +1268,20 @@ app.post("/", async (req, res) => {
     return res.status(200).end(); // Não envia resposta para evitar loop
   }
 
-  const resposta = await gerarResposta(message, sender, req);
+  const resposta = gerarResposta(message, sender, req);
   console.log("🎯 Resposta gerada:", resposta);
 
   // Verificar se a resposta inclui mídia
   if (typeof resposta === "object" && resposta.type === "media") {
-    const mediaType = resposta.media_type || "image";
-    console.log(`📎 Enviando resposta com mídia (${mediaType}):`, {
+    console.log("📸 Enviando resposta com mídia:", {
       reply: resposta.text,
       media: resposta.media,
-      media_type: mediaType,
+      media_type: "image",
     });
     res.json({
       reply: resposta.text,
       media: resposta.media,
-      media_type: mediaType,
+      media_type: "image",
     });
   } else {
     console.log("💬 Enviando resposta de texto:", resposta);
@@ -1440,7 +1292,7 @@ app.post("/", async (req, res) => {
 });
 
 // Endpoint POST para integração com WhatsAuto
-app.post("/mensagem", async (req, res) => {
+app.post("/mensagem", (req, res) => {
   const { sender, message } = req.body || qs.parse(req.rawBody);
 
   // Verificar se a mensagem é do próprio sistema (para evitar loop)
@@ -1458,15 +1310,14 @@ app.post("/mensagem", async (req, res) => {
     return res.status(200).end(); // Não envia resposta para evitar loop
   }
 
-  const resposta = await gerarResposta(message, sender);
+  const resposta = gerarResposta(message, sender);
 
   // Verificar se a resposta inclui mídia
   if (typeof resposta === "object" && resposta.type === "media") {
-    const mediaType = resposta.media_type || "image";
     res.json({
       reply: resposta.text,
       media: resposta.media,
-      media_type: mediaType,
+      media_type: "image",
     });
   } else {
     res.send(resposta);
