@@ -215,15 +215,19 @@ function definirEstadoUsuario(sender, estado) {
   estadosUsuario.set(sender, estado);
 }
 
-// ---------- Função para criar resposta com mídia ----------
-function criarRespostaComMidia(texto, imagemPath = null, req = null) {
+// ---------- Função para criar resposta com link da imagem ----------
+function criarRespostaComLink(texto, imagemPath = null, req = null) {
   if (imagemPath) {
     // Gerar URL completa para a imagem
     const baseUrl = req ? `${req.protocol}://${req.get('host')}` : 'https://4726de37-db43-4b9e-b40d-1391d2c20ed5-00-3r6mmehtesw5t.janeway.replit.dev';
+    const linkImagem = `${baseUrl}/imagens/${imagemPath}`;
+    
     return {
-      type: 'media',
-      text: texto,
-      media: `${baseUrl}/imagens/${imagemPath}`
+      type: 'text',
+      text: `${texto}
+
+🖼️ *Imagem de apoio:*
+${linkImagem}`
     };
   }
   return {
@@ -301,7 +305,7 @@ Tenha um excelente dia! 👋
   // Navegação com "1" - exibe instruções do Portal de Segunda Via
   if (msgLimpa.trim() === "1") {
     definirEstadoUsuario(sender, 'menu_principal');
-    return criarRespostaComMidia(
+    return criarRespostaComLink(
       `📄 *Segunda via de DAM's*
 
 ${nome}, para emitir a segunda via de DAMs, siga as instruções:
@@ -325,7 +329,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
   // Navegação por números - opção 1 do menu principal
   if (msgLimpa.includes("opcao 1")) {
     definirEstadoUsuario(sender, 'menu_principal');
-    return criarRespostaComMidia(
+    return criarRespostaComLink(
       `📄 *Segunda via de DAM's*
 
 ${nome}, para emitir a segunda via de DAMs, siga as instruções:
