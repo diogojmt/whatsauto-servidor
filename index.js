@@ -1159,4 +1159,7 @@ app.get("/", (_, res) =>
   res.send("✅ Servidor WhatsAuto ativo – envie POST para testar.")
 );
 
-app.listen(3000, () => console.log("\n🚀 Servidor de testes na porta 3000\n"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+});
