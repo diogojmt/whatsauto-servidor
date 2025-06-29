@@ -1322,7 +1322,7 @@ Tenha um ótimo dia! 👋`;
   }
 
   if (msgLimpa.includes("atendente")) {
-    return `👨‍💼 *Solicitação de Atendimento Humano* 
+    return `👨‍💼 *Solicitação de Atendimento Humano*   
 
 ${nome}, para falar com um atendente, procure diretamente:
 
