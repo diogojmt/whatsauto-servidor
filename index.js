@@ -218,35 +218,18 @@ function definirEstadoUsuario(sender, estado) {
 // ---------- Função para criar resposta com mídia ----------
 function criarRespostaComMidia(texto, imagemPath = null, req = null) {
   if (imagemPath) {
-    try {
-      // Ler o arquivo de imagem e converter para base64
-      const imagemCompleta = path.join(__dirname, 'imagens', imagemPath);
-      const imagemBuffer = fs.readFileSync(imagemCompleta);
-      const imagemBase64 = imagemBuffer.toString('base64');
-      
-      // Detectar tipo de arquivo pela extensão
-      const extensao = path.extname(imagemPath).toLowerCase();
-      let mimeType = 'image/png'; // padrão
-      
-      if (extensao === '.jpg' || extensao === '.jpeg') {
-        mimeType = 'image/jpeg';
-      } else if (extensao === '.gif') {
-        mimeType = 'image/gif';
-      } else if (extensao === '.webp') {
-        mimeType = 'image/webp';
-      }
-      
+    // Usar link direto do GitHub para a imagem
+    let linkImagem = '';
+    
+    if (imagemPath === 'Portal_2_vias.png') {
+      linkImagem = 'https://github.com/diogojmt/whatsauto-servidor/blob/main/imagens/Portal_2_vias.png?raw=true';
+    }
+    
+    if (linkImagem) {
       return {
         type: 'media',
         text: texto,
-        media: `data:${mimeType};base64,${imagemBase64}`
-      };
-    } catch (error) {
-      console.error('❌ Erro ao ler imagem:', error);
-      // Se não conseguir ler a imagem, retorna só o texto
-      return {
-        type: 'text',
-        text: texto
+        media: linkImagem
       };
     }
   }
