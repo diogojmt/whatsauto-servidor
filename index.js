@@ -228,7 +228,9 @@ function criarRespostaComMidia(texto, imagemPath = null, req = null) {
     if (linkImagem) {
       return {
         type: 'media',
-        text: texto,
+        text: `${texto}
+
+🖼️ *Imagem de apoio:* ${linkImagem}`,
         media: linkImagem
       };
     }
