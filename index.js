@@ -2,6 +2,7 @@ const express = require("express");
 const qs = require("querystring"); // módulo nativo do Node
 const fs = require("fs");
 const path = require("path");
+const axios = require("axios");
 const app = express();
 
 // ---------- Carregar dados da TFLF ----------
@@ -154,12 +155,77 @@ function buscarPorDescricaoCNAE(termoBusca) {
   return resultados;
 }
 
+// ---------- Função para emitir certidão geral ----------
+async function emitirCertidaoGeral(cpf) {
+  try {
+    // Criar instância do axios para manter sessão
+    const client = axios.create({ 
+      withCredentials: true,
+      timeout: 30000
+    });
+
+    console.log("🔍 Acessando portal para obter GXState...");
+    
+    // 1. Fazer GET para obter GXState
+    const getResponse = await client.get(
+      "https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral"
+    );
+    
+    // 2. Extrair GXState usando regex
+    const gxStateMatch = getResponse.data.match(/GXState\s*=\s*"([^"]+)"/);
+    if (!gxStateMatch) {
+      throw new Error("Não foi possível capturar o GXState");
+    }
+    
+    const gxState = gxStateMatch[1];
+    console.log("✅ GXState capturado com sucesso");
+    
+    // 3. Montar payload do POST
+    const payload = qs.stringify({
+      vTIPODEBITO: 1,
+      vTIPOINSCRICAO: 1,
+      vTIPOCONTRIBUINTE: 2,
+      vPESSOATIPO: 1,
+      vCONTRIBUINTECPFCNPJ: cpf,
+      GXState: gxState,
+      _EventName: "EENTER."
+    });
+    
+    console.log("📤 Enviando requisição para gerar certidão...");
+    
+    // 4. Fazer POST para gerar certidão
+    const postResponse = await client.post(
+      "https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral",
+      payload,
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        responseType: 'arraybuffer'
+      }
+    );
+    
+    // 5. Salvar PDF no disco
+    const fileName = `certidao_${cpf}.pdf`;
+    const filePath = path.join(__dirname, fileName);
+    
+    fs.writeFileSync(filePath, postResponse.data);
+    console.log(`✅ Certidão salva como: ${fileName}`);
+    
+    return filePath;
+    
+  } catch (error) {
+    console.error("❌ Erro ao emitir certidão:", error.message);
+    throw new Error("Não foi possível emitir a certidão. Tente novamente em alguns minutos.");
+  }
+}
+
 // Carregar dados na inicialização
 carregarDadosTFLF();
 carregarDadosISS();
 
 // ---------- Servir arquivos estáticos (imagens) ----------
-app.use('/imagens', express.static(path.join(__dirname)));
+app.use("/imagens", express.static(path.join(__dirname)));
 
 // ---------- LOG bruto ----------
 app.use((req, res, next) => {
@@ -208,7 +274,7 @@ Digite o número da opção desejada ou descreva sua dúvida.`;
 const estadosUsuario = new Map(); // Armazena o estado atual de cada usuário
 
 function obterEstadoUsuario(sender) {
-  return estadosUsuario.get(sender) || 'menu_principal';
+  return estadosUsuario.get(sender) || "menu_principal";
 }
 
 function definirEstadoUsuario(sender, estado) {
@@ -219,36 +285,38 @@ function definirEstadoUsuario(sender, estado) {
 function criarRespostaComMidia(texto, imagemPath = null, req = null) {
   if (imagemPath) {
     // Usar link direto do GitHub para a imagem
-    let linkImagem = '';
-    
-    if (imagemPath === 'Portal_2_vias.png') {
-      linkImagem = 'https://github.com/diogojmt/whatsauto-servidor/blob/main/imagens/Portal_2_vias.png?raw=true';
+    let linkImagem = "";
+
+    if (imagemPath === "Portal_2_vias.png") {
+      linkImagem =
+        "https://github.com/diogojmt/whatsauto-servidor/blob/main/imagens/Portal_2_vias.png?raw=true";
     }
-    
+
     if (linkImagem) {
       return {
-        type: 'media',
+        type: "media",
         text: `${texto}
 
-🖼️ *Veja a imagem de apoio abaixo*`,
-        media: linkImagem
+🖼️ *Clique aqui para ver a imagem de apoio*
+${linkImagem}`,
+        media: linkImagem,
       };
     }
   }
   return {
-    type: 'text',
-    text: texto
+    type: "text",
+    text: texto,
   };
 }
 
 // ---------- Função para gerar respostas automáticas ----------
-function gerarResposta(message, sender, req = null) {
+async function gerarResposta(message, sender, req = null) {
   const nome = sender || "cidadão";
   const msgLimpa = message
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
-  
+
   const estadoAtual = obterEstadoUsuario(sender);
 
   // Verificar mensagens de agradecimento para encerrar cordialmente
@@ -287,8 +355,73 @@ Tenha um excelente dia! 👋
 
   // Retorno ao menu principal - palavra-chave "menu"
   if (msgLimpa.includes("menu") || msgLimpa.includes("inicio")) {
-    definirEstadoUsuario(sender, 'menu_principal');
+    definirEstadoUsuario(sender, "menu_principal");
     return gerarMenuPrincipal(nome);
+  }
+
+  // Processamento de CPF/CNPJ para emissão de certidão
+  if (estadoAtual === "emitir_certidao_coletando_cpf") {
+    const cpfCnpj = msgLimpa.replace(/[^0-9]/g, ""); // Remove tudo que não é número
+    
+    // Validar se tem pelo menos 11 dígitos (CPF mínimo)
+    if (cpfCnpj.length < 11) {
+      return `❌ *CPF/CNPJ inválido*
+
+${nome}, o número informado deve ter pelo menos 11 dígitos.
+
+📝 *Exemplos válidos:*
+• CPF: 12345678901 (11 dígitos)
+• CNPJ: 12345678000190 (14 dígitos)
+
+Digite novamente o CPF ou CNPJ com apenas números, ou *menu* para voltar ao menu principal.`;
+    }
+
+    try {
+      // Informar que está processando
+      console.log(`🔄 Processando certidão para CPF/CNPJ: ${cpfCnpj}`);
+      
+      // Chamar função para emitir certidão
+      const caminhoArquivo = await emitirCertidaoGeral(cpfCnpj);
+      
+      // Resetar estado do usuário
+      definirEstadoUsuario(sender, "menu_principal");
+      
+      // Retornar resposta com arquivo PDF
+      return {
+        type: "media",
+        text: `✅ *Certidão Geral emitida com sucesso!*
+
+${nome}, sua certidão foi gerada e está sendo enviada como anexo.
+
+📄 *Documento:* Certidão Geral - CPF/CNPJ: ${cpfCnpj}
+🏛️ *Município:* Arapiraca/AL
+
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+        media: caminhoArquivo,
+        media_type: "document"
+      };
+      
+    } catch (error) {
+      console.error("❌ Erro ao processar certidão:", error.message);
+      
+      // Resetar estado do usuário em caso de erro
+      definirEstadoUsuario(sender, "menu_principal");
+      
+      return `❌ *Erro ao gerar certidão*
+
+${nome}, não foi possível gerar a certidão no momento.
+
+🔧 *Possíveis causas:*
+• Sistema temporariamente indisponível
+• CPF/CNPJ não encontrado na base de dados
+• Erro de conexão com o portal
+
+💡 *Tente novamente:*
+• Digite *1* para nova tentativa
+• Acesse diretamente: https://arapiraca.abaco.com.br/eagata/portal/
+
+Digite *menu* para voltar ao menu principal.`;
+    }
   }
 
   // Menu principal - saudações e palavras-chave
@@ -303,37 +436,29 @@ Tenha um excelente dia! 👋
     msgLimpa.trim() === "hi" ||
     msgLimpa.trim() === "hello"
   ) {
-    definirEstadoUsuario(sender, 'menu_principal');
+    definirEstadoUsuario(sender, "menu_principal");
     return gerarMenuPrincipal(nome);
   }
 
-  // Navegação com "1" - exibe instruções do Portal de Segunda Via
+  // Navegação com "1" - solicita CPF/CNPJ para emitir certidão
   if (msgLimpa.trim() === "1") {
-    definirEstadoUsuario(sender, 'menu_principal');
-    return criarRespostaComMidia(
-      `📄 *Segunda via de DAM's*
+    definirEstadoUsuario(sender, "emitir_certidao_coletando_cpf");
+    return `📄 *Certidão Geral - Portal de Arapiraca*
 
-${nome}, para emitir a segunda via de DAMs, siga as instruções:
+${nome}, vou gerar sua certidão automaticamente!
 
-🔗 *Acesse o link:*
-https://arapiraca.abaco.com.br/eagata/portal/
+Ok, digite o CPF ou CNPJ com apenas números.
 
-📋 *Instruções:*
-• No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+📝 *Exemplo:*
+• CPF: 12345678901
+• CNPJ: 12345678000190
 
-📧 *Dúvidas ou informações:*
-smfaz@arapiraca.al.gov.br
-
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
-      'Portal_2_vias.png',
-      req
-    );
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
   // Navegação por números - opção 1 do menu principal
   if (msgLimpa.includes("opcao 1")) {
-    definirEstadoUsuario(sender, 'menu_principal');
+    definirEstadoUsuario(sender, "menu_principal");
     return criarRespostaComMidia(
       `📄 *Segunda via de DAM's*
 
@@ -350,16 +475,14 @@ https://arapiraca.abaco.com.br/eagata/portal/
 smfaz@arapiraca.al.gov.br
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
-      'Portal_2_vias.png',
+      "Portal_2_vias.png",
       req
     );
   }
 
-
-
   // Navegação com "2" - retorna ao menu Certidões se digitado sozinho
   if (msgLimpa.trim() === "2") {
-    definirEstadoUsuario(sender, 'opcao_2_certidoes');
+    definirEstadoUsuario(sender, "opcao_2_certidoes");
     return `📄 *Certidões de Regularidade Fiscal*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -379,7 +502,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
 
   // Navegação por números - opção 2 do menu principal
   if (msgLimpa.includes("opcao 2")) {
-    definirEstadoUsuario(sender, 'opcao_2_certidoes');
+    definirEstadoUsuario(sender, "opcao_2_certidoes");
     return `📄 *Certidões de Regularidade Fiscal*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -453,7 +576,7 @@ Digite *2* para voltar às opções de certidões, *menu* para o menu principal 
 
   // Navegação com "3" - retorna ao menu NFSe e ISSQN se digitado sozinho
   if (msgLimpa.trim() === "3") {
-    definirEstadoUsuario(sender, 'opcao_3_nfse');
+    definirEstadoUsuario(sender, "opcao_3_nfse");
     return `🧾 *NFSe e ISSQN*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -468,7 +591,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
 
   // Navegação por números - opção 3 do menu principal
   if (msgLimpa.includes("opcao 3")) {
-    definirEstadoUsuario(sender, 'opcao_3_nfse');
+    definirEstadoUsuario(sender, "opcao_3_nfse");
     return `🧾 *NFSe e ISSQN*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -666,7 +789,7 @@ Digite *3.3* para voltar aos manuais, *3* para NFSe, *menu* para o menu principa
   }
 
   if (msgLimpa.trim() === "3.4" || msgLimpa.includes("opcao 3.4")) {
-    definirEstadoUsuario(sender, 'consulta_iss');
+    definirEstadoUsuario(sender, "consulta_iss");
     return `📊 *Alíquota, Deduções e Local de Tributação*
 
 ${nome}, para consultar informações sobre alíquotas, deduções e local de tributação:
@@ -703,7 +826,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
   if (msgLimpa.trim() === "5" || msgLimpa.includes("opcao 5")) {
-    definirEstadoUsuario(sender, 'opcao_5_tflf');
+    definirEstadoUsuario(sender, "opcao_5_tflf");
     return `💰 *TFLF 2025*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
@@ -715,7 +838,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
   if (msgLimpa.trim() === "5.1" || msgLimpa.includes("opcao 5.1")) {
-    definirEstadoUsuario(sender, 'consulta_cnae');
+    definirEstadoUsuario(sender, "consulta_cnae");
     return `🔍 *Consultar Valores por CNAE*
 
 ${nome}, para consultar o valor da TFLF por atividade:
@@ -755,7 +878,12 @@ Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para en
   // Verificar se é uma busca por descrição de serviço (texto com pelo menos 3 caracteres e não apenas números)
   // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
   const contemLetras = /[a-zA-Z]/.test(msgLimpa);
-  if (contemLetras && msgLimpa.length >= 3 && dadosISS.length > 0 && estadoAtual === 'consulta_iss') {
+  if (
+    contemLetras &&
+    msgLimpa.length >= 3 &&
+    dadosISS.length > 0 &&
+    estadoAtual === "consulta_iss"
+  ) {
     const resultados = buscarPorDescricaoServico(msgLimpa);
 
     if (resultados && resultados.length > 0) {
@@ -821,7 +949,11 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
   // Verificar se é um código de serviço ISS (números com 3 dígitos exatos para verificar primeiro)
   // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
   const codigoNumeros = msgLimpa.replace(/[^0-9]/g, "");
-  if (codigoNumeros.length === 3 && dadosISS.length > 0 && estadoAtual === 'consulta_iss') {
+  if (
+    codigoNumeros.length === 3 &&
+    dadosISS.length > 0 &&
+    estadoAtual === "consulta_iss"
+  ) {
     // Primeiro tenta busca exata
     let resultados = buscarPorCodigoServico(codigoNumeros, true);
 
@@ -891,7 +1023,12 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
 
   // Verificar se é uma busca por descrição de CNAE (texto com pelo menos 3 caracteres e não apenas números)
   // SOMENTE quando o usuário estiver na opção 5.1 (consulta_cnae)
-  if (contemLetras && msgLimpa.length >= 3 && dadosTFLF.length > 0 && estadoAtual === 'consulta_cnae') {
+  if (
+    contemLetras &&
+    msgLimpa.length >= 3 &&
+    dadosTFLF.length > 0 &&
+    estadoAtual === "consulta_cnae"
+  ) {
     const resultados = buscarPorDescricaoCNAE(msgLimpa);
 
     if (resultados && resultados.length > 0) {
@@ -972,7 +1109,11 @@ Digite *5.1* para nova consulta, *5* para menu TFLF ou *menu* para o menu princi
   // Verificar se é um código CNAE (números com pelo menos 4 dígitos)
   // SOMENTE quando o usuário estiver na opção 5.1 (consulta_cnae)
   const codigoCNAE = msgLimpa.replace(/[^0-9]/g, "");
-  if (codigoCNAE.length >= 4 && dadosTFLF.length > 0 && estadoAtual === 'consulta_cnae') {
+  if (
+    codigoCNAE.length >= 4 &&
+    dadosTFLF.length > 0 &&
+    estadoAtual === "consulta_cnae"
+  ) {
     const resultados = buscarPorCNAE(codigoCNAE);
 
     if (resultados && resultados.length > 0) {
@@ -1052,7 +1193,11 @@ Digite *5.2* para baixar a planilha completa, *5.1* para nova consulta ou *menu*
 
   // Verificar se é um código de serviço ISS com 4 dígitos (após tentar CNAE)
   // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
-  if (codigoCNAE.length === 4 && dadosISS.length > 0 && estadoAtual === 'consulta_iss') {
+  if (
+    codigoCNAE.length === 4 &&
+    dadosISS.length > 0 &&
+    estadoAtual === "consulta_iss"
+  ) {
     // Primeiro tenta busca exata
     let resultadosISS = buscarPorCodigoServico(codigoCNAE, true);
 
@@ -1221,7 +1366,7 @@ Secretaria da Fazenda Municipal
 }
 
 // ---------- Rota principal ----------
-app.post("/", (req, res) => {
+app.post("/", async (req, res) => {
   // Se JSON falhou, tenta decodificar req.rawBody como urlencoded
   if (!req.body || Object.keys(req.body).length === 0) {
     req.body = qs.parse(req.rawBody);
@@ -1234,30 +1379,34 @@ app.post("/", (req, res) => {
 
   // Verificar se a mensagem é do próprio sistema (para evitar loop)
   // Detecta apenas mensagens que são claramente do menu principal
-  const ehMensagemDoSistema = message.includes('Escolha uma das opções abaixo digitando o número:') &&
-    message.includes('1 - 📄 Segunda via de DAM\'s') &&
-    message.includes('Digite o número da opção desejada');
-  
+  const ehMensagemDoSistema =
+    message.includes("Escolha uma das opções abaixo digitando o número:") &&
+    message.includes("1 - 📄 Segunda via de DAM's") &&
+    message.includes("Digite o número da opção desejada");
+
   // Se for mensagem do sistema, não responder (evitar loop)
   if (ehMensagemDoSistema) {
-    console.log('🔄 Mensagem do sistema detectada - Não respondendo para evitar loop');
+    console.log(
+      "🔄 Mensagem do sistema detectada - Não respondendo para evitar loop"
+    );
     return res.status(200).end(); // Não envia resposta para evitar loop
   }
 
-  const resposta = gerarResposta(message, sender, req);
+  const resposta = await gerarResposta(message, sender, req);
   console.log("🎯 Resposta gerada:", resposta);
 
   // Verificar se a resposta inclui mídia
-  if (typeof resposta === 'object' && resposta.type === 'media') {
-    console.log("📸 Enviando resposta com mídia:", {
+  if (typeof resposta === "object" && resposta.type === "media") {
+    const mediaType = resposta.media_type || "image";
+    console.log(`📎 Enviando resposta com mídia (${mediaType}):`, {
       reply: resposta.text,
       media: resposta.media,
-      media_type: 'image'
+      media_type: mediaType,
     });
     res.json({
       reply: resposta.text,
       media: resposta.media,
-      media_type: 'image'
+      media_type: mediaType,
     });
   } else {
     console.log("💬 Enviando resposta de texto:", resposta);
@@ -1268,29 +1417,33 @@ app.post("/", (req, res) => {
 });
 
 // Endpoint POST para integração com WhatsAuto
-app.post("/mensagem", (req, res) => {
+app.post("/mensagem", async (req, res) => {
   const { sender, message } = req.body || qs.parse(req.rawBody);
-  
+
   // Verificar se a mensagem é do próprio sistema (para evitar loop)
   // Detecta apenas mensagens que são claramente do menu principal
-  const ehMensagemDoSistema = message.includes('Escolha uma das opções abaixo digitando o número:') &&
-    message.includes('1 - 📄 Segunda via de DAM\'s') &&
-    message.includes('Digite o número da opção desejada');
-  
+  const ehMensagemDoSistema =
+    message.includes("Escolha uma das opções abaixo digitando o número:") &&
+    message.includes("1 - 📄 Segunda via de DAM's") &&
+    message.includes("Digite o número da opção desejada");
+
   // Se for mensagem do sistema, não responder (evitar loop)
   if (ehMensagemDoSistema) {
-    console.log('🔄 Mensagem do sistema detectada - Não respondendo para evitar loop');
+    console.log(
+      "🔄 Mensagem do sistema detectada - Não respondendo para evitar loop"
+    );
     return res.status(200).end(); // Não envia resposta para evitar loop
   }
-  
-  const resposta = gerarResposta(message, sender);
-  
+
+  const resposta = await gerarResposta(message, sender);
+
   // Verificar se a resposta inclui mídia
-  if (typeof resposta === 'object' && resposta.type === 'media') {
+  if (typeof resposta === "object" && resposta.type === "media") {
+    const mediaType = resposta.media_type || "image";
     res.json({
       reply: resposta.text,
       media: resposta.media,
-      media_type: 'image'
+      media_type: mediaType,
     });
   } else {
     res.send(resposta);
