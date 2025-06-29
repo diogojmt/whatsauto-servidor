@@ -1220,14 +1220,10 @@ app.post("/", (req, res) => {
   console.log("✅ Interpretado:", { sender, message });
 
   // Verificar se a mensagem é do próprio sistema (para evitar loop)
-  const mensagensDoSistema = [
-    'Olá', 'Seja bem-vindo', 'Digite menu', 'Escolha uma das opções',
-    'Segunda via', 'Certidões', 'NFSe', 'TFLF', 'Substitutos Tributários'
-  ];
-  
-  const ehMensagemDoSistema = mensagensDoSistema.some(termo => 
-    message.includes(termo) && message.includes('📄')
-  );
+  // Detecta apenas mensagens que são claramente do menu principal
+  const ehMensagemDoSistema = message.includes('Escolha uma das opções abaixo digitando o número:') &&
+    message.includes('1 - 📄 Segunda via de DAM\'s') &&
+    message.includes('Digite o número da opção desejada');
   
   // Se for mensagem do sistema, não responder (evitar loop)
   if (ehMensagemDoSistema) {
@@ -1236,15 +1232,22 @@ app.post("/", (req, res) => {
   }
 
   const resposta = gerarResposta(message, sender);
+  console.log("🎯 Resposta gerada:", resposta);
 
   // Verificar se a resposta inclui mídia
   if (typeof resposta === 'object' && resposta.type === 'media') {
+    console.log("📸 Enviando resposta com mídia:", {
+      reply: resposta.text,
+      media: resposta.media,
+      media_type: 'image'
+    });
     res.json({
       reply: resposta.text,
       media: resposta.media,
       media_type: 'image'
     });
   } else {
+    console.log("💬 Enviando resposta de texto:", resposta);
     res.json({
       reply: resposta,
     });
@@ -1256,14 +1259,10 @@ app.post("/mensagem", (req, res) => {
   const { sender, message } = req.body || qs.parse(req.rawBody);
   
   // Verificar se a mensagem é do próprio sistema (para evitar loop)
-  const mensagensDoSistema = [
-    'Olá', 'Seja bem-vindo', 'Digite menu', 'Escolha uma das opções',
-    'Segunda via', 'Certidões', 'NFSe', 'TFLF', 'Substitutos Tributários'
-  ];
-  
-  const ehMensagemDoSistema = mensagensDoSistema.some(termo => 
-    message.includes(termo) && message.includes('📄')
-  );
+  // Detecta apenas mensagens que são claramente do menu principal
+  const ehMensagemDoSistema = message.includes('Escolha uma das opções abaixo digitando o número:') &&
+    message.includes('1 - 📄 Segunda via de DAM\'s') &&
+    message.includes('Digite o número da opção desejada');
   
   // Se for mensagem do sistema, não responder (evitar loop)
   if (ehMensagemDoSistema) {
