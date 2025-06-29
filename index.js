@@ -1,19 +1,17 @@
 const express = require("express");
-const qs = require("querystring");
+const qs = require("querystring"); // módulo nativo do Node
 const fs = require("fs");
 const path = require("path");
 const app = express();
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                            📊 DADOS DA TFLF (TAX DATA LOADING)
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
+// ---------- Carregar dados da TFLF ----------
 let dadosTFLF = [];
 
 function carregarDadosTFLF() {
   try {
     const conteudo = fs.readFileSync("vlr_tlf_20_25.txt", "utf8");
     const linhas = conteudo.split("\n");
+
     dadosTFLF = [];
 
     // Pula a primeira linha (cabeçalho)
@@ -42,16 +40,14 @@ function carregarDadosTFLF() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                             📋 DADOS DO ISS (TAX DATA LOADING)
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
+// ---------- Carregar dados do ISS ----------
 let dadosISS = [];
 
 function carregarDadosISS() {
   try {
     const conteudo = fs.readFileSync("ISS_Arapiraca.txt", "utf8");
     const linhas = conteudo.split("\n");
+
     dadosISS = [];
 
     // Pula a primeira linha (cabeçalho)
@@ -78,10 +74,7 @@ function carregarDadosISS() {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                              🔍 FUNÇÕES DE BUSCA
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
+// Função para buscar por CNAE (desconsiderando letras iniciais)
 function buscarPorCNAE(digitosCNAE) {
   if (!digitosCNAE || digitosCNAE.length < 4) {
     return null;
@@ -96,6 +89,7 @@ function buscarPorCNAE(digitosCNAE) {
   return resultados;
 }
 
+// Função para buscar por código de serviço (item da Lei Complementar 116/2003)
 function buscarPorCodigoServico(digitosServico, buscaExata = false) {
   if (!digitosServico || digitosServico.length < 3) {
     return null;
@@ -114,6 +108,7 @@ function buscarPorCodigoServico(digitosServico, buscaExata = false) {
   return resultados;
 }
 
+// Função para buscar por descrição de serviço
 function buscarPorDescricaoServico(termoBusca) {
   if (!termoBusca || termoBusca.length < 3) {
     return null;
@@ -136,6 +131,7 @@ function buscarPorDescricaoServico(termoBusca) {
   return resultados;
 }
 
+// Função para buscar por descrição de CNAE
 function buscarPorDescricaoCNAE(termoBusca) {
   if (!termoBusca || termoBusca.length < 3) {
     return null;
@@ -158,18 +154,14 @@ function buscarPorDescricaoCNAE(termoBusca) {
   return resultados;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                          ⚙️ CONFIGURAÇÕES DO SERVIDOR EXPRESS
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
 // Carregar dados na inicialização
 carregarDadosTFLF();
 carregarDadosISS();
 
-// Servir arquivos estáticos (imagens)
+// ---------- Servir arquivos estáticos (imagens) ----------
 app.use("/imagens", express.static(path.join(__dirname)));
 
-// Middleware para log das requisições
+// ---------- LOG bruto ----------
 app.use((req, res, next) => {
   console.log("\n🟡 NOVA REQUISIÇÃO");
   console.log("➡️ Método:", req.method);
@@ -184,11 +176,10 @@ app.use((req, res, next) => {
   });
 });
 
-// Middleware para parse JSON e form-encoded
+// ---------- Tenta JSON -----------
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Middleware para tratamento de erros JSON
+// ---------- Se falhar, não aborta ----------
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && "body" in err) {
     console.warn("⚠️ JSON malformado – seguir para parse manual");
@@ -197,24 +188,7 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                          🎯 CONTROLE DE ESTADOS DO ATENDIMENTO
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
-const estadosUsuario = new Map(); // Armazena o estado atual de cada usuário
-
-function obterEstadoUsuario(sender) {
-  return estadosUsuario.get(sender) || "menu_principal";
-}
-
-function definirEstadoUsuario(sender, estado) {
-  estadosUsuario.set(sender, estado);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                           🎨 FUNÇÕES DE INTERFACE DO USUÁRIO
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
+// ---------- Função para gerar menu de opções ----------
 function gerarMenuPrincipal(nome) {
   return `Olá ${nome}! 👋 Seja bem-vindo ao meu atendimento virtual!
 
@@ -230,6 +204,18 @@ Escolha uma das opções abaixo digitando o número:
 Digite o número da opção desejada ou descreva sua dúvida.`;
 }
 
+// ---------- Controle de Estados do Atendimento ----------
+const estadosUsuario = new Map(); // Armazena o estado atual de cada usuário
+
+function obterEstadoUsuario(sender) {
+  return estadosUsuario.get(sender) || "menu_principal";
+}
+
+function definirEstadoUsuario(sender, estado) {
+  estadosUsuario.set(sender, estado);
+}
+
+// ---------- Função para criar resposta com mídia ----------
 function criarRespostaComMidia(texto, imagemPath = null, req = null) {
   if (imagemPath) {
     // Usar link direto do GitHub para a imagem
@@ -262,10 +248,7 @@ ${linkImagem}`,
   };
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                    🤖 LÓGICA PRINCIPAL DE RESPOSTA AUTOMÁTICA
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
+// ---------- Função para gerar respostas automáticas ----------
 function gerarResposta(message, sender, req = null) {
   const nome = sender || "cidadão";
   const msgLimpa = message
@@ -275,10 +258,7 @@ function gerarResposta(message, sender, req = null) {
 
   const estadoAtual = obterEstadoUsuario(sender);
 
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  //                         💬 VERIFICAÇÕES DE AGRADECIMENTO
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  
+  // Verificar mensagens de agradecimento para encerrar cordialmente
   if (
     msgLimpa.includes("obrigado") ||
     msgLimpa.includes("obrigada") ||
@@ -312,19 +292,13 @@ Tenha um excelente dia! 👋
 *Atendimento encerrado automaticamente*`;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  //                           🏠 NAVEGAÇÃO PARA MENU PRINCIPAL
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  
+  // Retorno ao menu principal - palavra-chave "menu"
   if (msgLimpa.includes("menu") || msgLimpa.includes("inicio")) {
     definirEstadoUsuario(sender, "menu_principal");
     return gerarMenuPrincipal(nome);
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  //                              👋 SAUDAÇÕES INICIAIS
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  
+  // Menu principal - saudações e palavras-chave
   if (
     msgLimpa.includes("ola") ||
     msgLimpa.includes("oi") ||
@@ -340,11 +314,8 @@ Tenha um excelente dia! 👋
     return gerarMenuPrincipal(nome);
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                             📄 OPÇÃO 1 - SEGUNDA VIA DE DAM'S
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-
-  if (msgLimpa.trim() === "1" || msgLimpa.includes("opcao 1")) {
+  // Navegação com "1" - exibe instruções do Portal de Segunda Via
+  if (msgLimpa.trim() === "1") {
     definirEstadoUsuario(sender, "menu_principal");
     return criarRespostaComMidia(
       `📄 *Segunda via de DAM's*
@@ -367,11 +338,32 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                        📄 OPÇÃO 2 - CERTIDÕES DE REGULARIDADE FISCAL
-  // ═══════════════════════════════════════════════════════════════════════════════════════
+  // Navegação por números - opção 1 do menu principal
+  if (msgLimpa.includes("opcao 1")) {
+    definirEstadoUsuario(sender, "menu_principal");
+    return criarRespostaComMidia(
+      `📄 *Segunda via de DAM's*
 
-  if (msgLimpa.trim() === "2" || msgLimpa.includes("opcao 2")) {
+${nome}, para emitir a segunda via de DAMs, siga as instruções:
+
+🔗 *Acesse o link:*
+https://arapiraca.abaco.com.br/eagata/portal/
+
+📋 *Instruções:*
+• No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+
+📧 *Dúvidas ou informações:*
+smfaz@arapiraca.al.gov.br
+
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+      "Portal_2_vias.png",
+      req
+    );
+  }
+
+  // Navegação com "2" - exibe instruções do Portal de Certidões e Autenticações
+  if (msgLimpa.trim() === "2") {
     definirEstadoUsuario(sender, "menu_principal");
     return criarRespostaComMidia(
       `📄 *Certidões de Regularidade Fiscal e Autenticações*
@@ -394,9 +386,29 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  //                         SUBOPÇÕES DA OPÇÃO 2 (CERTIDÕES)
-  // ─────────────────────────────────────────────────────────────────────────────────────
+  // Navegação por números - opção 2 do menu principal
+  if (msgLimpa.includes("opcao 2")) {
+    definirEstadoUsuario(sender, "menu_principal");
+    return criarRespostaComMidia(
+      `📄 *Certidões de Regularidade Fiscal e Autenticações*
+
+${nome}, para emitir certidões e autenticações, siga as instruções:
+
+🔗 *Acesse o link:*
+https://arapiraca.abaco.com.br/eagata/portal/
+
+📋 *Instruções:*
+• No portal, escolha uma das opções disponíveis para Emissão de Certidões/Autenticações de Documentos
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+
+📧 *Dúvidas ou informações:*
+smfaz@arapiraca.al.gov.br
+
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+      "Portal_3_vias.png",
+      req
+    );
+  }
 
   if (
     msgLimpa.trim() === "2.1" ||
@@ -452,11 +464,24 @@ Para facilitar a consulta tenha em mãos o código de autenticidade da certidão
 Digite *2* para voltar às opções de certidões, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                           🧾 OPÇÃO 3 - NFSE E ISSQN
-  // ═══════════════════════════════════════════════════════════════════════════════════════
+  // Navegação com "3" - retorna ao menu NFSe e ISSQN se digitado sozinho
+  if (msgLimpa.trim() === "3") {
+    definirEstadoUsuario(sender, "opcao_3_nfse");
+    return `🧾 *NFSe e ISSQN*
 
-  if (msgLimpa.trim() === "3" || msgLimpa.includes("opcao 3")) {
+${nome}, escolha uma das opções abaixo digitando o número:
+
+*3.1* - 🌐 Acesso ao Site para Emissão
+*3.2* - ❓ Dúvidas e Reclamações do Sistema
+*3.3* - 📖 Manuais de Utilização do Sistema
+------------------------------------------------------------
+*3.4* - 📊 Alíquota, Deduções e Local de Tributação do ISS
+
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+  }
+
+  // Navegação por números - opção 3 do menu principal
+  if (msgLimpa.includes("opcao 3")) {
     definirEstadoUsuario(sender, "opcao_3_nfse");
     return `🧾 *NFSe e ISSQN*
 
@@ -469,10 +494,6 @@ ${nome}, escolha uma das opções abaixo digitando o número:
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
-
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  //                         SUBOPÇÕES DA OPÇÃO 3 (NFSE)
-  // ─────────────────────────────────────────────────────────────────────────────────────
 
   if (
     msgLimpa.trim() === "3.1" ||
@@ -508,11 +529,8 @@ ${nome}, para dúvidas e reclamações sobre NFSe:
 Digite *3* para voltar às opções de NFSe, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  //                         OPÇÃO 3.3 - MANUAIS DE UTILIZAÇÃO
-  // ─────────────────────────────────────────────────────────────────────────────────────
-
-  if (msgLimpa.trim() === "3.3" || msgLimpa.includes("opcao 3.3") || msgLimpa.includes("manuais nfse")) {
+  // Navegação com "3.3" - retorna ao menu de manuais se digitado sozinho
+  if (msgLimpa.trim() === "3.3") {
     return `📖 *Manuais de Utilização do Sistema*
 
 ${nome}, escolha um dos manuais abaixo digitando o número:
@@ -531,7 +549,26 @@ ${nome}, escolha um dos manuais abaixo digitando o número:
 Digite *3* para voltar às opções de NFSe, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
-  // Manuais individuais (3.3.1 a 3.3.10)
+  // Navegação por números - opção 3.3 do menu NFSe
+  if (msgLimpa.includes("opcao 3.3") || msgLimpa.includes("manuais nfse")) {
+    return `📖 *Manuais de Utilização do Sistema*
+
+${nome}, escolha um dos manuais abaixo digitando o número:
+
+*3.3.1* - 🎯 Tutorial Primeiro Acesso
+*3.3.2* - 👥 Emissão de NFSE para tomadores cadastrados
+*3.3.3* - 👤 Emissão de NFSE para tomadores não cadastrados
+*3.3.4* - 💳 Emissão de Guias de Pagamento
+*3.3.5* - ❌ Cancelar NFSE Emitidas
+*3.3.6* - 🚫 Recusa de Notas Fiscais Eletrônicas de Serviços Recebidas
+*3.3.7* - ✏️ Tutorial Carta de Correção
+*3.3.8* - 🔄 Substituição de Nota Fiscal
+*3.3.9* - 📝 Cadastro no Nota Fiscal Avulsa
+*3.3.10* - 📋 Escrituração de Nota Avulsa
+
+Digite *3* para voltar às opções de NFSe, *menu* para o menu principal ou *0* para encerrar.`;
+  }
+
   if (msgLimpa.trim() === "3.3.1" || msgLimpa.includes("opcao 3.3.1")) {
     return `🎯 *Tutorial Primeiro Acesso*
 
@@ -642,10 +679,6 @@ https://www.e-nfs.com.br/arapiraca/temp/DOC_294.PDF
 Digite *3.3* para voltar aos manuais, *3* para NFSe, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  //                      OPÇÃO 3.4 - ALÍQUOTA, DEDUÇÕES E TRIBUTAÇÃO
-  // ─────────────────────────────────────────────────────────────────────────────────────
-
   if (msgLimpa.trim() === "3.4" || msgLimpa.includes("opcao 3.4")) {
     definirEstadoUsuario(sender, "consulta_iss");
     return `📊 *Alíquota, Deduções e Local de Tributação*
@@ -669,10 +702,6 @@ ${nome}, para consultar informações sobre alíquotas, deduções e local de tr
 Digite *3* para voltar ao menu NFSe e ISSQN, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                         📋 OPÇÃO 4 - LISTA DE SUBSTITUTOS TRIBUTÁRIOS
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-
   if (msgLimpa.trim() === "4" || msgLimpa.includes("opcao 4")) {
     return `📋 *Lista de Substitutos Tributários*
 
@@ -687,10 +716,6 @@ Decreto 2.842/2023 - Dispõe sobre o regíme de responsabilidade supletiva, sobr
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                               💰 OPÇÃO 5 - TFLF 2025
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-
   if (msgLimpa.trim() === "5" || msgLimpa.includes("opcao 5")) {
     definirEstadoUsuario(sender, "opcao_5_tflf");
     return `💰 *TFLF 2025*
@@ -702,10 +727,6 @@ ${nome}, escolha uma das opções abaixo digitando o número:
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
   }
-
-  // ─────────────────────────────────────────────────────────────────────────────────────
-  //                         SUBOPÇÕES DA OPÇÃO 5 (TFLF)
-  // ─────────────────────────────────────────────────────────────────────────────────────
 
   if (msgLimpa.trim() === "5.1" || msgLimpa.includes("opcao 5.1")) {
     definirEstadoUsuario(sender, "consulta_cnae");
@@ -745,10 +766,8 @@ Este documento contém o Anexo I da Lei 2.342/2003 - CTM de Arapiraca com todos 
 Digite *5* para voltar ao menu TFLF, *menu* para o menu principal ou *0* para encerrar.`;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                         🔍 LÓGICA DE BUSCA POR DESCRIÇÃO DE SERVIÇO
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-
+  // Verificar se é uma busca por descrição de serviço (texto com pelo menos 3 caracteres e não apenas números)
+  // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
   const contemLetras = /[a-zA-Z]/.test(msgLimpa);
   if (
     contemLetras &&
@@ -818,10 +837,8 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                         🔍 LÓGICA DE BUSCA POR CÓDIGO DE SERVIÇO ISS
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-
+  // Verificar se é um código de serviço ISS (números com 3 dígitos exatos para verificar primeiro)
+  // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
   const codigoNumeros = msgLimpa.replace(/[^0-9]/g, "");
   if (
     codigoNumeros.length === 3 &&
@@ -858,7 +875,7 @@ ${nome}, não encontrei um código exato "${codigoNumeros}", mas encontrei ${res
 
 `;
 
-        const max = Math.min(resultados.length, 8);
+        const max = Math.min(resultados.length, 8); // Limita a 8 resultados
         for (let i = 0; i < max; i++) {
           const item = resultados[i];
           resposta += `*${i + 1}.* Item ${item.codigoSubitem}
@@ -895,10 +912,8 @@ Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN ou *menu* para o men
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                         🔍 LÓGICA DE BUSCA POR DESCRIÇÃO DE CNAE
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-
+  // Verificar se é uma busca por descrição de CNAE (texto com pelo menos 3 caracteres e não apenas números)
+  // SOMENTE quando o usuário estiver na opção 5.1 (consulta_cnae)
   if (
     contemLetras &&
     msgLimpa.length >= 3 &&
@@ -982,17 +997,15 @@ Digite *5.1* para nova consulta, *5* para menu TFLF ou *menu* para o menu princi
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                         🔍 LÓGICA DE BUSCA POR CÓDIGO CNAE
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-
+  // Verificar se é um código CNAE (números com pelo menos 4 dígitos)
+  // SOMENTE quando o usuário estiver na opção 5.1 (consulta_cnae)
+  const codigoCNAE = msgLimpa.replace(/[^0-9]/g, "");
   if (
-    codigoNumeros.length >= 4 &&
-    !contemLetras &&
+    codigoCNAE.length >= 4 &&
     dadosTFLF.length > 0 &&
     estadoAtual === "consulta_cnae"
   ) {
-    const resultados = buscarPorCNAE(codigoNumeros);
+    const resultados = buscarPorCNAE(codigoCNAE);
 
     if (resultados && resultados.length > 0) {
       if (resultados.length === 1) {
@@ -1025,13 +1038,13 @@ ${nome}, aqui estão os valores para a atividade:
 
 Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal ou *0* para encerrar.`;
       } else {
-        let resposta = `🔍 *Resultados da busca por CNAE "${codigoNumeros}"*
+        let resposta = `🔍 *Resultados da busca por "${codigoCNAE}"*
 
-${nome}, encontrei ${resultados.length} atividades relacionadas:
+${nome}, encontrei ${resultados.length} atividades que contêm esses dígitos:
 
 `;
 
-        const max = Math.min(resultados.length, 8);
+        const max = Math.min(resultados.length, 10); // Limita a 10 resultados
         for (let i = 0; i < max; i++) {
           const item = resultados[i];
           resposta += `*${i + 1}.* CNAE ${item.cnae}
@@ -1043,8 +1056,8 @@ ${item.descricao}
 `;
         }
 
-        if (resultados.length > 8) {
-          resposta += `... e mais ${resultados.length - 8} atividades.
+        if (resultados.length > 10) {
+          resposta += `... e mais ${resultados.length - 10} atividades.
 
 `;
         }
@@ -1058,171 +1071,280 @@ Digite *5.1* para nova consulta, *5* para menu TFLF, *menu* para menu principal 
     } else {
       return `❌ *Nenhuma atividade encontrada*
 
-${nome}, não encontrei nenhuma atividade com o código CNAE "${codigoNumeros}".
+${nome}, não encontrei nenhuma atividade com o código "${codigoCNAE}".
 
 💡 *Dicas:*
 • Verifique se digitou pelo menos 4 dígitos
 • Use apenas números (sem letras)
 • Exemplo: 4711 para comércio varejista
-• Exemplo: 6201 para desenvolvimento de programas
 
-Digite *5.1* para nova consulta, *5* para menu TFLF ou *menu* para o menu principal.`;
+Digite *5.2* para baixar a planilha completa, *5.1* para nova consulta ou *menu* para o menu principal.`;
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                           🚪 ENCERRAMENTO DE ATENDIMENTO
-  // ═══════════════════════════════════════════════════════════════════════════════════════
+  // Verificar se é um código de serviço ISS com 4 dígitos (após tentar CNAE)
+  // SOMENTE quando o usuário estiver na opção 3.4 (consulta_iss)
+  if (
+    codigoCNAE.length === 4 &&
+    dadosISS.length > 0 &&
+    estadoAtual === "consulta_iss"
+  ) {
+    // Primeiro tenta busca exata
+    let resultadosISS = buscarPorCodigoServico(codigoCNAE, true);
 
-  if (msgLimpa.trim() === "0" || msgLimpa.includes("encerrar")) {
-    return `👋 *Atendimento Encerrado*
+    if (resultadosISS && resultadosISS.length > 0) {
+      // Encontrou resultado exato
+      const item = resultadosISS[0];
+      return `📊 *Informações do ISS - Item ${item.codigoSubitem}*
 
-${nome}, obrigado por utilizar nosso atendimento virtual!
+${nome}, aqui estão as informações para o serviço:
 
-Caso precise de mais informações, estarei sempre aqui para ajudar.
+🏷️ *Item:* ${item.codigoItem} - ${item.descricaoItem}
+📝 *Subitem:* ${item.codigoSubitem} - ${item.descricaoSubitem}
 
-💡 *Links úteis:*
-• Portal do Contribuinte: https://arapiraca.abaco.com.br/eagata/portal/
-• NFSe: https://www.e-nfs.com.br/arapiraca/portal/
+💰 *Informações Tributárias:*
+• Alíquota: ${(parseFloat(item.aliquota.replace(",", ".")) * 100).toFixed(1)}%
+• Dedução da base de cálculo: ${item.percentualDeducao}
+• Tributação fora de Arapiraca: ${item.tributacaoForaArapiraca}
 
-Tenha um excelente dia! 🌟
-
-*Atendimento encerrado*`;
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-  //                           ❓ RESPOSTA PADRÃO PARA MENSAGENS NÃO RECONHECIDAS
-  // ═══════════════════════════════════════════════════════════════════════════════════════
-
-  return `❓ *Mensagem não reconhecida*
-
-${nome}, desculpe, não entendi sua solicitação.
-
-💡 *Dicas:*
-• Digite *menu* para ver todas as opções disponíveis
-• Use números para navegar (ex: 1, 2, 3, etc.)
-• Para consultas específicas, certifique-se de estar na seção correta
-
-Digite *menu* para ver o menu principal ou descreva sua dúvida de forma mais específica.`;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                           🌐 ENDPOINTS DA API DO SERVIDOR
-// ═══════════════════════════════════════════════════════════════════════════════════════
-
-// Rota raiz para requests GET
-app.get("/", (req, res) => {
-  res.json({
-    status: "WhatsAuto Servidor Online",
-    timestamp: new Date().toISOString(),
-    endpoints: {
-      webhook: "/webhook (POST)"
-    }
-  });
-});
-
-// Rota raiz para requests POST (caso o webhook seja enviado para /)
-app.post("/", (req, res) => {
-  console.log("📍 Requisição POST recebida na rota raiz - redirecionando para webhook");
-  return processarWebhook(req, res);
-});
-
-app.post("/webhook", (req, res) => {
-  console.log("📍 Requisição POST recebida no endpoint /webhook");
-  return processarWebhook(req, res);
-});
-
-function processarWebhook(req, res) {
-  console.log("\n═══════════════════════════════════════════════════════════════");
-  console.log("📥 WEBHOOK RECEBIDO");
-  console.log("═══════════════════════════════════════════════════════════════");
-
-  let data;
-
-  try {
-    if (req.body && Object.keys(req.body).length > 0) {
-      console.log("✅ Usando req.body (JSON válido)");
-      data = req.body;
-    } else if (req.rawBody) {
-      console.log("⚠️ Tentando parse manual do rawBody");
-      const rawString = req.rawBody.toString();
-
-      if (rawString.startsWith("{")) {
-        try {
-          data = JSON.parse(rawString);
-          console.log("✅ Parse manual bem-sucedido");
-        } catch (jsonErr) {
-          console.log("❌ Falha no parse JSON manual:", jsonErr.message);
-          try {
-            data = qs.parse(rawString);
-            console.log("✅ Parse como form-encoded bem-sucedido");
-          } catch (qsErr) {
-            console.log("❌ Falha no parse form-encoded:", qsErr.message);
-            data = { message: rawString };
-          }
-        }
-      } else {
-        try {
-          data = qs.parse(rawString);
-          console.log("✅ Parse como form-encoded bem-sucedido");
-        } catch (qsErr) {
-          console.log("❌ Falha no parse form-encoded:", qsErr.message);
-          data = { message: rawString };
-        }
-      }
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
     } else {
-      console.log("❌ Nem req.body nem req.rawBody disponíveis");
-      return res.status(400).json({ error: "Dados inválidos" });
+      // Se não encontrou busca exata, tenta busca que contém
+      resultadosISS = buscarPorCodigoServico(codigoCNAE, false);
+
+      if (resultadosISS && resultadosISS.length > 0) {
+        let resposta = `🔍 *Resultados da busca ISS por "${codigoCNAE}"*
+
+${nome}, não encontrei um código exato "${codigoCNAE}", mas encontrei ${resultadosISS.length} serviços que contêm esses dígitos:
+
+`;
+
+        const max = Math.min(resultadosISS.length, 8); // Limita a 8 resultados
+        for (let i = 0; i < max; i++) {
+          const item = resultadosISS[i];
+          resposta += `*${i + 1}.* Item ${item.codigoSubitem}
+${item.descricaoSubitem}
+💰 Alíquota: ${(parseFloat(item.aliquota.replace(",", ".")) * 100).toFixed(1)}%
+
+`;
+        }
+
+        if (resultadosISS.length > 8) {
+          resposta += `... e mais ${resultadosISS.length - 8} serviços.
+
+`;
+        }
+
+        resposta += `Para ver as informações completas de um serviço específico, digite o código do subitem completo.
+
+Digite *3.4* para nova consulta, *3* para menu NFSe e ISSQN, *menu* para menu principal ou *0* para encerrar.`;
+
+        return resposta;
+      }
     }
-
-    console.log("📊 Dados processados:", JSON.stringify(data, null, 2));
-
-    const message = data.message || data.Body || data.text || "";
-    const sender = data.sender || data.From || data.number || "usuario";
-
-    if (!message) {
-      console.log("❌ Mensagem vazia ou inválida");
-      return res.status(400).json({ error: "Mensagem não encontrada" });
-    }
-
-    console.log("📩 Mensagem recebida:", message);
-    console.log("👤 Remetente:", sender);
-
-    const resposta = gerarResposta(message, sender, req);
-
-    console.log("📤 Resposta gerada:", typeof resposta === 'object' ? JSON.stringify(resposta, null, 2) : resposta);
-
-    res.json({
-      success: true,
-      response: resposta,
-      timestamp: new Date().toISOString(),
-    });
-
-  } catch (error) {
-    console.error("❌ Erro no processamento:", error);
-    res.status(500).json({
-      error: "Erro interno do servidor",
-      details: error.message,
-    });
   }
+
+  // Navegação específica de volta aos menus anteriores
+  if (msgLimpa.includes("voltar") || msgLimpa.includes("anterior")) {
+    return gerarMenuPrincipal(nome);
+  }
+
+  // Navegação com "0" - sempre encerra no menu principal
+  if (
+    msgLimpa.trim() === "0" ||
+    msgLimpa.includes("opcao 0") ||
+    msgLimpa.includes("encerrar")
+  ) {
+    return `👋 *Encerrando Atendimento*
+
+${nome}, agradecemos por utilizar nossos serviços digitais!
+
+🏛️ *Prefeitura de Arapiraca - Secretaria da Fazenda*
+
+Para um novo atendimento, digite *menu* ou inicie uma nova conversa.
+
+Tenha um ótimo dia! 😊`;
+  }
+
+  // Mensagens de agradecimento - encerra o atendimento
+  if (
+    msgLimpa.includes("obrigado") ||
+    msgLimpa.includes("obrigada") ||
+    msgLimpa.includes("valeu") ||
+    msgLimpa.includes("muito obrigado") ||
+    msgLimpa.includes("muito obrigada") ||
+    msgLimpa.includes("brigado") ||
+    msgLimpa.includes("brigada") ||
+    msgLimpa.includes("gracas") ||
+    msgLimpa.includes("agradeco")
+  ) {
+    return `😊 *De nada, ${nome}!*
+
+Foi um prazer ajudá-lo(a) hoje!
+
+🏛️ *Prefeitura de Arapiraca - Secretaria da Fazenda*
+
+Para um novo atendimento, digite *menu* ou inicie uma nova conversa.
+
+Tenha um ótimo dia! 👋`;
+  }
+
+  if (msgLimpa.includes("atendente")) {
+    return `👨‍💼 *Solicitação de Atendimento Humano*
+
+${nome}, para falar com um atendente, procure diretamente:
+
+📍 *Secretaria da Fazenda Municipal*
+Rua Samaritana, 1.180 - Bairro Santa Edwiges - Próximo ao Shopping
+🗺️ https://maps.google.com/?q=Rua+Samaritana,+1180,+Arapiraca,+AL
+
+⏱️ *Horário de atendimento:*
+Segunda a Sexta: 8h às 14h
+📧 smfaz@arapiraca.al.gov.br
+
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+  }
+
+  // Detecção por palavras-chave (mantida para compatibilidade)
+  if (msgLimpa.includes("iptu")) {
+    return `${nome}, digite *1* para ver todas as opções sobre IPTU ou segunda via de DAM's.`;
+  }
+
+  if (msgLimpa.includes("certidao") || msgLimpa.includes("negativa")) {
+    return `${nome}, digite *2* para ver todas as opções sobre certidões ou acesse o Portal do Contribuinte.`;
+  }
+
+  if (
+    msgLimpa.includes("nota fiscal") ||
+    msgLimpa.includes("nfse") ||
+    msgLimpa.includes("nfs-e") ||
+    msgLimpa.includes("issqn") ||
+    msgLimpa.includes("iss")
+  ) {
+    return `${nome}, digite *3* para ver todas as opções sobre NFSe e ISSQN.`;
+  }
+
+  if (
+    msgLimpa.includes("substituto tributario") ||
+    msgLimpa.includes("substitutos")
+  ) {
+    return `${nome}, digite *4* para consultar a Lista de Substitutos Tributários.`;
+  }
+
+  if (msgLimpa.includes("valor tflf") || msgLimpa.includes("tflf 2025")) {
+    return `${nome}, digite *5* para acessar as opções da TFLF 2025: consultar por CNAE ou baixar planilha completa.`;
+  }
+
+  // Resposta padrão para mensagens não reconhecidas
+  return `${nome}, não consegui entender sua mensagem. 
+
+🤖 *Para continuar, você pode:*
+
+• Digite *menu* para ver todas as opções disponíveis
+• Digite *1* para Segunda via de DAM's
+• Digite *2* para Certidões de Regularidade Fiscal
+• Digite *3* para NFSe
+• Digite *4* para Lista de Substitutos Tributários
+• Digite *5* para TFLF 2025
+• Digite *0* para encerrar o atendimento
+
+🏛️ *Ou compareça pessoalmente:*
+Secretaria da Fazenda Municipal
+📍 Rua Samaritana, 1.180 - Bairro Santa Edwiges
+🗺️ https://maps.google.com/?q=Rua+Samaritana,+1180,+Arapiraca,+AL
+📧 smfaz@arapiraca.al.gov.br
+⏱️ Segunda a Sexta: 8h às 14h`;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════════════
-//                           🚀 INICIALIZAÇÃO DO SERVIDOR
-// ═══════════════════════════════════════════════════════════════════════════════════════
+// ---------- Rota principal ----------
+app.post("/", (req, res) => {
+  // Se JSON falhou, tenta decodificar req.rawBody como urlencoded
+  if (!req.body || Object.keys(req.body).length === 0) {
+    req.body = qs.parse(req.rawBody);
+  }
+
+  const sender = decodeURIComponent(req.body.sender || "Usuário");
+  const message = decodeURIComponent(req.body.message || "(sem mensagem)");
+
+  console.log("✅ Interpretado:", { sender, message });
+
+  // Verificar se a mensagem é do próprio sistema (para evitar loop)
+  // Detecta apenas mensagens que são claramente do menu principal
+  const ehMensagemDoSistema =
+    message.includes("Escolha uma das opções abaixo digitando o número:") &&
+    message.includes("1 - 📄 Segunda via de DAM's") &&
+    message.includes("Digite o número da opção desejada");
+
+  // Se for mensagem do sistema, não responder (evitar loop)
+  if (ehMensagemDoSistema) {
+    console.log(
+      "🔄 Mensagem do sistema detectada - Não respondendo para evitar loop"
+    );
+    return res.status(200).end(); // Não envia resposta para evitar loop
+  }
+
+  const resposta = gerarResposta(message, sender, req);
+  console.log("🎯 Resposta gerada:", resposta);
+
+  // Verificar se a resposta inclui mídia
+  if (typeof resposta === "object" && resposta.type === "media") {
+    console.log("📸 Enviando resposta com mídia:", {
+      reply: resposta.text,
+      media: resposta.media,
+      media_type: "image",
+    });
+    res.json({
+      reply: resposta.text,
+      media: resposta.media,
+      media_type: "image",
+    });
+  } else {
+    console.log("💬 Enviando resposta de texto:", resposta);
+    res.json({
+      reply: resposta,
+    });
+  }
+});
+
+// Endpoint POST para integração com WhatsAuto
+app.post("/mensagem", (req, res) => {
+  const { sender, message } = req.body || qs.parse(req.rawBody);
+
+  // Verificar se a mensagem é do próprio sistema (para evitar loop)
+  // Detecta apenas mensagens que são claramente do menu principal
+  const ehMensagemDoSistema =
+    message.includes("Escolha uma das opções abaixo digitando o número:") &&
+    message.includes("1 - 📄 Segunda via de DAM's") &&
+    message.includes("Digite o número da opção desejada");
+
+  // Se for mensagem do sistema, não responder (evitar loop)
+  if (ehMensagemDoSistema) {
+    console.log(
+      "🔄 Mensagem do sistema detectada - Não respondendo para evitar loop"
+    );
+    return res.status(200).end(); // Não envia resposta para evitar loop
+  }
+
+  const resposta = gerarResposta(message, sender);
+
+  // Verificar se a resposta inclui mídia
+  if (typeof resposta === "object" && resposta.type === "media") {
+    res.json({
+      reply: resposta.text,
+      media: resposta.media,
+      media_type: "image",
+    });
+  } else {
+    res.send(resposta);
+  }
+});
+
+// GET simples para health-check
+app.get("/", (_, res) =>
+  res.send("✅ Servidor WhatsAuto ativo – envie POST para testar.")
+);
 
 const PORT = process.env.PORT || 3000;
-
 app.listen(PORT, () => {
-  console.log("\n");
-  console.log("═══════════════════════════════════════════════════════════════");
-  console.log("🚀                 SERVIDOR WHATSAUTO INICIADO                 🚀");
-  console.log("═══════════════════════════════════════════════════════════════");
-  console.log(`🌐 Servidor rodando na porta: ${PORT}`);
-  console.log(`📡 Webhook endpoint: http://localhost:${PORT}/webhook`);
-  console.log(`📊 Dados TFLF carregados: ${dadosTFLF.length} registros`);
-  console.log(`📋 Dados ISS carregados: ${dadosISS.length} registros`);
-  console.log("═══════════════════════════════════════════════════════════════");
-  console.log("✅ Sistema pronto para receber mensagens!");
-  console.log("═══════════════════════════════════════════════════════════════");
+  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });
