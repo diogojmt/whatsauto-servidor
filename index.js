@@ -159,37 +159,41 @@ function buscarPorDescricaoCNAE(termoBusca) {
 async function emitirCertidaoGeral(cpf) {
   try {
     // Criar instância do axios para manter sessão
-    const client = axios.create({ 
+    const client = axios.create({
       withCredentials: true,
-      timeout: 30000
+      timeout: 30000,
     });
 
     console.log("🔍 Acessando portal para obter GXState...");
-    
+
     // 1. Fazer GET para obter GXState
     const getResponse = await client.get(
       "https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral",
       { maxRedirects: 0 }
     );
-    
+
     // 👇 Log do HTML retornado para debug
     console.log("🔎 HTML retornado do portal:");
     console.log(getResponse.data);
-    
+
     // Salvar em arquivo para análise
-    const fs = require('fs');
+    const fs = require("fs");
     fs.writeFileSync("html_portal.txt", getResponse.data);
     console.log("📁 HTML salvo em html_portal.txt para análise");
-    
+
     // 2. Extrair GXState usando regex
     const gxStateMatch = getResponse.data.match(/GXState\s*=\s*"([^"]+)"/);
     let gxState;
-    
+
     if (!gxStateMatch) {
       // Tentar buscar com outras variações do regex
-      const gxStateMatch2 = getResponse.data.match(/name="GXState"[^>]*value="([^"]+)"/);
+      const gxStateMatch2 = getResponse.data.match(
+        /name="GXState"[^>]*value="([^"]+)"/
+      );
       if (!gxStateMatch2) {
-        console.log("❌ GXState não encontrado no HTML. Veja o arquivo html_portal.txt para analisar.");
+        console.log(
+          "❌ GXState não encontrado no HTML. Veja o arquivo html_portal.txt para analisar."
+        );
         throw new Error("Não foi possível capturar o GXState");
       }
       gxState = gxStateMatch2[1];
@@ -198,7 +202,7 @@ async function emitirCertidaoGeral(cpf) {
       gxState = gxStateMatch[1];
       console.log("✅ GXState capturado com sucesso");
     }
-    
+
     // 3. Montar payload do POST
     const payload = qs.stringify({
       vTIPODEBITO: 1,
@@ -207,35 +211,36 @@ async function emitirCertidaoGeral(cpf) {
       vPESSOATIPO: 1,
       vCONTRIBUINTECPFCNPJ: cpf,
       GXState: gxState,
-      _EventName: "EENTER."
+      _EventName: "EENTER.",
     });
-    
+
     console.log("📤 Enviando requisição para gerar certidão...");
-    
+
     // 4. Fazer POST para gerar certidão
     const postResponse = await client.post(
       "https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral",
       payload,
       {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        responseType: 'arraybuffer'
+        responseType: "arraybuffer",
       }
     );
-    
+
     // 5. Salvar PDF no disco
     const fileName = `certidao_${cpf}.pdf`;
     const filePath = path.join(__dirname, fileName);
-    
+
     fs.writeFileSync(filePath, postResponse.data);
     console.log(`✅ Certidão salva como: ${fileName}`);
-    
+
     return filePath;
-    
   } catch (error) {
     console.error("❌ Erro ao emitir certidão:", error.message);
-    throw new Error("Não foi possível emitir a certidão. Tente novamente em alguns minutos.");
+    throw new Error(
+      "Não foi possível emitir a certidão. Tente novamente em alguns minutos."
+    );
   }
 }
 
@@ -381,7 +386,7 @@ Tenha um excelente dia! 👋
   // Processamento de CPF/CNPJ para emissão de certidão
   if (estadoAtual === "emitir_certidao_coletando_cpf") {
     const cpfCnpj = msgLimpa.replace(/[^0-9]/g, ""); // Remove tudo que não é número
-    
+
     // Validar se tem pelo menos 11 dígitos (CPF mínimo)
     if (cpfCnpj.length < 11) {
       return `❌ *CPF/CNPJ inválido*
@@ -398,13 +403,13 @@ Digite novamente o CPF ou CNPJ com apenas números, ou *menu* para voltar ao men
     try {
       // Informar que está processando
       console.log(`🔄 Processando certidão para CPF/CNPJ: ${cpfCnpj}`);
-      
+
       // Chamar função para emitir certidão
       const caminhoArquivo = await emitirCertidaoGeral(cpfCnpj);
-      
+
       // Resetar estado do usuário
       definirEstadoUsuario(sender, "menu_principal");
-      
+
       // Retornar resposta com arquivo PDF
       return {
         type: "media",
@@ -417,15 +422,14 @@ ${nome}, sua certidão foi gerada e está sendo enviada como anexo.
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
         media: caminhoArquivo,
-        media_type: "document"
+        media_type: "document",
       };
-      
     } catch (error) {
       console.error("❌ Erro ao processar certidão:", error.message);
-      
+
       // Resetar estado do usuário em caso de erro
       definirEstadoUsuario(sender, "menu_principal");
-      
+
       return `❌ *Erro ao gerar certidão*
 
 ${nome}, não foi possível gerar a certidão no momento.
@@ -1318,7 +1322,7 @@ Tenha um ótimo dia! 👋`;
   }
 
   if (msgLimpa.includes("atendente")) {
-    return `👨‍💼 *Solicitação de Atendimento Humano*
+    return `👨‍💼 *Solicitação de Atendimento Humano* 
 
 ${nome}, para falar com um atendente, procure diretamente:
 
