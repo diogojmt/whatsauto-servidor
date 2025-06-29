@@ -1182,7 +1182,14 @@ app.post("/", (req, res) => {
   });
 });
 
-// GET simples
+// Endpoint POST para integração com WhatsAuto
+app.post("/mensagem", (req, res) => {
+  const { sender, message } = req.body || qs.parse(req.rawBody);
+  const resposta = gerarResposta(message, sender);
+  res.send(resposta);
+});
+
+// GET simples para health-check
 app.get("/", (_, res) =>
   res.send("✅ Servidor WhatsAuto ativo – envie POST para testar.")
 );
