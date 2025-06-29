@@ -218,13 +218,37 @@ function definirEstadoUsuario(sender, estado) {
 // ---------- Função para criar resposta com mídia ----------
 function criarRespostaComMidia(texto, imagemPath = null, req = null) {
   if (imagemPath) {
-    // Gerar URL completa para a imagem
-    const baseUrl = req ? `${req.protocol}://${req.get('host')}` : 'https://4726de37-db43-4b9e-b40d-1391d2c20ed5-00-3r6mmehtesw5t.janeway.replit.dev';
-    return {
-      type: 'media',
-      text: texto,
-      media: `${baseUrl}/imagens/${imagemPath}`
-    };
+    try {
+      // Ler o arquivo de imagem e converter para base64
+      const imagemCompleta = path.join(__dirname, 'imagens', imagemPath);
+      const imagemBuffer = fs.readFileSync(imagemCompleta);
+      const imagemBase64 = imagemBuffer.toString('base64');
+      
+      // Detectar tipo de arquivo pela extensão
+      const extensao = path.extname(imagemPath).toLowerCase();
+      let mimeType = 'image/png'; // padrão
+      
+      if (extensao === '.jpg' || extensao === '.jpeg') {
+        mimeType = 'image/jpeg';
+      } else if (extensao === '.gif') {
+        mimeType = 'image/gif';
+      } else if (extensao === '.webp') {
+        mimeType = 'image/webp';
+      }
+      
+      return {
+        type: 'media',
+        text: texto,
+        media: `data:${mimeType};base64,${imagemBase64}`
+      };
+    } catch (error) {
+      console.error('❌ Erro ao ler imagem:', error);
+      // Se não conseguir ler a imagem, retorna só o texto
+      return {
+        type: 'text',
+        text: texto
+      };
+    }
   }
   return {
     type: 'text',
