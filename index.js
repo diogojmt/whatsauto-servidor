@@ -1175,6 +1175,24 @@ app.post("/", (req, res) => {
 
   console.log("✅ Interpretado:", { sender, message });
 
+  // Verificar se a mensagem é do próprio sistema (para evitar loop)
+  const mensagensDoSistema = [
+    'Olá', 'Seja bem-vindo', 'Digite menu', 'Escolha uma das opções',
+    'Segunda via', 'Certidões', 'NFSe', 'TFLF', 'Substitutos Tributários'
+  ];
+  
+  const ehMensagemDoSistema = mensagensDoSistema.some(termo => 
+    message.includes(termo) && message.includes('📄')
+  );
+  
+  // Se for mensagem do sistema, não responder (evitar loop)
+  if (ehMensagemDoSistema) {
+    console.log('🔄 Mensagem do sistema detectada - Não respondendo para evitar loop');
+    return res.json({
+      reply: 'Sistema: Loop evitado'
+    });
+  }
+
   const resposta = gerarResposta(message, sender);
 
   res.json({
@@ -1185,6 +1203,23 @@ app.post("/", (req, res) => {
 // Endpoint POST para integração com WhatsAuto
 app.post("/mensagem", (req, res) => {
   const { sender, message } = req.body || qs.parse(req.rawBody);
+  
+  // Verificar se a mensagem é do próprio sistema (para evitar loop)
+  const mensagensDoSistema = [
+    'Olá', 'Seja bem-vindo', 'Digite menu', 'Escolha uma das opções',
+    'Segunda via', 'Certidões', 'NFSe', 'TFLF', 'Substitutos Tributários'
+  ];
+  
+  const ehMensagemDoSistema = mensagensDoSistema.some(termo => 
+    message.includes(termo) && message.includes('📄')
+  );
+  
+  // Se for mensagem do sistema, não responder (evitar loop)
+  if (ehMensagemDoSistema) {
+    console.log('🔄 Mensagem do sistema detectada - Não respondendo para evitar loop');
+    return res.send('Sistema: Loop evitado');
+  }
+  
   const resposta = gerarResposta(message, sender);
   res.send(resposta);
 });
