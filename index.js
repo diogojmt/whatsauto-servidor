@@ -221,7 +221,7 @@ function criarRespostaComMidia(texto, imagemPath = null) {
     return {
       type: 'media',
       text: texto,
-      media: imagemPath
+      media: `/imagens/${imagemPath}`
     };
   }
   return {
