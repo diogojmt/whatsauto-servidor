@@ -474,7 +474,7 @@ ${nome}, escolha uma das opções abaixo digitando o número:
 *3.1* - 🌐 Acesso ao Site para Emissão
 *3.2* - ❓ Dúvidas e Reclamações do Sistema
 *3.3* - 📖 Manuais de Utilização do Sistema
------------------------------------------------------===============
+------------------------------------------------------------
 *3.4* - 📊 Alíquota, Deduções e Local de Tributação do ISS
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
