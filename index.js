@@ -168,17 +168,36 @@ async function emitirCertidaoGeral(cpf) {
     
     // 1. Fazer GET para obter GXState
     const getResponse = await client.get(
-      "https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral"
+      "https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral",
+      { maxRedirects: 0 }
     );
+    
+    // 👇 Log do HTML retornado para debug
+    console.log("🔎 HTML retornado do portal:");
+    console.log(getResponse.data);
+    
+    // Salvar em arquivo para análise
+    const fs = require('fs');
+    fs.writeFileSync("html_portal.txt", getResponse.data);
+    console.log("📁 HTML salvo em html_portal.txt para análise");
     
     // 2. Extrair GXState usando regex
     const gxStateMatch = getResponse.data.match(/GXState\s*=\s*"([^"]+)"/);
-    if (!gxStateMatch) {
-      throw new Error("Não foi possível capturar o GXState");
-    }
+    let gxState;
     
-    const gxState = gxStateMatch[1];
-    console.log("✅ GXState capturado com sucesso");
+    if (!gxStateMatch) {
+      // Tentar buscar com outras variações do regex
+      const gxStateMatch2 = getResponse.data.match(/name="GXState"[^>]*value="([^"]+)"/);
+      if (!gxStateMatch2) {
+        console.log("❌ GXState não encontrado no HTML. Veja o arquivo html_portal.txt para analisar.");
+        throw new Error("Não foi possível capturar o GXState");
+      }
+      gxState = gxStateMatch2[1];
+      console.log("✅ GXState encontrado com regex alternativo");
+    } else {
+      gxState = gxStateMatch[1];
+      console.log("✅ GXState capturado com sucesso");
+    }
     
     // 3. Montar payload do POST
     const payload = qs.stringify({
