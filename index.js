@@ -216,12 +216,14 @@ function definirEstadoUsuario(sender, estado) {
 }
 
 // ---------- Função para criar resposta com mídia ----------
-function criarRespostaComMidia(texto, imagemPath = null) {
+function criarRespostaComMidia(texto, imagemPath = null, req = null) {
   if (imagemPath) {
+    // Gerar URL completa para a imagem
+    const baseUrl = req ? `${req.protocol}://${req.get('host')}` : 'https://4726de37-db43-4b9e-b40d-1391d2c20ed5-00-3r6mmehtesw5t.janeway.replit.dev';
     return {
       type: 'media',
       text: texto,
-      media: `/imagens/${imagemPath}`
+      media: `${baseUrl}/imagens/${imagemPath}`
     };
   }
   return {
@@ -231,7 +233,7 @@ function criarRespostaComMidia(texto, imagemPath = null) {
 }
 
 // ---------- Função para gerar respostas automáticas ----------
-function gerarResposta(message, sender) {
+function gerarResposta(message, sender, req = null) {
   const nome = sender || "cidadão";
   const msgLimpa = message
     .toLowerCase()
@@ -315,7 +317,8 @@ https://arapiraca.abaco.com.br/eagata/portal/
 smfaz@arapiraca.al.gov.br
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
-      'Portal_2_vias.png'
+      'Portal_2_vias.png',
+      req
     );
   }
 
@@ -338,7 +341,8 @@ https://arapiraca.abaco.com.br/eagata/portal/
 smfaz@arapiraca.al.gov.br
 
 Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
-      'Portal_2_vias.png'
+      'Portal_2_vias.png',
+      req
     );
   }
 
@@ -1231,7 +1235,7 @@ app.post("/", (req, res) => {
     return res.status(200).end(); // Não envia resposta para evitar loop
   }
 
-  const resposta = gerarResposta(message, sender);
+  const resposta = gerarResposta(message, sender, req);
   console.log("🎯 Resposta gerada:", resposta);
 
   // Verificar se a resposta inclui mídia
