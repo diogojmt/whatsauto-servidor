@@ -1110,7 +1110,29 @@ Digite *menu* para ver o menu principal ou descreva sua dúvida de forma mais es
 //                           🌐 ENDPOINTS DA API DO SERVIDOR
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
+// Rota raiz para requests GET
+app.get("/", (req, res) => {
+  res.json({
+    status: "WhatsAuto Servidor Online",
+    timestamp: new Date().toISOString(),
+    endpoints: {
+      webhook: "/webhook (POST)"
+    }
+  });
+});
+
+// Rota raiz para requests POST (caso o webhook seja enviado para /)
+app.post("/", (req, res) => {
+  console.log("📍 Requisição POST recebida na rota raiz - redirecionando para webhook");
+  return processarWebhook(req, res);
+});
+
 app.post("/webhook", (req, res) => {
+  console.log("📍 Requisição POST recebida no endpoint /webhook");
+  return processarWebhook(req, res);
+});
+
+function processarWebhook(req, res) {
   console.log("\n═══════════════════════════════════════════════════════════════");
   console.log("📥 WEBHOOK RECEBIDO");
   console.log("═══════════════════════════════════════════════════════════════");
@@ -1183,7 +1205,7 @@ app.post("/webhook", (req, res) => {
       details: error.message,
     });
   }
-});
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════════════
 //                           🚀 INICIALIZAÇÃO DO SERVIDOR
