@@ -184,8 +184,9 @@ app.use((req, res, next) => {
   });
 });
 
-// Middleware para parse JSON
+// Middleware para parse JSON e form-encoded
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Middleware para tratamento de erros JSON
 app.use((err, req, res, next) => {
