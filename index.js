@@ -1,6 +1,7 @@
 const express = require("express");
 const qs = require("querystring"); // módulo nativo do Node
 const fs = require("fs");
+const path = require("path");
 const app = express();
 
 // ---------- Carregar dados da TFLF ----------
@@ -157,6 +158,9 @@ function buscarPorDescricaoCNAE(termoBusca) {
 carregarDadosTFLF();
 carregarDadosISS();
 
+// ---------- Servir arquivos estáticos (imagens) ----------
+app.use('/imagens', express.static(path.join(__dirname)));
+
 // ---------- LOG bruto ----------
 app.use((req, res, next) => {
   console.log("\n🟡 NOVA REQUISIÇÃO");
@@ -209,6 +213,21 @@ function obterEstadoUsuario(sender) {
 
 function definirEstadoUsuario(sender, estado) {
   estadosUsuario.set(sender, estado);
+}
+
+// ---------- Função para criar resposta com mídia ----------
+function criarRespostaComMidia(texto, imagemPath = null) {
+  if (imagemPath) {
+    return {
+      type: 'media',
+      text: texto,
+      media: imagemPath
+    };
+  }
+  return {
+    type: 'text',
+    text: texto
+  };
 }
 
 // ---------- Função para gerar respostas automáticas ----------
@@ -277,12 +296,27 @@ Tenha um excelente dia! 👋
     return gerarMenuPrincipal(nome);
   }
 
-  // Navegação com "1" - retorna ao menu DAMs se digitado sozinho
+  // Navegação com "1" - exibe instruções do Portal de Segunda Via
   if (msgLimpa.trim() === "1") {
     definirEstadoUsuario(sender, 'opcao_1_dams');
-    return `📄 *Segunda via de DAM's*
+    return criarRespostaComMidia(
+      `📄 *Segunda via de DAM's*
 
-${nome}, escolha uma das opções abaixo digitando o número:
+${nome}, para emitir a segunda via de DAMs, siga as instruções:
+
+🔗 *Acesse o link:*
+https://arapiraca.abaco.com.br/eagata/portal/
+
+📋 *Instruções:*
+• No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+
+📧 *Dúvidas ou informações:*
+smfaz@arapiraca.al.gov.br
+
+---
+
+*Opções específicas disponíveis:*
 
 *1.1* - 🏠 IPTU 2025
 *1.2* - 🏪 TFLF 2025
@@ -292,15 +326,32 @@ ${nome}, escolha uma das opções abaixo digitando o número:
 *1.6* - 📊 Outras Dívidas Diversas 2025
 *1.7* - ⚖️ Débitos Inscritos em Dívida Ativa
 
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+      'Portal_2_vias.png'
+    );
   }
 
   // Navegação por números - opção 1 do menu principal
   if (msgLimpa.includes("opcao 1")) {
     definirEstadoUsuario(sender, 'opcao_1_dams');
-    return `📄 *Segunda via de DAM's*
+    return criarRespostaComMidia(
+      `📄 *Segunda via de DAM's*
 
-${nome}, escolha uma das opções abaixo digitando o número:
+${nome}, para emitir a segunda via de DAMs, siga as instruções:
+
+🔗 *Acesse o link:*
+https://arapiraca.abaco.com.br/eagata/portal/
+
+📋 *Instruções:*
+• No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+
+📧 *Dúvidas ou informações:*
+smfaz@arapiraca.al.gov.br
+
+---
+
+*Opções específicas disponíveis:*
 
 *1.1* - 🏠 IPTU 2025
 *1.2* - 🏪 TFLF 2025
@@ -310,7 +361,9 @@ ${nome}, escolha uma das opções abaixo digitando o número:
 *1.6* - 📊 Outras Dívidas Diversas 2025
 *1.7* - ⚖️ Débitos Inscritos em Dívida Ativa
 
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+      'Portal_2_vias.png'
+    );
   }
 
   if (
@@ -1332,9 +1385,18 @@ app.post("/", (req, res) => {
 
   const resposta = gerarResposta(message, sender);
 
-  res.json({
-    reply: resposta,
-  });
+  // Verificar se a resposta inclui mídia
+  if (typeof resposta === 'object' && resposta.type === 'media') {
+    res.json({
+      reply: resposta.text,
+      media: resposta.media,
+      media_type: 'image'
+    });
+  } else {
+    res.json({
+      reply: resposta,
+    });
+  }
 });
 
 // Endpoint POST para integração com WhatsAuto
@@ -1358,7 +1420,17 @@ app.post("/mensagem", (req, res) => {
   }
   
   const resposta = gerarResposta(message, sender);
-  res.send(resposta);
+  
+  // Verificar se a resposta inclui mídia
+  if (typeof resposta === 'object' && resposta.type === 'media') {
+    res.json({
+      reply: resposta.text,
+      media: resposta.media,
+      media_type: 'image'
+    });
+  } else {
+    res.send(resposta);
+  }
 });
 
 // GET simples para health-check
