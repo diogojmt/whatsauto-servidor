@@ -158,29 +158,21 @@ app.get("/status", (req, res) => {
     memory: process.memoryUsage(),
     features: {
       emissaoCertidoes: true,
-      consultaPorCpfCnpj: true,
-      selecaoMultiplasInscricoes: true
+      consultaPorCpfCnpj: false, // API Ábaco não suporta
+      fluxoOtimizado: true
     }
   });
 });
 
-// ---------- Endpoint para testar consulta por CPF/CNPJ ----------
+// ---------- Endpoint para testar API da Ábaco ----------
 app.get("/test-cpf/:cpf", async (req, res) => {
-  try {
-    const { consultarInscricoesPorCpf } = require("./src/utils/consultaApi");
-    const resultado = await consultarInscricoesPorCpf(req.params.cpf);
-    
-    res.json({
-      cpf: req.params.cpf,
-      resultado: resultado,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: error.message,
-      cpf: req.params.cpf
-    });
-  }
+  res.json({
+    cpf: req.params.cpf,
+    suporte: false,
+    motivo: "API Ábaco exige inscrição como parâmetro obrigatório",
+    fluxo: "CPF/CNPJ + Inscrição → Certidão",
+    timestamp: new Date().toISOString()
+  });
 });
 
 const PORT = process.env.PORT || 3000;

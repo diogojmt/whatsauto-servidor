@@ -1,5 +1,4 @@
 const { emitirCertidao, validarDadosCertidao } = require('../utils/certidaoApi');
-const { consultarInscricoesPorCpf } = require('../utils/consultaApi');
 const { obterEstadoUsuario, definirEstadoUsuario, obterDadosTemporarios, definirDadosTemporarios, limparDadosTemporarios } = require('./stateService');
 const { ESTADOS, EMOJIS } = require('../config/constants');
 
@@ -69,13 +68,13 @@ ${EMOJIS.INFO} Digite apenas os números (sem pontos, traços ou barras):`;
 }
 
 /**
- * Processa o CPF/CNPJ informado e busca inscrições vinculadas
+ * Processa o CPF/CNPJ informado
  * @param {string} sender - ID do usuário
  * @param {string} cpfCnpj - CPF/CNPJ informado
  * @param {string} nome - Nome do usuário
- * @returns {Promise<string>} Próxima mensagem do fluxo
+ * @returns {string} Próxima mensagem do fluxo
  */
-async function processarCpfCnpj(sender, cpfCnpj, nome) {
+function processarCpfCnpj(sender, cpfCnpj, nome) {
   const dadosTemp = obterDadosTemporarios(sender);
   
   if (!dadosTemp || !dadosTemp.tipoContribuinte) {
@@ -98,58 +97,17 @@ Digite novamente apenas os números:`;
     cpfCnpj: cpfCnpjLimpo 
   });
 
-  // Tentar buscar inscrições vinculadas ao CPF/CNPJ
-  try {
-    console.log(`🔍 Buscando inscrições para CPF/CNPJ: ${cpfCnpjLimpo}`);
-    
-    const resultadoConsulta = await consultarInscricoesPorCpf(cpfCnpjLimpo);
-    
-    if (resultadoConsulta.sucesso && resultadoConsulta.inscricoes.length > 1) {
-      // Múltiplas inscrições encontradas - permitir seleção
-      definirDadosTemporarios(sender, {
-        ...dadosTemp,
-        cpfCnpj: cpfCnpjLimpo,
-        inscricoesDisponiveis: resultadoConsulta.inscricoes
-      });
-      definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_SELECAO_INSCRICAO);
-
-      return gerarMenuSelecaoInscricao(resultadoConsulta.inscricoes, nome);
-      
-    } else if (resultadoConsulta.sucesso && resultadoConsulta.inscricoes.length === 1) {
-      // Uma única inscrição encontrada - usar automaticamente
-      const inscricao = resultadoConsulta.inscricoes[0];
-      definirDadosTemporarios(sender, {
-        ...dadosTemp,
-        cpfCnpj: cpfCnpjLimpo,
-        inscricaoSelecionada: inscricao.inscricao
-      });
-      
-      return await emitirCertidaoAutomatica(sender, nome);
-      
-    } else {
-      // Nenhuma inscrição encontrada ou API não suporta - continuar com fluxo manual
-      console.log('ℹ️ Consulta não retornou inscrições, continuando com fluxo manual');
-      definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
-      
-      return `${EMOJIS.SUCESSO} CPF/CNPJ registrado: *${cpfCnpjLimpo}*
+  // A API da Ábaco não suporta consulta por CPF/CNPJ sem inscrição
+  // Continuar diretamente com fluxo manual (mais eficiente)
+  console.log('ℹ️ API Ábaco exige inscrição como parâmetro obrigatório - usando fluxo direto');
+  definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
+  
+  return `${EMOJIS.SUCESSO} CPF/CNPJ registrado: *${cpfCnpjLimpo}*
 
 Agora preciso da sua *inscrição municipal*:
 
 ${EMOJIS.INFO} Digite apenas os números da sua inscrição (sem pontos, traços ou letras):`;
-    }
-    
-  } catch (error) {
-    console.error('❌ Erro ao consultar inscrições:', error);
-    
-    // Em caso de erro, continuar com fluxo manual
-    definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
-    
-    return `${EMOJIS.SUCESSO} CPF/CNPJ registrado: *${cpfCnpjLimpo}*
-
-Agora preciso da sua *inscrição municipal*:
-
-${EMOJIS.INFO} Digite apenas os números da sua inscrição (sem pontos, traços ou letras):`;
-  }
+}
 }
 
 /**
