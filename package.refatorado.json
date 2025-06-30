@@ -1,0 +1,30 @@
+{
+  "name": "whatsauto-servidor-refatorado",
+  "version": "2.0.0",
+  "description": "Servidor de atendimento virtual refatorado para Prefeitura de Arapiraca",
+  "main": "index.refatorado.js",
+  "scripts": {
+    "start": "node index.refatorado.js",
+    "dev": "nodemon index.refatorado.js",
+    "start:original": "node index.js",
+    "test": "echo \"Executando servidor refatorado...\" && npm start"
+  },
+  "keywords": [
+    "whatsapp",
+    "chatbot",
+    "prefeitura",
+    "arapiraca",
+    "tributario"
+  ],
+  "author": "Prefeitura de Arapiraca",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
