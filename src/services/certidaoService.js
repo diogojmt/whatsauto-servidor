@@ -138,12 +138,25 @@ Digite *menu* para voltar ao menu principal.`;
 function ehSolicitacaoCertidao(msgLimpa) {
   const palavrasChave = [
     'emitir certidao',
+    'emitir certidão',
     'certidao automatica',
+    'certidão automatica', 
+    'certidao automática',
+    'certidão automática',
     'gerar certidao',
+    'gerar certidão',
     'solicitar certidao',
+    'solicitar certidão',
     'nova certidao',
+    'nova certidão',
     'certidao negativa',
-    'certidao positiva'
+    'certidão negativa',
+    'certidao positiva',
+    'certidão positiva',
+    'emissao automatica',
+    'emissão automatica',
+    'emissão automática',
+    'emissao automática'
   ];
 
   return palavrasChave.some(palavra => msgLimpa.includes(palavra));
