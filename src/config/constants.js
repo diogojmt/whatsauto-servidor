@@ -47,6 +47,7 @@ const ESTADOS = {
   CONSULTA_CNAE: "consulta_cnae",
   EMISSAO_CERTIDAO: "emissao_certidao",
   AGUARDANDO_TIPO_CONTRIBUINTE: "aguardando_tipo_contribuinte",
+  AGUARDANDO_CPF_CNPJ: "aguardando_cpf_cnpj",
   AGUARDANDO_INSCRICAO: "aguardando_inscricao"
 };
 

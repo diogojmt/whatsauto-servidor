@@ -54,14 +54,14 @@ app.use((err, req, res, next) => {
 });
 
 // ---------- Função para processar resposta ----------
-function processarResposta(req, res, sender, message) {
+async function processarResposta(req, res, sender, message) {
   // Verificar se é mensagem do sistema para evitar loop
   if (ehMensagemDoSistema(message)) {
     console.log("🔄 Mensagem do sistema detectada - Não respondendo para evitar loop");
     return res.status(200).end();
   }
 
-  const resposta = processarMensagem(message, sender, dadosTFLF, dadosISS, req);
+  const resposta = await processarMensagem(message, sender, dadosTFLF, dadosISS, req);
   console.log("🎯 Resposta gerada:", resposta);
 
   // Verificar se a resposta inclui mídia
@@ -100,7 +100,7 @@ app.post("/", (req, res) => {
 });
 
 // ---------- Endpoint POST para integração com WhatsAuto ----------
-app.post("/mensagem", (req, res) => {
+app.post("/mensagem", async (req, res) => {
   const { sender, message } = req.body || qs.parse(req.rawBody);
 
   // Verificar se é mensagem do sistema para evitar loop
@@ -109,7 +109,7 @@ app.post("/mensagem", (req, res) => {
     return res.status(200).end();
   }
 
-  const resposta = processarMensagem(message, sender, dadosTFLF, dadosISS);
+  const resposta = await processarMensagem(message, sender, dadosTFLF, dadosISS);
 
   // Verificar se a resposta inclui mídia
   if (typeof resposta === "object" && resposta.type === "media") {

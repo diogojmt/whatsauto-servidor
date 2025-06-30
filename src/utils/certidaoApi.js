@@ -8,10 +8,11 @@ const API_CHAVE = "@C0sS0_@P1";
  * @param {Object} params - Parâmetros para emissão
  * @param {string} params.tipoContribuinte - Tipo de contribuinte (1=PF/PJ, 2=Imóvel, 3=Empresa)
  * @param {string} params.inscricao - Inscrição municipal
+ * @param {string} params.cpfCnpj - CPF ou CNPJ
  * @param {string} params.operacao - Tipo de documento (2=Certidão)
  * @returns {Promise<Object>} Resposta da API
  */
-async function emitirCertidao({ tipoContribuinte, inscricao, operacao = "2" }) {
+async function emitirCertidao({ tipoContribuinte, inscricao, cpfCnpj, operacao = "2" }) {
   const url = 'https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidocumento';
 
   const payload = {
@@ -21,7 +22,7 @@ async function emitirCertidao({ tipoContribuinte, inscricao, operacao = "2" }) {
     SSEExercicioDebito: "",
     SSETipoConsumo: "",
     SSENossoNumero: "",
-    SSECPFCNPJ: "",
+    SSECPFCNPJ: cpfCnpj || "",
     SSEOperacao: operacao,
     SSEIdentificador: ""
   };

@@ -58,6 +58,7 @@ const {
 const { 
   iniciarFluxoCertidao, 
   processarTipoContribuinte, 
+  processarCpfCnpj,
   processarInscricaoEEmitir, 
   ehSolicitacaoCertidao 
 } = require("../services/certidaoService");
@@ -183,7 +184,7 @@ function processarBuscaCNAE(msgLimpa, dadosTFLF, nome) {
  * @param {Object} req - Request object (opcional)
  * @returns {string|Object} Resposta processada
  */
-function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
+async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
   const nome = sender || "cidadão";
   const msgLimpa = normalizarTexto(message);
   const estadoAtual = obterEstadoUsuario(sender);
@@ -213,8 +214,12 @@ function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
     return processarTipoContribuinte(sender, opcao, nome);
   }
 
+  if (estadoAtual === ESTADOS.AGUARDANDO_CPF_CNPJ) {
+    return processarCpfCnpj(sender, msgLimpa, nome);
+  }
+
   if (estadoAtual === ESTADOS.AGUARDANDO_INSCRICAO) {
-    return processarInscricaoEEmitir(sender, msgLimpa, nome);
+    return await processarInscricaoEEmitir(sender, msgLimpa, nome);
   }
 
   // Buscas contextuais específicas

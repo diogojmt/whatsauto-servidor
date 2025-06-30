@@ -49,11 +49,49 @@ Digite apenas o número:`;
 
   // Salvar tipo escolhido
   definirDadosTemporarios(sender, { tipoContribuinte: opcao });
-  definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
+  definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_CPF_CNPJ);
 
   return `${EMOJIS.SUCESSO} Tipo selecionado: *${tiposValidos[opcao]}*
 
-Agora preciso da sua *inscrição municipal*.
+Agora preciso do seu *CPF/CNPJ*:
+
+${EMOJIS.INFO} Digite apenas os números (sem pontos, traços ou barras):`;
+}
+
+/**
+ * Processa o CPF/CNPJ informado
+ * @param {string} sender - ID do usuário
+ * @param {string} cpfCnpj - CPF/CNPJ informado
+ * @param {string} nome - Nome do usuário
+ * @returns {string} Próxima mensagem do fluxo
+ */
+function processarCpfCnpj(sender, cpfCnpj, nome) {
+  const dadosTemp = obterDadosTemporarios(sender);
+  
+  if (!dadosTemp || !dadosTemp.tipoContribuinte) {
+    definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+    return `${EMOJIS.ERRO} Sessão expirada. Digite *menu* para começar novamente.`;
+  }
+
+  // Validação básica de CPF/CNPJ
+  const cpfCnpjLimpo = cpfCnpj.replace(/\D/g, '');
+  
+  if (cpfCnpjLimpo.length !== 11 && cpfCnpjLimpo.length !== 14) {
+    return `${EMOJIS.ERRO} CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos.
+
+Digite novamente apenas os números:`;
+  }
+
+  // Salvar CPF/CNPJ
+  definirDadosTemporarios(sender, { 
+    ...dadosTemp, 
+    cpfCnpj: cpfCnpjLimpo 
+  });
+  definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
+
+  return `${EMOJIS.SUCESSO} CPF/CNPJ registrado: *${cpfCnpjLimpo}*
+
+Agora preciso da sua *inscrição municipal*:
 
 ${EMOJIS.INFO} Digite apenas os números da sua inscrição (sem pontos, traços ou letras):`;
 }
@@ -68,7 +106,7 @@ ${EMOJIS.INFO} Digite apenas os números da sua inscrição (sem pontos, traços
 async function processarInscricaoEEmitir(sender, inscricao, nome) {
   const dadosTemp = obterDadosTemporarios(sender);
   
-  if (!dadosTemp || !dadosTemp.tipoContribuinte) {
+  if (!dadosTemp || !dadosTemp.tipoContribuinte || !dadosTemp.cpfCnpj) {
     definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
     return `${EMOJIS.ERRO} Sessão expirada. Digite *menu* para começar novamente.`;
   }
@@ -93,6 +131,7 @@ Por favor, digite novamente sua inscrição municipal (apenas números):`;
     const resultado = await emitirCertidao({
       tipoContribuinte: dadosTemp.tipoContribuinte,
       inscricao: inscricao.trim(),
+      cpfCnpj: dadosTemp.cpfCnpj,
       operacao: "2" // Certidão
     });
 
@@ -165,6 +204,7 @@ function ehSolicitacaoCertidao(msgLimpa) {
 module.exports = {
   iniciarFluxoCertidao,
   processarTipoContribuinte,
+  processarCpfCnpj,
   processarInscricaoEEmitir,
   ehSolicitacaoCertidao
 };
