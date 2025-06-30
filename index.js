@@ -327,7 +327,7 @@ https://arapiraca.abaco.com.br/eagata/portal/
 
 📋 *Instruções:*
 • No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Cadastro Geral ou Inscrição Imobiliária do contribuinte
 
 📧 *Dúvidas ou informações:*
 smfaz@arapiraca.al.gov.br
@@ -351,7 +351,7 @@ https://arapiraca.abaco.com.br/eagata/portal/
 
 📋 *Instruções:*
 • No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Cadastro Geral ou Inscrição Imobiliária do contribuinte
 
 📧 *Dúvidas ou informações:*
 smfaz@arapiraca.al.gov.br
@@ -375,7 +375,7 @@ https://arapiraca.abaco.com.br/eagata/portal/
 
 📋 *Instruções:*
 • No portal, escolha uma das opções disponíveis para Emissão de Certidões/Autenticações de Documentos
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Cadastro Geral ou Inscrição Imobiliária do contribuinte
 
 📧 *Dúvidas ou informações:*
 smfaz@arapiraca.al.gov.br
@@ -399,7 +399,7 @@ https://arapiraca.abaco.com.br/eagata/portal/
 
 📋 *Instruções:*
 • No portal, escolha uma das opções disponíveis para Emissão de Certidões/Autenticações de Documentos
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Cadastro Geral ou Inscrição Imobiliária do contribuinte
 
 📧 *Dúvidas ou informações:*
 smfaz@arapiraca.al.gov.br

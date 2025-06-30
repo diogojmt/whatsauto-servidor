@@ -1,6 +1,15 @@
-const { emitirCertidao, validarDadosCertidao } = require('../utils/certidaoApi');
-const { obterEstadoUsuario, definirEstadoUsuario, obterDadosTemporarios, definirDadosTemporarios, limparDadosTemporarios } = require('./stateService');
-const { ESTADOS, EMOJIS } = require('../config/constants');
+const {
+  emitirCertidao,
+  validarDadosCertidao,
+} = require("../utils/certidaoApi");
+const {
+  obterEstadoUsuario,
+  definirEstadoUsuario,
+  obterDadosTemporarios,
+  definirDadosTemporarios,
+  limparDadosTemporarios,
+} = require("./stateService");
+const { ESTADOS, EMOJIS } = require("../config/constants");
 
 /**
  * Inicia o fluxo de emissão de certidão
@@ -25,7 +34,7 @@ ${EMOJIS.INFO} *Se não conseguir automaticamente, você pode:*
 
 Para começar, preciso saber o *tipo de contribuinte*:
 
-*1* - Pessoa Física ou Jurídica (PF/PJ)
+*1* - Contribuinte Geral
 *2* - Imóvel
 *3* - Empresa
 
@@ -41,15 +50,15 @@ Digite o número correspondente:`;
  */
 function processarTipoContribuinte(sender, opcao, nome) {
   const tiposValidos = {
-    '1': 'Pessoa Física/Jurídica',
-    '2': 'Imóvel',
-    '3': 'Empresa'
+    1: "Pessoa Física/Jurídica",
+    2: "Imóvel",
+    3: "Empresa",
   };
 
   if (!tiposValidos[opcao]) {
     return `${EMOJIS.ERRO} Opção inválida! Por favor, digite:
 
-*1* - Pessoa Física ou Jurídica (PF/PJ)
+*1* - Contribuinte Geral
 *2* - Imóvel  
 *3* - Empresa
 
@@ -76,15 +85,15 @@ ${EMOJIS.INFO} Digite apenas os números (sem pontos, traços ou barras):`;
  */
 function processarCpfCnpj(sender, cpfCnpj, nome) {
   const dadosTemp = obterDadosTemporarios(sender);
-  
+
   if (!dadosTemp || !dadosTemp.tipoContribuinte) {
     definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
     return `${EMOJIS.ERRO} Sessão expirada. Digite *menu* para começar novamente.`;
   }
 
   // Validação básica de CPF/CNPJ
-  const cpfCnpjLimpo = cpfCnpj.replace(/\D/g, '');
-  
+  const cpfCnpjLimpo = cpfCnpj.replace(/\D/g, "");
+
   if (cpfCnpjLimpo.length !== 11 && cpfCnpjLimpo.length !== 14) {
     return `${EMOJIS.ERRO} CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos.
 
@@ -92,25 +101,27 @@ Digite novamente apenas os números:`;
   }
 
   // Salvar CPF/CNPJ
-  definirDadosTemporarios(sender, { 
-    ...dadosTemp, 
-    cpfCnpj: cpfCnpjLimpo 
+  definirDadosTemporarios(sender, {
+    ...dadosTemp,
+    cpfCnpj: cpfCnpjLimpo,
   });
 
   // A API da Ábaco não suporta consulta por CPF/CNPJ sem inscrição
   // Continuar diretamente com fluxo manual (mais eficiente)
-  console.log('ℹ️ API Ábaco exige inscrição como parâmetro obrigatório - usando fluxo direto');
+  console.log(
+    "ℹ️ API Ábaco exige inscrição como parâmetro obrigatório - usando fluxo direto"
+  );
   definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
-  
+
   return `${EMOJIS.SUCESSO} CPF/CNPJ registrado: *${cpfCnpjLimpo}*
 
-Agora preciso da sua *inscrição municipal*:
+Agora preciso do número do *Cadastro Geral*:
 
 ${EMOJIS.INFO} Digite apenas os números da sua inscrição (sem pontos, traços ou letras):`;
 }
 
 /**
- * Processa a inscrição municipal e emite a certidão
+ * Processa a Cadastro Geral e emite a certidão
  * @param {string} sender - ID do usuário
  * @param {string} inscricao - Inscrição informada
  * @param {string} nome - Nome do usuário
@@ -118,7 +129,7 @@ ${EMOJIS.INFO} Digite apenas os números da sua inscrição (sem pontos, traços
  */
 async function processarInscricaoEEmitir(sender, inscricao, nome) {
   const dadosTemp = obterDadosTemporarios(sender);
-  
+
   if (!dadosTemp || !dadosTemp.tipoContribuinte || !dadosTemp.cpfCnpj) {
     definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
     return `${EMOJIS.ERRO} Sessão expirada. Digite *menu* para começar novamente.`;
@@ -126,13 +137,13 @@ async function processarInscricaoEEmitir(sender, inscricao, nome) {
 
   // Validar dados
   const validacao = validarDadosCertidao(dadosTemp.tipoContribuinte, inscricao);
-  
+
   if (!validacao.isValid) {
     return `${EMOJIS.ERRO} Dados inválidos:
 
-${validacao.errors.map(erro => `• ${erro}`).join('\n')}
+${validacao.errors.map((erro) => `• ${erro}`).join("\n")}
 
-Por favor, digite novamente sua inscrição municipal (apenas números):`;
+Por favor, digite novamente sua Cadastro Geral (apenas números):`;
   }
 
   // Limpar estado e dados temporários
@@ -148,7 +159,7 @@ Por favor, digite novamente sua inscrição municipal (apenas números):`;
       tipoContribuinte: dadosTemp.tipoContribuinte,
       inscricao: inscricao.trim(),
       cpfCnpj: dadosTemp.cpfCnpj,
-      operacao: "2" // Certidão
+      operacao: "2", // Certidão
     });
 
     if (resultado.SSACodigo === 0 && resultado.SSALinkDocumento) {
@@ -157,7 +168,7 @@ Por favor, digite novamente sua inscrição municipal (apenas números):`;
 ${EMOJIS.DOCUMENTO} *Link da certidão:*
 ${resultado.SSALinkDocumento}
 
-${EMOJIS.INFO} *Contribuinte:* ${resultado.SSANomeRazao || 'N/A'}
+${EMOJIS.INFO} *Contribuinte:* ${resultado.SSANomeRazao || "N/A"}
 📍 *Inscrição:* ${resultado.SSAInscricao || inscricao}
 
 ⚠️ Link temporário - baixe/imprima logo!
@@ -166,16 +177,15 @@ Digite *menu* para voltar.`;
     } else {
       return `${EMOJIS.ERRO} *Erro na emissão da certidão*
 
-*Motivo:* ${resultado.SSAMensagem || 'Erro não especificado'}
+*Motivo:* ${resultado.SSAMensagem || "Erro não especificado"}
 
 ${EMOJIS.INFO} Tente novamente ou use o Portal do Contribuinte:
 🔗 https://arapiraca.abaco.com.br/eagata/portal/
 
 Digite *menu* para voltar.`;
     }
-
   } catch (error) {
-    console.error('Erro ao emitir certidão:', error);
+    console.error("Erro ao emitir certidão:", error);
     return `${EMOJIS.ERRO} *Erro no sistema*
 
 Tente novamente em alguns minutos ou use o Portal:
@@ -193,29 +203,29 @@ Digite *menu* para voltar.`;
  */
 function ehSolicitacaoCertidao(msgLimpa) {
   const palavrasChave = [
-    'emitir certidao',
-    'emitir certidão',
-    'certidao automatica',
-    'certidão automatica', 
-    'certidao automática',
-    'certidão automática',
-    'gerar certidao',
-    'gerar certidão',
-    'solicitar certidao',
-    'solicitar certidão',
-    'nova certidao',
-    'nova certidão',
-    'certidao negativa',
-    'certidão negativa',
-    'certidao positiva',
-    'certidão positiva',
-    'emissao automatica',
-    'emissão automatica',
-    'emissão automática',
-    'emissao automática'
+    "emitir certidao",
+    "emitir certidão",
+    "certidao automatica",
+    "certidão automatica",
+    "certidao automática",
+    "certidão automática",
+    "gerar certidao",
+    "gerar certidão",
+    "solicitar certidao",
+    "solicitar certidão",
+    "nova certidao",
+    "nova certidão",
+    "certidao negativa",
+    "certidão negativa",
+    "certidao positiva",
+    "certidão positiva",
+    "emissao automatica",
+    "emissão automatica",
+    "emissão automática",
+    "emissao automática",
   ];
 
-  return palavrasChave.some(palavra => msgLimpa.includes(palavra));
+  return palavrasChave.some((palavra) => msgLimpa.includes(palavra));
 }
 
 module.exports = {
@@ -223,5 +233,5 @@ module.exports = {
   processarTipoContribuinte,
   processarCpfCnpj,
   processarInscricaoEEmitir,
-  ehSolicitacaoCertidao
+  ehSolicitacaoCertidao,
 };

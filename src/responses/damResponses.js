@@ -15,7 +15,7 @@ ${URLS.PORTAL_CONTRIBUINTE}
 
 ${EMOJIS.MENU} *Instruções:*
 • No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
+• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Cadastro Geral ou Inscrição Imobiliária do contribuinte
 
 ${EMOJIS.EMAIL} *Dúvidas ou informações:*
 ${CONTATOS.EMAIL_FAZENDA}
@@ -28,10 +28,10 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
 
 🖼️ *Clique aqui para ver a imagem de apoio*
 ${URLS.GITHUB_IMAGENS}Portal_2_vias.png?raw=true`,
-    media: `${URLS.GITHUB_IMAGENS}Portal_2_vias.png?raw=true`
+    media: `${URLS.GITHUB_IMAGENS}Portal_2_vias.png?raw=true`,
   };
 }
 
 module.exports = {
-  criarRespostaDAM
+  criarRespostaDAM,
 };

@@ -1,4 +1,9 @@
-const { URLS, CONTATOS, CERTIDOES_LINKS, EMOJIS } = require("../config/constants");
+const {
+  URLS,
+  CONTATOS,
+  CERTIDOES_LINKS,
+  EMOJIS,
+} = require("../config/constants");
 
 /**
  * Cria resposta com mídia para certidões - Inicia emissão automática
@@ -19,13 +24,11 @@ ${EMOJIS.INFO} *Se não conseguir automaticamente, você pode:*
 
 Para começar, preciso saber o *tipo de contribuinte*:
 
-*1* - Pessoa Física ou Jurídica (PF/PJ)
-*2* - Imóvel
-*3* - Empresa
+*1* - Contribuinte Geral
+*2* - Imobiliária
+
 
 Digite o número correspondente:`;
-}
-
 }
 
 /**
@@ -89,5 +92,5 @@ module.exports = {
   criarRespostaCertidoes,
   gerarRespostaCertidaoImobiliaria,
   gerarRespostaCertidaoGeral,
-  gerarRespostaAutenticidade
+  gerarRespostaAutenticidade,
 };
