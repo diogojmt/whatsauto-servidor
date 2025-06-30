@@ -24,12 +24,7 @@ const {
 } = require("../responses/menuResponses");
 
 const { criarRespostaDAM } = require("../responses/damResponses");
-const { 
-  criarRespostaCertidoes, 
-  gerarRespostaCertidaoImobiliaria, 
-  gerarRespostaCertidaoGeral, 
-  gerarRespostaAutenticidade 
-} = require("../responses/certidaoResponses");
+// Certidões agora são processadas diretamente pelo serviço
 
 const { 
   gerarMenuNFSe, 
@@ -241,24 +236,9 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
     return criarRespostaDAM(nome);
   }
 
-  // Opção 2 - Certidões
+  // Opção 2 - Certidões (Direto para automático)
   if (opcao === "2" || msgLimpa.includes("opcao 2")) {
-    definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
-    return criarRespostaCertidoes(nome);
-  }
-
-  // Sub-opções de certidões
-  if (opcao === "2.0" || msgLimpa.includes("opcao 2.0") || msgLimpa.includes("emitir certidao automaticamente")) {
     return iniciarFluxoCertidao(sender, nome);
-  }
-  if (opcao === "2.1" || msgLimpa.includes("opcao 2.1") || msgLimpa.includes("certidao imobiliaria")) {
-    return gerarRespostaCertidaoImobiliaria(nome);
-  }
-  if (opcao === "2.2" || msgLimpa.includes("opcao 2.2") || msgLimpa.includes("certidao geral")) {
-    return gerarRespostaCertidaoGeral(nome);
-  }
-  if (opcao === "2.3" || msgLimpa.includes("opcao 2.3") || msgLimpa.includes("autenticidade")) {
-    return gerarRespostaAutenticidade(nome);
   }
 
   // Opção 3 - NFSe

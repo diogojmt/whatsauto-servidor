@@ -12,7 +12,16 @@ function iniciarFluxoCertidao(sender, nome) {
   definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_TIPO_CONTRIBUINTE);
   limparDadosTemporarios(sender);
 
-  return `${EMOJIS.DOCUMENTO} Olá ${nome}! Vou te ajudar a emitir sua certidão.
+  return `${EMOJIS.DOCUMENTO} *Emissão Automática de Certidões*
+
+${nome}, vou te ajudar a emitir sua certidão de forma rápida e automática!
+
+${EMOJIS.INFO} *Se não conseguir automaticamente, você pode:*
+🔗 Portal do Contribuinte: https://arapiraca.abaco.com.br/eagata/portal/
+
+📧 *Dúvidas:* smfaz@arapiraca.al.gov.br
+
+---
 
 Para começar, preciso saber o *tipo de contribuinte*:
 
@@ -20,7 +29,7 @@ Para começar, preciso saber o *tipo de contribuinte*:
 *2* - Imóvel
 *3* - Empresa
 
-Digite o número correspondente ao seu tipo:`;
+Digite o número correspondente:`;
 }
 
 /**
@@ -127,6 +136,9 @@ Por favor, digite novamente sua inscrição municipal (apenas números):`;
   limparDadosTemporarios(sender);
 
   try {
+    // Enviar indicador de processamento
+    // (seria implementado no chatbot para mostrar "digitando...")
+
     // Emitir certidão
     const resultado = await emitirCertidao({
       tipoContribuinte: dadosTemp.tipoContribuinte,
@@ -136,36 +148,37 @@ Por favor, digite novamente sua inscrição municipal (apenas números):`;
     });
 
     if (resultado.SSACodigo === 0 && resultado.SSALinkDocumento) {
-      return `${EMOJIS.SUCESSO} Certidão emitida com sucesso!
+      return `${EMOJIS.SUCESSO} *Certidão emitida com sucesso!*
 
-${EMOJIS.INFO} *Dados do contribuinte:*
-• Nome/Razão: ${resultado.SSANomeRazao || 'Não informado'}
-• CPF/CNPJ: ${resultado.SSACPFCNPJ || 'Não informado'}
-• Inscrição: ${resultado.SSAInscricao || inscricao}
-
-${EMOJIS.DOCUMENTO} *Acesse sua certidão através do link:*
+${EMOJIS.DOCUMENTO} *Link da certidão:*
 ${resultado.SSALinkDocumento}
 
-${EMOJIS.INFO} O link ficará disponível por um tempo limitado. Baixe ou imprima o documento o quanto antes.
+${EMOJIS.INFO} *Contribuinte:* ${resultado.SSANomeRazao || 'N/A'}
+📍 *Inscrição:* ${resultado.SSAInscricao || inscricao}
 
-Digite *menu* para voltar ao menu principal.`;
+⚠️ Link temporário - baixe/imprima logo!
+
+Digite *menu* para voltar.`;
     } else {
-      return `${EMOJIS.ERRO} Não foi possível emitir a certidão.
+      return `${EMOJIS.ERRO} *Erro na emissão da certidão*
 
 *Motivo:* ${resultado.SSAMensagem || 'Erro não especificado'}
 
-${EMOJIS.INFO} Verifique os dados informados e tente novamente ou entre em contato conosco.
+${EMOJIS.INFO} Tente novamente ou use o Portal do Contribuinte:
+🔗 https://arapiraca.abaco.com.br/eagata/portal/
 
-Digite *menu* para voltar ao menu principal.`;
+Digite *menu* para voltar.`;
     }
 
   } catch (error) {
     console.error('Erro ao emitir certidão:', error);
-    return `${EMOJIS.ERRO} Ocorreu um erro interno ao processar sua solicitação.
+    return `${EMOJIS.ERRO} *Erro no sistema*
 
-Por favor, tente novamente em alguns minutos ou entre em contato conosco.
+Tente novamente em alguns minutos ou use o Portal:
+🔗 https://arapiraca.abaco.com.br/eagata/portal/
+📧 smfaz@arapiraca.al.gov.br
 
-Digite *menu* para voltar ao menu principal.`;
+Digite *menu* para voltar.`;
   }
 }
 

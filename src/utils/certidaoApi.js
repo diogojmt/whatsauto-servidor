@@ -39,7 +39,7 @@ async function emitirCertidao({ tipoContribuinte, inscricao, cpfCnpj, operacao =
       headers: {
         DadosAPIDocumento: JSON.stringify(payload)
       },
-      timeout: 30000 // 30 segundos
+      timeout: 15000 // 15 segundos - mais rápido para evitar timeout do WhatsApp
     });
 
     console.log('✅ Resposta da API recebida:', response.data);

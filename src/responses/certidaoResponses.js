@@ -1,39 +1,31 @@
 const { URLS, CONTATOS, CERTIDOES_LINKS, EMOJIS } = require("../config/constants");
 
 /**
- * Cria resposta com mídia para certidões
+ * Cria resposta com mídia para certidões - Inicia emissão automática
  * @param {string} nome - Nome do usuário
- * @returns {Object} Objeto com tipo de resposta e conteúdo
+ * @returns {string} Mensagem de início do fluxo automático
  */
 function criarRespostaCertidoes(nome) {
-  const texto = `${EMOJIS.DOCUMENTO} *Certidões de Regularidade Fiscal e Autenticações*
+  return `${EMOJIS.DOCUMENTO} *Emissão Automática de Certidões*
 
-${nome}, escolha uma das opções:
+${nome}, vou te ajudar a emitir sua certidão de forma rápida e automática!
 
-${EMOJIS.MENU} *NOVAS OPÇÕES AUTOMATIZADAS:*
-*2.0* - Emitir certidão automaticamente (via chatbot)
+${EMOJIS.INFO} *Se não conseguir automaticamente, você pode:*
+🔗 Acessar o Portal do Contribuinte: ${URLS.PORTAL_CONTRIBUINTE}
 
-${EMOJIS.MENU} *OPÇÕES TRADICIONAIS:*
-*2.1* - Certidão Imobiliária
-*2.2* - Certidão Geral
-*2.3* - Verificar autenticidade
+📧 *Dúvidas:* ${CONTATOS.EMAIL_FAZENDA}
 
-🔗 *Ou acesse o Portal do Contribuinte:*
-${URLS.PORTAL_CONTRIBUINTE}
+---
 
-${EMOJIS.EMAIL} *Dúvidas ou informações:*
-${CONTATOS.EMAIL_FAZENDA}
+Para começar, preciso saber o *tipo de contribuinte*:
 
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
+*1* - Pessoa Física ou Jurídica (PF/PJ)
+*2* - Imóvel
+*3* - Empresa
 
-  return {
-    type: "media",
-    text: `${texto}
+Digite o número correspondente:`;
+}
 
-🖼️ *Clique aqui para ver a imagem de apoio*
-${URLS.GITHUB_IMAGENS}Portal_3_vias.png?raw=true`,
-    media: `${URLS.GITHUB_IMAGENS}Portal_3_vias.png?raw=true`
-  };
 }
 
 /**
