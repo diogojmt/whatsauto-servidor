@@ -160,8 +160,33 @@ app.get("/status", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+// Iniciar servidor
+const server = app.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
   console.log(`📊 Status: http://localhost:${PORT}/status`);
   console.log(`🔄 Reload: POST http://localhost:${PORT}/reload`);
+  console.log(`🌐 Deploy: Aplicação pronta para deploy no Replit`);
 });
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 Recebido SIGTERM, fazendo shutdown graceful...');
+  server.close(() => {
+    console.log('✅ Servidor encerrado com sucesso');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 Recebido SIGINT, fazendo shutdown graceful...');
+  server.close(() => {
+    console.log('✅ Servidor encerrado com sucesso');
+    process.exit(0);
+  });
+});
+
+// Keep alive para Replit
+setInterval(() => {
+  console.log(`⏰ Keep alive - ${new Date().toISOString()}`);
+}, 5 * 60 * 1000); // A cada 5 minutos
