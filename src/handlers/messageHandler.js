@@ -54,6 +54,7 @@ const {
   iniciarFluxoCertidao, 
   processarTipoContribuinte, 
   processarCpfCnpj,
+  processarSelecaoInscricao,
   processarInscricaoEEmitir, 
   ehSolicitacaoCertidao 
 } = require("../services/certidaoService");
@@ -210,7 +211,11 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   }
 
   if (estadoAtual === ESTADOS.AGUARDANDO_CPF_CNPJ) {
-    return processarCpfCnpj(sender, msgLimpa, nome);
+    return await processarCpfCnpj(sender, msgLimpa, nome);
+  }
+
+  if (estadoAtual === ESTADOS.AGUARDANDO_SELECAO_INSCRICAO) {
+    return await processarSelecaoInscricao(sender, opcao, nome);
   }
 
   if (estadoAtual === ESTADOS.AGUARDANDO_INSCRICAO) {

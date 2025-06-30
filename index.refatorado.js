@@ -155,8 +155,32 @@ app.get("/status", (req, res) => {
     dadosTFLF: dadosTFLF.length,
     dadosISS: dadosISS.length,
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
+    features: {
+      emissaoCertidoes: true,
+      consultaPorCpfCnpj: true,
+      selecaoMultiplasInscricoes: true
+    }
   });
+});
+
+// ---------- Endpoint para testar consulta por CPF/CNPJ ----------
+app.get("/test-cpf/:cpf", async (req, res) => {
+  try {
+    const { consultarInscricoesPorCpf } = require("./src/utils/consultaApi");
+    const resultado = await consultarInscricoesPorCpf(req.params.cpf);
+    
+    res.json({
+      cpf: req.params.cpf,
+      resultado: resultado,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      cpf: req.params.cpf
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

@@ -1,4 +1,5 @@
 const { emitirCertidao, validarDadosCertidao } = require('../utils/certidaoApi');
+const { consultarInscricoesPorCpf } = require('../utils/consultaApi');
 const { obterEstadoUsuario, definirEstadoUsuario, obterDadosTemporarios, definirDadosTemporarios, limparDadosTemporarios } = require('./stateService');
 const { ESTADOS, EMOJIS } = require('../config/constants');
 
@@ -68,13 +69,13 @@ ${EMOJIS.INFO} Digite apenas os números (sem pontos, traços ou barras):`;
 }
 
 /**
- * Processa o CPF/CNPJ informado
+ * Processa o CPF/CNPJ informado e busca inscrições vinculadas
  * @param {string} sender - ID do usuário
  * @param {string} cpfCnpj - CPF/CNPJ informado
  * @param {string} nome - Nome do usuário
- * @returns {string} Próxima mensagem do fluxo
+ * @returns {Promise<string>} Próxima mensagem do fluxo
  */
-function processarCpfCnpj(sender, cpfCnpj, nome) {
+async function processarCpfCnpj(sender, cpfCnpj, nome) {
   const dadosTemp = obterDadosTemporarios(sender);
   
   if (!dadosTemp || !dadosTemp.tipoContribuinte) {
@@ -96,13 +97,181 @@ Digite novamente apenas os números:`;
     ...dadosTemp, 
     cpfCnpj: cpfCnpjLimpo 
   });
-  definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
 
-  return `${EMOJIS.SUCESSO} CPF/CNPJ registrado: *${cpfCnpjLimpo}*
+  // Tentar buscar inscrições vinculadas ao CPF/CNPJ
+  try {
+    console.log(`🔍 Buscando inscrições para CPF/CNPJ: ${cpfCnpjLimpo}`);
+    
+    const resultadoConsulta = await consultarInscricoesPorCpf(cpfCnpjLimpo);
+    
+    if (resultadoConsulta.sucesso && resultadoConsulta.inscricoes.length > 1) {
+      // Múltiplas inscrições encontradas - permitir seleção
+      definirDadosTemporarios(sender, {
+        ...dadosTemp,
+        cpfCnpj: cpfCnpjLimpo,
+        inscricoesDisponiveis: resultadoConsulta.inscricoes
+      });
+      definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_SELECAO_INSCRICAO);
+
+      return gerarMenuSelecaoInscricao(resultadoConsulta.inscricoes, nome);
+      
+    } else if (resultadoConsulta.sucesso && resultadoConsulta.inscricoes.length === 1) {
+      // Uma única inscrição encontrada - usar automaticamente
+      const inscricao = resultadoConsulta.inscricoes[0];
+      definirDadosTemporarios(sender, {
+        ...dadosTemp,
+        cpfCnpj: cpfCnpjLimpo,
+        inscricaoSelecionada: inscricao.inscricao
+      });
+      
+      return await emitirCertidaoAutomatica(sender, nome);
+      
+    } else {
+      // Nenhuma inscrição encontrada ou API não suporta - continuar com fluxo manual
+      console.log('ℹ️ Consulta não retornou inscrições, continuando com fluxo manual');
+      definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
+      
+      return `${EMOJIS.SUCESSO} CPF/CNPJ registrado: *${cpfCnpjLimpo}*
 
 Agora preciso da sua *inscrição municipal*:
 
 ${EMOJIS.INFO} Digite apenas os números da sua inscrição (sem pontos, traços ou letras):`;
+    }
+    
+  } catch (error) {
+    console.error('❌ Erro ao consultar inscrições:', error);
+    
+    // Em caso de erro, continuar com fluxo manual
+    definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
+    
+    return `${EMOJIS.SUCESSO} CPF/CNPJ registrado: *${cpfCnpjLimpo}*
+
+Agora preciso da sua *inscrição municipal*:
+
+${EMOJIS.INFO} Digite apenas os números da sua inscrição (sem pontos, traços ou letras):`;
+  }
+}
+
+/**
+ * Gera menu de seleção de inscrições
+ * @param {Array} inscricoes - Lista de inscrições disponíveis
+ * @param {string} nome - Nome do usuário
+ * @returns {string} Menu de seleção
+ */
+function gerarMenuSelecaoInscricao(inscricoes, nome) {
+  let menu = `${EMOJIS.SUCESSO} *Encontrei ${inscricoes.length} inscrições para este CPF/CNPJ!*
+
+${nome}, selecione qual inscrição deseja usar:
+
+`;
+
+  inscricoes.forEach((inscricao, index) => {
+    const numero = index + 1;
+    menu += `*${numero}* - Inscrição: ${inscricao.inscricao}
+   ${EMOJIS.INFO} ${inscricao.nome}
+   📍 ${inscricao.endereco}
+
+`;
+  });
+
+  menu += `Digite o número da inscrição desejada (1-${inscricoes.length}):`;
+  
+  return menu;
+}
+
+/**
+ * Processa seleção de inscrição pelo usuário
+ * @param {string} sender - ID do usuário
+ * @param {string} opcao - Opção selecionada
+ * @param {string} nome - Nome do usuário
+ * @returns {Promise<string>} Resultado da seleção
+ */
+async function processarSelecaoInscricao(sender, opcao, nome) {
+  const dadosTemp = obterDadosTemporarios(sender);
+  
+  if (!dadosTemp || !dadosTemp.inscricoesDisponiveis) {
+    definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+    return `${EMOJIS.ERRO} Sessão expirada. Digite *menu* para começar novamente.`;
+  }
+
+  const numeroSelecionado = parseInt(opcao);
+  const inscricoes = dadosTemp.inscricoesDisponiveis;
+  
+  if (isNaN(numeroSelecionado) || numeroSelecionado < 1 || numeroSelecionado > inscricoes.length) {
+    return `${EMOJIS.ERRO} Opção inválida! Digite um número de 1 a ${inscricoes.length}:`;
+  }
+
+  const inscricaoSelecionada = inscricoes[numeroSelecionado - 1];
+  
+  // Salvar inscrição selecionada
+  definirDadosTemporarios(sender, {
+    ...dadosTemp,
+    inscricaoSelecionada: inscricaoSelecionada.inscricao
+  });
+
+  return await emitirCertidaoAutomatica(sender, nome);
+}
+
+/**
+ * Emite certidão automaticamente com dados já coletados
+ * @param {string} sender - ID do usuário
+ * @param {string} nome - Nome do usuário
+ * @returns {Promise<string>} Resultado da emissão
+ */
+async function emitirCertidaoAutomatica(sender, nome) {
+  const dadosTemp = obterDadosTemporarios(sender);
+  
+  if (!dadosTemp || !dadosTemp.tipoContribuinte || !dadosTemp.cpfCnpj || !dadosTemp.inscricaoSelecionada) {
+    definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+    return `${EMOJIS.ERRO} Dados insuficientes. Digite *menu* para começar novamente.`;
+  }
+
+  // Limpar estado e dados temporários
+  definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+  limparDadosTemporarios(sender);
+
+  try {
+    // Emitir certidão
+    const resultado = await emitirCertidao({
+      tipoContribuinte: dadosTemp.tipoContribuinte,
+      inscricao: dadosTemp.inscricaoSelecionada,
+      cpfCnpj: dadosTemp.cpfCnpj,
+      operacao: "2" // Certidão
+    });
+
+    if (resultado.SSACodigo === 0 && resultado.SSALinkDocumento) {
+      return `${EMOJIS.SUCESSO} *Certidão emitida com sucesso!*
+
+${EMOJIS.DOCUMENTO} *Link da certidão:*
+${resultado.SSALinkDocumento}
+
+${EMOJIS.INFO} *Contribuinte:* ${resultado.SSANomeRazao || 'N/A'}
+📍 *Inscrição:* ${resultado.SSAInscricao || dadosTemp.inscricaoSelecionada}
+
+⚠️ Link temporário - baixe/imprima logo!
+
+Digite *menu* para voltar.`;
+    } else {
+      return `${EMOJIS.ERRO} *Erro na emissão da certidão*
+
+*Motivo:* ${resultado.SSAMensagem || 'Erro não especificado'}
+
+${EMOJIS.INFO} Tente novamente ou use o Portal do Contribuinte:
+🔗 https://arapiraca.abaco.com.br/eagata/portal/
+
+Digite *menu* para voltar.`;
+    }
+
+  } catch (error) {
+    console.error('Erro ao emitir certidão:', error);
+    return `${EMOJIS.ERRO} *Erro no sistema*
+
+Tente novamente em alguns minutos ou use o Portal:
+🔗 https://arapiraca.abaco.com.br/eagata/portal/
+📧 smfaz@arapiraca.al.gov.br
+
+Digite *menu* para voltar.`;
+  }
 }
 
 /**
@@ -218,6 +387,7 @@ module.exports = {
   iniciarFluxoCertidao,
   processarTipoContribuinte,
   processarCpfCnpj,
+  processarSelecaoInscricao,
   processarInscricaoEEmitir,
   ehSolicitacaoCertidao
 };
