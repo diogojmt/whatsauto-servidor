@@ -205,8 +205,30 @@ function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
     return gerarMenuPrincipal(nome);
   }
 
-  // Navegação por números
+  // PRIORIDADE 1: Fluxos específicos e estados contextuais
   const opcao = msgLimpa.trim();
+
+  // Fluxo de emissão de certidão (PRIORIDADE MÁXIMA)
+  if (estadoAtual === ESTADOS.AGUARDANDO_TIPO_CONTRIBUINTE) {
+    return processarTipoContribuinte(sender, opcao, nome);
+  }
+
+  if (estadoAtual === ESTADOS.AGUARDANDO_INSCRICAO) {
+    return processarInscricaoEEmitir(sender, msgLimpa, nome);
+  }
+
+  // Buscas contextuais específicas
+  if (estadoAtual === ESTADOS.CONSULTA_ISS) {
+    const resultadoISS = processarBuscaISS(msgLimpa, dadosISS, nome);
+    if (resultadoISS) return resultadoISS;
+  }
+
+  if (estadoAtual === ESTADOS.CONSULTA_CNAE) {
+    const resultadoCNAE = processarBuscaCNAE(msgLimpa, dadosTFLF, nome);
+    if (resultadoCNAE) return resultadoCNAE;
+  }
+
+  // PRIORIDADE 2: Navegação por números do menu
   
   // Opção 1 - DAM's
   if (opcao === "1" || msgLimpa.includes("opcao 1")) {
@@ -293,26 +315,6 @@ function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
   // Solicitação de atendente
   if (msgLimpa.includes("atendente")) {
     return gerarRespostaAtendente(nome);
-  }
-
-  // Buscas contextuais e fluxos específicos
-  if (estadoAtual === ESTADOS.CONSULTA_ISS) {
-    const resultadoISS = processarBuscaISS(msgLimpa, dadosISS, nome);
-    if (resultadoISS) return resultadoISS;
-  }
-
-  if (estadoAtual === ESTADOS.CONSULTA_CNAE) {
-    const resultadoCNAE = processarBuscaCNAE(msgLimpa, dadosTFLF, nome);
-    if (resultadoCNAE) return resultadoCNAE;
-  }
-
-  // Fluxo de emissão de certidão
-  if (estadoAtual === ESTADOS.AGUARDANDO_TIPO_CONTRIBUINTE) {
-    return processarTipoContribuinte(sender, opcao, nome);
-  }
-
-  if (estadoAtual === ESTADOS.AGUARDANDO_INSCRICAO) {
-    return processarInscricaoEEmitir(sender, msgLimpa, nome);
   }
 
   // Detecção por palavras-chave (compatibilidade)
