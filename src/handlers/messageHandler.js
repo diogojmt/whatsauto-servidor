@@ -54,7 +54,6 @@ const {
   iniciarFluxoCertidao, 
   processarTipoContribuinte, 
   processarCpfCnpj,
-  processarSelecaoInscricao,
   processarInscricaoEEmitir, 
   ehSolicitacaoCertidao 
 } = require("../services/certidaoService");
@@ -214,9 +213,7 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
     return processarCpfCnpj(sender, msgLimpa, nome);
   }
 
-  if (estadoAtual === ESTADOS.AGUARDANDO_SELECAO_INSCRICAO) {
-    return await processarSelecaoInscricao(sender, opcao, nome);
-  }
+  // Estado AGUARDANDO_SELECAO_INSCRICAO removido (API não suporta múltiplas inscrições)
 
   if (estadoAtual === ESTADOS.AGUARDANDO_INSCRICAO) {
     return await processarInscricaoEEmitir(sender, msgLimpa, nome);
