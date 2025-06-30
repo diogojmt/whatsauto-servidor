@@ -8,14 +8,18 @@ const { URLS, CONTATOS, CERTIDOES_LINKS, EMOJIS } = require("../config/constants
 function criarRespostaCertidoes(nome) {
   const texto = `${EMOJIS.DOCUMENTO} *Certidões de Regularidade Fiscal e Autenticações*
 
-${nome}, para emitir certidões e autenticações, siga as instruções:
+${nome}, escolha uma das opções:
 
-🔗 *Acesse o link:*
+${EMOJIS.MENU} *NOVAS OPÇÕES AUTOMATIZADAS:*
+*2.0* - Emitir certidão automaticamente (via chatbot)
+
+${EMOJIS.MENU} *OPÇÕES TRADICIONAIS:*
+*2.1* - Certidão Imobiliária
+*2.2* - Certidão Geral
+*2.3* - Verificar autenticidade
+
+🔗 *Ou acesse o Portal do Contribuinte:*
 ${URLS.PORTAL_CONTRIBUINTE}
-
-${EMOJIS.MENU} *Instruções:*
-• No portal, escolha uma das opções disponíveis para Emissão de Certidões/Autenticações de Documentos
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Inscrição Municipal ou Inscrição Imobiliária do contribuinte
 
 ${EMOJIS.EMAIL} *Dúvidas ou informações:*
 ${CONTATOS.EMAIL_FAZENDA}

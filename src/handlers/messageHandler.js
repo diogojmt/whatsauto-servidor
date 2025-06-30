@@ -55,6 +55,13 @@ const {
   gerarRespostaNenhumResultado 
 } = require("../responses/searchResponses");
 
+const { 
+  iniciarFluxoCertidao, 
+  processarTipoContribuinte, 
+  processarInscricaoEEmitir, 
+  ehSolicitacaoCertidao 
+} = require("../services/certidaoService");
+
 /**
  * Verifica se a mensagem contém palavras de agradecimento
  * @param {string} msgLimpa - Mensagem normalizada
@@ -214,6 +221,9 @@ function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
   }
 
   // Sub-opções de certidões
+  if (opcao === "2.0" || msgLimpa.includes("opcao 2.0") || msgLimpa.includes("emitir certidao automaticamente")) {
+    return iniciarFluxoCertidao(sender, nome);
+  }
   if (opcao === "2.1" || msgLimpa.includes("opcao 2.1") || msgLimpa.includes("certidao imobiliaria")) {
     return gerarRespostaCertidaoImobiliaria(nome);
   }
@@ -285,7 +295,7 @@ function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
     return gerarRespostaAtendente(nome);
   }
 
-  // Buscas contextuais
+  // Buscas contextuais e fluxos específicos
   if (estadoAtual === ESTADOS.CONSULTA_ISS) {
     const resultadoISS = processarBuscaISS(msgLimpa, dadosISS, nome);
     if (resultadoISS) return resultadoISS;
@@ -296,12 +306,25 @@ function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
     if (resultadoCNAE) return resultadoCNAE;
   }
 
+  // Fluxo de emissão de certidão
+  if (estadoAtual === ESTADOS.AGUARDANDO_TIPO_CONTRIBUINTE) {
+    return processarTipoContribuinte(sender, opcao, nome);
+  }
+
+  if (estadoAtual === ESTADOS.AGUARDANDO_INSCRICAO) {
+    return processarInscricaoEEmitir(sender, msgLimpa, nome);
+  }
+
   // Detecção por palavras-chave (compatibilidade)
   if (msgLimpa.includes("iptu")) {
     return `${nome}, digite *1* para ver todas as opções sobre IPTU ou segunda via de DAM's.`;
   }
   if (msgLimpa.includes("certidao") || msgLimpa.includes("negativa")) {
-    return `${nome}, digite *2* para ver todas as opções sobre certidões ou acesse o Portal do Contribuinte.`;
+    // Verificar se é solicitação de emissão automática
+    if (ehSolicitacaoCertidao(msgLimpa)) {
+      return iniciarFluxoCertidao(sender, nome);
+    }
+    return `${nome}, digite *2* para ver todas as opções sobre certidões. Digite *2.0* para emissão automática.`;
   }
   if (msgLimpa.includes("nota fiscal") || msgLimpa.includes("nfse") || msgLimpa.includes("nfs-e") || 
       msgLimpa.includes("issqn") || msgLimpa.includes("iss")) {

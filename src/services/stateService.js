@@ -3,6 +3,9 @@ const { ESTADOS } = require("../config/constants");
 // Controle de Estados do Atendimento
 const estadosUsuario = new Map();
 
+// Controle de dados temporários (para fluxos que precisam guardar informações)
+const dadosTemporarios = new Map();
+
 /**
  * Obtém o estado atual do usuário
  * @param {string} sender - ID do usuário
@@ -37,9 +40,38 @@ function obterTodosEstados() {
   return estadosUsuario;
 }
 
+/**
+ * Obtém os dados temporários do usuário
+ * @param {string} sender - ID do usuário
+ * @returns {Object|null} Dados temporários ou null
+ */
+function obterDadosTemporarios(sender) {
+  return dadosTemporarios.get(sender) || null;
+}
+
+/**
+ * Define dados temporários para o usuário
+ * @param {string} sender - ID do usuário
+ * @param {Object} dados - Dados a serem armazenados
+ */
+function definirDadosTemporarios(sender, dados) {
+  dadosTemporarios.set(sender, dados);
+}
+
+/**
+ * Limpa os dados temporários do usuário
+ * @param {string} sender - ID do usuário
+ */
+function limparDadosTemporarios(sender) {
+  dadosTemporarios.delete(sender);
+}
+
 module.exports = {
   obterEstadoUsuario,
   definirEstadoUsuario,
   limparEstadoUsuario,
-  obterTodosEstados
+  obterTodosEstados,
+  obterDadosTemporarios,
+  definirDadosTemporarios,
+  limparDadosTemporarios
 };

@@ -44,7 +44,10 @@ const ESTADOS = {
   OPCAO_3_NFSE: "opcao_3_nfse",
   OPCAO_5_TFLF: "opcao_5_tflf",
   CONSULTA_ISS: "consulta_iss",
-  CONSULTA_CNAE: "consulta_cnae"
+  CONSULTA_CNAE: "consulta_cnae",
+  EMISSAO_CERTIDAO: "emissao_certidao",
+  AGUARDANDO_TIPO_CONTRIBUINTE: "aguardando_tipo_contribuinte",
+  AGUARDANDO_INSCRICAO: "aguardando_inscricao"
 };
 
 // Emojis
