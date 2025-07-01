@@ -36,7 +36,7 @@ Para começar, preciso saber o *tipo de contribuinte*:
 
 *1* - Contribuinte Geral
 *2* - Imóvel
-*3* - Empresa
+
 
 Digite o número correspondente:`;
 }
@@ -52,15 +52,13 @@ function processarTipoContribuinte(sender, opcao, nome) {
   const tiposValidos = {
     1: "Pessoa Física/Jurídica",
     2: "Imóvel",
-    3: "Empresa",
   };
 
   if (!tiposValidos[opcao]) {
     return `${EMOJIS.ERRO} Opção inválida! Por favor, digite:
 
 *1* - Contribuinte Geral
-*2* - Imóvel  
-*3* - Empresa
+*2* - Imóvel
 
 Digite apenas o número:`;
   }

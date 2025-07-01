@@ -6,7 +6,7 @@ const API_CHAVE = "@C0sS0_@P1";
 /**
  * Emite certidão através da API da Ábaco
  * @param {Object} params - Parâmetros para emissão
- * @param {string} params.tipoContribuinte - Tipo de contribuinte (1=PF/PJ, 2=Imóvel, 3=Empresa)
+ * @param {string} params.tipoContribuinte - Tipo de contribuinte (1=PF/PJ, 2=Imóvel)
  * @param {string} params.inscricao - Cadastro Geral
  * @param {string} params.cpfCnpj - CPF ou CNPJ
  * @param {string} params.operacao - Tipo de documento (2=Certidão)
@@ -77,9 +77,7 @@ function validarDadosCertidao(tipoContribuinte, inscricao) {
 
   // Validar tipo de contribuinte
   if (!tipoContribuinte || !["1", "2", "3"].includes(tipoContribuinte)) {
-    errors.push(
-      "Tipo de contribuinte deve ser 1 (PF/PJ), 2 (Imóvel) ou 3 (Empresa)"
-    );
+    errors.push("Tipo de contribuinte deve ser 1 (PF/PJ) ou 2 (Imóvel)");
   }
 
   // Validar inscrição
