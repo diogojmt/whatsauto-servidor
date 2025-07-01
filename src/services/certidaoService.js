@@ -48,22 +48,26 @@ const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hora
  * @returns {boolean} True se CPF é válido
  */
 function validarCPF(cpf) {
+  // Verificar se tem 11 dígitos e não é sequência repetida
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
 
+  // Calcular primeiro dígito verificador
   let soma = 0;
   for (let i = 0; i < 9; i++) {
     soma += parseInt(cpf.charAt(i)) * (10 - i);
   }
-  let resto = 11 - (soma % 11);
-  let digito1 = resto < 2 ? 0 : resto;
+  let resto = soma % 11;
+  let digito1 = resto < 2 ? 0 : 11 - resto;
 
+  // Calcular segundo dígito verificador
   soma = 0;
   for (let i = 0; i < 10; i++) {
     soma += parseInt(cpf.charAt(i)) * (11 - i);
   }
-  resto = 11 - (soma % 11);
-  let digito2 = resto < 2 ? 0 : resto;
+  resto = soma % 11;
+  let digito2 = resto < 2 ? 0 : 11 - resto;
 
+  // Verificar se os dígitos calculados conferem
   return (
     digito1 === parseInt(cpf.charAt(9)) && digito2 === parseInt(cpf.charAt(10))
   );
