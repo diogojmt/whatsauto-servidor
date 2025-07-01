@@ -596,7 +596,9 @@ ${EMOJIS.ALERTA} *IMPORTANTE:*
 ${EMOJIS.AJUDA} *Precisa de outra certidão?*
 Digite *certidao* ou *menu* para voltar.
 
-${EMOJIS.AVALIACAO} *Gostou do atendimento?* Nos avalie!`;
+${
+  EMOJIS.AVALIACAO
+} *Espero que tenha gostado do atendimento* Tenha um bom dia!`;
     } else {
       metrics.erros++;
 
