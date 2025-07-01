@@ -397,7 +397,6 @@ Digite novamente apenas os números:*`;
     mensagemInscricao = "Agora preciso do número do *Cadastro Geral*:";
     exemploInscricao = "• Exemplo: 123456 ou 1234567890";
     dicasInscricao = `${EMOJIS.INFO} *Onde encontrar seu Cadastro Geral:*
-• Carnê do IPTU ou ISS
 • Certidões anteriores
 • Cadastro na Prefeitura
 • Portal do Contribuinte`;
@@ -424,7 +423,7 @@ ${EMOJIS.EXEMPLO} *Formato:*
 ${exemploInscricao}
 • Sem pontos, traços ou letras
 
-${EMOJIS.SETA} *Digite o número da inscrição:*`;
+${EMOJIS.SETA} *Digite o número da inscrição ou do cad. geral::*`;
 }
 
 /**
@@ -861,7 +860,6 @@ ${
 • Certidões anteriores do imóvel
 • Portal do Contribuinte`
     : `
-• Carnê do IPTU ou ISS
 • Certidões anteriores
 • Cadastro na Prefeitura
 • Portal do Contribuinte`
