@@ -62,6 +62,11 @@ const ESTADOS = {
   AGUARDANDO_CPF_CNPJ: "aguardando_cpf_cnpj",
   AGUARDANDO_SELECAO_INSCRICAO: "aguardando_selecao_inscricao",
   AGUARDANDO_INSCRICAO: "aguardando_inscricao",
+  // Estados para consulta de débitos
+  DEBITOS_ATIVO: "debitos_ativo",
+  DEBITOS_TIPO_CONTRIBUINTE: "debitos_tipo_contribuinte",
+  DEBITOS_INSCRICAO: "debitos_inscricao",
+  DEBITOS_EXERCICIO: "debitos_exercicio",
 };
 
 // Emojis - TODOS DEFINIDOS para evitar undefined

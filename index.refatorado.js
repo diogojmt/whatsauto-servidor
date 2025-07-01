@@ -6,8 +6,12 @@ const path = require("path");
 const { carregarDadosTFLF, carregarDadosISS } = require("./src/utils/dataLoader");
 const { processarMensagem } = require("./src/handlers/messageHandler");
 const { ehMensagemDoSistema } = require("./src/utils/mediaUtils");
+const { DebitosService } = require("./src/services/debitosService");
 
 const app = express();
+
+// Instanciar serviço de débitos
+const debitosService = new DebitosService();
 
 // ---------- Carregar dados na inicialização ----------
 let dadosTFLF = [];
@@ -85,7 +89,7 @@ async function processarResposta(req, res, sender, message) {
 }
 
 // ---------- Rota principal ----------
-app.post("/", (req, res) => {
+app.post("/", async (req, res) => {
   // Se JSON falhou, tenta decodificar req.rawBody como urlencoded
   if (!req.body || Object.keys(req.body).length === 0) {
     req.body = qs.parse(req.rawBody);
@@ -96,7 +100,7 @@ app.post("/", (req, res) => {
 
   console.log("✅ Interpretado:", { sender, message });
 
-  processarResposta(req, res, sender, message);
+  await processarResposta(req, res, sender, message);
 });
 
 // ---------- Endpoint POST para integração com WhatsAuto ----------

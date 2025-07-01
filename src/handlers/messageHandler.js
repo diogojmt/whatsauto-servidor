@@ -6,6 +6,7 @@ const {
   buscarPorDescricaoServico, 
   buscarPorDescricaoCNAE 
 } = require("../services/searchService");
+const { DebitosService } = require("../services/debitosService");
 
 const { 
   ESTADOS, 
@@ -57,6 +58,9 @@ const {
   processarInscricaoEEmitir, 
   ehSolicitacaoCertidao 
 } = require("../services/certidaoService");
+
+// Instanciar serviço de débitos
+const debitosService = new DebitosService();
 
 /**
  * Verifica se a mensagem contém palavras de agradecimento
@@ -184,6 +188,24 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   const msgLimpa = normalizarTexto(message);
   const estadoAtual = obterEstadoUsuario(sender);
 
+  // Verificar se está no fluxo de consulta de débitos
+  if (estadoAtual.startsWith('debitos_')) {
+    const resultado = await debitosService.processarEtapa(sender, message);
+    
+    // Se for redirecionamento, processar conforme a ação
+    if (resultado.type === 'redirect') {
+      if (resultado.action === 'menu_principal') {
+        definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+        return gerarMenuPrincipal(nome);
+      }
+    }
+    
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
   // Verificar mensagens de agradecimento
   if (ehMensagemAgradecimento(msgLimpa)) {
     return gerarRespostaAgradecimento(nome);
@@ -199,6 +221,16 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   if (ehMensagemSaudacao(msgLimpa)) {
     definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
     return gerarMenuPrincipal(nome);
+  }
+
+  // Detecção de intenção para consulta de débitos
+  if (debitosService.detectarIntencaoConsultaDebitos(message)) {
+    definirEstadoUsuario(sender, ESTADOS.DEBITOS_ATIVO);
+    const resultado = debitosService.iniciarConsultaDebitos(sender, nome);
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
   }
 
   // PRIORIDADE 1: Fluxos específicos e estados contextuais
@@ -232,10 +264,14 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
 
   // PRIORIDADE 2: Navegação por números do menu
   
-  // Opção 1 - DAM's
+  // Opção 1 - DAM's (Nova funcionalidade automática)
   if (opcao === "1" || msgLimpa.includes("opcao 1")) {
-    definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
-    return criarRespostaDAM(nome);
+    definirEstadoUsuario(sender, ESTADOS.DEBITOS_ATIVO);
+    const resultado = debitosService.iniciarConsultaDebitos(sender, nome);
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
   }
 
   // Opção 2 - Certidões (Direto para automático)
