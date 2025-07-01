@@ -16,11 +16,13 @@ const logger = require("../utils/logger");
 const TIPOS_CONTRIBUINTE = {
   GERAL: "1",
   IMOVEL: "2",
+  EMPRESA: "3",
 };
 
 const TIPOS_CONTRIBUINTE_LABELS = {
   [TIPOS_CONTRIBUINTE.GERAL]: "Pessoa Física/Jurídica",
   [TIPOS_CONTRIBUINTE.IMOVEL]: "Imóvel",
+  [TIPOS_CONTRIBUINTE.EMPRESA]: "Empresa",
 };
 
 // Métricas de monitoramento
@@ -404,13 +406,21 @@ Digite novamente apenas os números:*`;
 • Certidões anteriores
 • Cadastro na Prefeitura
 • Portal do Contribuinte`;
-  } else {
+  } else if (tipoContribuinte === TIPOS_CONTRIBUINTE.IMOVEL) {
     mensagemInscricao = "Agora preciso do número da *Matrícula do Imóvel*:";
     exemploInscricao = "• Exemplo: 987654 ou 9876543210";
     dicasInscricao = `${EMOJIS.INFO} *Onde encontrar a Matrícula do Imóvel:*
 • Carnê do IPTU
 • Escritura do imóvel
 • Certidões anteriores do imóvel
+• Portal do Contribuinte`;
+  } else if (tipoContribuinte === TIPOS_CONTRIBUINTE.EMPRESA) {
+    mensagemInscricao = "Agora preciso do número da *Inscrição Municipal*:";
+    exemploInscricao = "• Exemplo: 555888 ou 5558881234";
+    dicasInscricao = `${EMOJIS.INFO} *Onde encontrar a Inscrição Municipal:*
+• Alvará de funcionamento
+• Certidões anteriores da empresa
+• Contrato social
 • Portal do Contribuinte`;
   }
 

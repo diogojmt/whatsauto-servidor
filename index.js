@@ -2,7 +2,11 @@ const express = require("express");
 const qs = require("querystring"); // módulo nativo do Node
 const fs = require("fs");
 const path = require("path");
+const { DebitosService } = require("./src/services/debitosService");
 const app = express();
+
+// Instanciar serviço de débitos
+const debitosService = new DebitosService();
 
 // ---------- Carregar dados da TFLF ----------
 let dadosTFLF = [];
@@ -249,7 +253,7 @@ ${linkImagem}`,
 }
 
 // ---------- Função para gerar respostas automáticas ----------
-function gerarResposta(message, sender, req = null) {
+async function gerarResposta(message, sender, req = null) {
   const nome = sender || "cidadão";
   const msgLimpa = message
     .toLowerCase()
@@ -257,6 +261,24 @@ function gerarResposta(message, sender, req = null) {
     .replace(/[\u0300-\u036f]/g, ""); // Remove acentos
 
   const estadoAtual = obterEstadoUsuario(sender);
+
+  // Verificar se está no fluxo de consulta de débitos
+  if (estadoAtual.startsWith('debitos_')) {
+    const resultado = await debitosService.processarEtapa(sender, message);
+    
+    // Se for redirecionamento, processar conforme a ação
+    if (resultado.type === 'redirect') {
+      if (resultado.action === 'menu_principal') {
+        definirEstadoUsuario(sender, "menu_principal");
+        return gerarMenuPrincipal(nome);
+      }
+    }
+    
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
+  }
 
   // Verificar mensagens de agradecimento para encerrar cordialmente
   if (
@@ -298,6 +320,16 @@ Tenha um excelente dia! 👋
     return gerarMenuPrincipal(nome);
   }
 
+  // Detecção de intenção para consulta de débitos
+  if (debitosService.detectarIntencaoConsultaDebitos(message)) {
+    definirEstadoUsuario(sender, "debitos_ativo");
+    const resultado = debitosService.iniciarConsultaDebitos(sender, nome);
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
   // Menu principal - saudações e palavras-chave
   if (
     msgLimpa.includes("ola") ||
@@ -314,52 +346,24 @@ Tenha um excelente dia! 👋
     return gerarMenuPrincipal(nome);
   }
 
-  // Navegação com "1" - exibe instruções do Portal de Segunda Via
+  // Navegação com "1" - inicia consulta automática de débitos
   if (msgLimpa.trim() === "1") {
-    definirEstadoUsuario(sender, "menu_principal");
-    return criarRespostaComMidia(
-      `📄 *Segunda via de DAM's*
-
-${nome}, para emitir a segunda via de DAMs, siga as instruções:
-
-🔗 *Acesse o link:*
-https://arapiraca.abaco.com.br/eagata/portal/
-
-📋 *Instruções:*
-• No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Cadastro Geral ou Inscrição Imobiliária do contribuinte
-
-📧 *Dúvidas ou informações:*
-smfaz@arapiraca.al.gov.br
-
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
-      "Portal_2_vias.png",
-      req
-    );
+    definirEstadoUsuario(sender, "debitos_ativo");
+    const resultado = debitosService.iniciarConsultaDebitos(sender, nome);
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
   }
 
   // Navegação por números - opção 1 do menu principal
   if (msgLimpa.includes("opcao 1")) {
-    definirEstadoUsuario(sender, "menu_principal");
-    return criarRespostaComMidia(
-      `📄 *Segunda via de DAM's*
-
-${nome}, para emitir a segunda via de DAMs, siga as instruções:
-
-🔗 *Acesse o link:*
-https://arapiraca.abaco.com.br/eagata/portal/
-
-📋 *Instruções:*
-• No portal, escolha uma das opções disponíveis para emissão de segunda via de DAMs
-• Para facilitar a consulta tenha em mãos o CPF/CNPJ, Cadastro Geral ou Inscrição Imobiliária do contribuinte
-
-📧 *Dúvidas ou informações:*
-smfaz@arapiraca.al.gov.br
-
-Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
-      "Portal_2_vias.png",
-      req
-    );
+    definirEstadoUsuario(sender, "debitos_ativo");
+    const resultado = debitosService.iniciarConsultaDebitos(sender, nome);
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
   }
 
   // Navegação com "2" - exibe instruções do Portal de Certidões e Autenticações
@@ -1257,7 +1261,7 @@ Secretaria da Fazenda Municipal
 }
 
 // ---------- Rota principal ----------
-app.post("/", (req, res) => {
+app.post("/", async (req, res) => {
   // Se JSON falhou, tenta decodificar req.rawBody como urlencoded
   if (!req.body || Object.keys(req.body).length === 0) {
     req.body = qs.parse(req.rawBody);
@@ -1283,7 +1287,7 @@ app.post("/", (req, res) => {
     return res.status(200).end(); // Não envia resposta para evitar loop
   }
 
-  const resposta = gerarResposta(message, sender, req);
+  const resposta = await gerarResposta(message, sender, req);
   console.log("🎯 Resposta gerada:", resposta);
 
   // Verificar se a resposta inclui mídia
@@ -1307,7 +1311,7 @@ app.post("/", (req, res) => {
 });
 
 // Endpoint POST para integração com WhatsAuto
-app.post("/mensagem", (req, res) => {
+app.post("/mensagem", async (req, res) => {
   const { sender, message } = req.body || qs.parse(req.rawBody);
 
   // Verificar se a mensagem é do próprio sistema (para evitar loop)
@@ -1325,7 +1329,7 @@ app.post("/mensagem", (req, res) => {
     return res.status(200).end(); // Não envia resposta para evitar loop
   }
 
-  const resposta = gerarResposta(message, sender);
+  const resposta = await gerarResposta(message, sender);
 
   // Verificar se a resposta inclui mídia
   if (typeof resposta === "object" && resposta.type === "media") {
