@@ -3,7 +3,7 @@ const {
   useMultiFileAuthState,
   DisconnectReason,
 } = require("@whiskeysockets/baileys");
-// Importe seu handler principal normalmente!
+const qrcode = require("qrcode-terminal"); // <– Adiciona o pacote de QR code
 const { processarMensagem } = require("./src/handlers/messageHandler");
 const {
   carregarDadosTFLF,
@@ -19,9 +19,26 @@ async function startBot() {
   const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
 
   // Cria conexão com WhatsApp Web
-  const sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: true, // Mostra QR code no terminal na primeira vez
+  const sock = makeWASocket({ auth: state }); // REMOVA printQRInTerminal
+
+  // Evento para exibir o QR code no terminal
+  sock.ev.on("connection.update", (update) => {
+    const { connection, lastDisconnect, qr } = update;
+    if (qr) {
+      qrcode.generate(qr, { small: true });
+      console.log("📱 Escaneie o QR code acima com o WhatsApp!");
+    }
+    if (connection === "close") {
+      const reason = lastDisconnect?.error?.output?.statusCode;
+      if (reason !== DisconnectReason.loggedOut) {
+        console.log("Desconectou, tentando reconectar...");
+        startBot();
+      } else {
+        console.log("Sessão encerrada.");
+      }
+    } else if (connection === "open") {
+      console.log("✅ BOT Online!");
+    }
   });
 
   // Evento para receber mensagens
@@ -60,22 +77,6 @@ async function startBot() {
 
   // Atualiza credenciais quando necessário
   sock.ev.on("creds.update", saveCreds);
-
-  // Reconnect & log
-  sock.ev.on("connection.update", (update) => {
-    const { connection, lastDisconnect } = update;
-    if (connection === "close") {
-      const reason = lastDisconnect?.error?.output?.statusCode;
-      if (reason !== DisconnectReason.loggedOut) {
-        console.log("Desconectou, tentando reconectar...");
-        startBot();
-      } else {
-        console.log("Sessão encerrada.");
-      }
-    } else if (connection === "open") {
-      console.log("✅ BOT Online!");
-    }
-  });
 }
 
 startBot();
