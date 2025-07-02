@@ -167,39 +167,35 @@ Ou *0* para voltar ao menu principal.`,
       tipoContribuinte: sessao.tipoContribuinte,
     });
 
-    // Validação baseada no tipo de contribuinte
-    if (sessao.tipoContribuinte === "1") {
-      // Pessoa Física/Jurídica - validar CPF/CNPJ
-      if (documentoLimpo.length !== 11 && documentoLimpo.length !== 14) {
-        return {
-          type: "text",
-          text: `❌ CPF/CNPJ inválido!
+    // Validação geral - apenas verifica se contém números
+    if (documentoLimpo.length === 0) {
+      return {
+        type: "text",
+        text: `❌ Documento inválido!
 
-O CPF deve ter 11 dígitos e o CNPJ deve ter 14 dígitos.
+Por favor, digite apenas números.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 12345678901 (CPF) ou 12345678000195 (CNPJ)
+Exemplo: 12345678901
 
 Ou *0* para voltar ao menu principal.`,
-        };
-      }
-    } else {
-      // Imóvel ou Empresa - validar inscrição municipal
-      if (documentoLimpo.length < 6) {
-        return {
-          type: "text",
-          text: `❌ Inscrição inválida!
+      };
+    }
 
-A inscrição municipal deve ter pelo menos 6 dígitos.
+    if (documentoLimpo.length < 6) {
+      return {
+        type: "text",
+        text: `❌ Documento muito curto!
+
+O documento deve ter pelo menos 6 dígitos.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
 Exemplo: 123456789
 
 Ou *0* para voltar ao menu principal.`,
-        };
-      }
+      };
     }
 
     // Salvar o documento na sessão
