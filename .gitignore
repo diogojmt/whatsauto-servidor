@@ -131,3 +131,10 @@ dist
 
 # Replit debugger
 .breakpoints
+
+# Baileys auth files (WhatsApp session)
+auth_info_baileys/
+*.json
+
+# WhatsApp session data
+.replit_modules/
