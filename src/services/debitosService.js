@@ -1,4 +1,4 @@
-const { DebitosApi } = require('../utils/debitosApi');
+const { DebitosApi } = require("../utils/debitosApi");
 
 /**
  * Serviço para gerenciar consultas de débitos e fluxo de coleta de dados
@@ -17,10 +17,10 @@ class DebitosService {
    */
   iniciarConsultaDebitos(sender, nome) {
     this.limparSessao(sender);
-    this.setSessao(sender, { etapa: 'tipo_contribuinte', nome });
+    this.setSessao(sender, { etapa: "tipo_contribuinte", nome });
 
     return {
-      type: 'text',
+      type: "text",
       text: `📄 *Segunda via de DAM's*
 
 ${nome}, vou ajudá-lo a consultar e emitir a segunda via de todos os seus débitos disponíveis para pagamento.
@@ -35,7 +35,7 @@ Digite o número correspondente:
 *2* - 🏠 Imóvel (IPTU, COSIP)
 *3* - 🏢 Empresa (taxas empresariais)
 
-Digite o número da opção ou *0* para voltar ao menu principal.`
+Digite o número da opção ou *0* para voltar ao menu principal.`,
     };
   }
 
@@ -47,30 +47,30 @@ Digite o número da opção ou *0* para voltar ao menu principal.`
    */
   async processarEtapa(sender, message) {
     const msgLimpa = message.trim();
-    
+
     // Verificar se o usuário quer voltar ao menu principal
-    if (msgLimpa === '0' || msgLimpa.toLowerCase() === 'menu') {
+    if (msgLimpa === "0" || msgLimpa.toLowerCase() === "menu") {
       this.limparSessao(sender);
       return {
-        type: 'redirect',
-        action: 'menu_principal'
+        type: "redirect",
+        action: "menu_principal",
       };
     }
 
     const sessao = this.getSessao(sender);
     if (!sessao) {
-      return this.iniciarConsultaDebitos(sender, 'usuário');
+      return this.iniciarConsultaDebitos(sender, "usuário");
     }
 
     switch (sessao.etapa) {
-      case 'tipo_contribuinte':
+      case "tipo_contribuinte":
         return this.processarTipoContribuinte(sender, msgLimpa);
-      case 'inscricao':
+      case "inscricao":
         return this.processarInscricao(sender, msgLimpa);
-      case 'exercicio':
+      case "exercicio":
         return await this.processarExercicio(sender, msgLimpa);
       default:
-        return this.iniciarConsultaDebitos(sender, sessao.nome || 'usuário');
+        return this.iniciarConsultaDebitos(sender, sessao.nome || "usuário");
     }
   }
 
@@ -79,58 +79,70 @@ Digite o número da opção ou *0* para voltar ao menu principal.`
    */
   processarTipoContribuinte(sender, msg) {
     const sessao = this.getSessao(sender);
-    
-    if (!['1', '2', '3'].includes(msg)) {
+
+    if (!["1", "2", "3"].includes(msg)) {
       return {
-        type: 'text',
+        type: "text",
         text: `❌ Opção inválida!
 
-Por favor, digite apenas o número correspondente ao tipo:
+    Por favor, digite apenas o número correspondente ao tipo:
 
-*1* - 👤 Pessoa Física/Jurídica
-*2* - 🏠 Imóvel (IPTU, COSIP)
-*3* - 🏢 Empresa (taxas empresariais)
+    *1* - 👤 Pessoa Física/Jurídica
+    *2* - 🏠 Imóvel (IPTU, COSIP)
+    *3* - 🏢 Empresa (taxas empresariais)
 
-Ou *0* para voltar ao menu principal.`
+    Ou *0* para voltar ao menu principal.`,
       };
     }
 
     const tipos = {
-      '1': 'Pessoa Física/Jurídica',
-      '2': 'Imóvel',
-      '3': 'Empresa'
+      1: "Pessoa Física/Jurídica",
+      2: "Imóvel",
+      3: "Empresa",
     };
 
-    this.updateSessao(sender, { 
+    this.updateSessao(sender, {
       tipoContribuinte: msg,
       tipoDescricao: tipos[msg],
-      etapa: 'inscricao'
+      etapa: "documento", // Mudança aqui
     });
 
-    let orientacao = '';
-    if (msg === '1') {
-      orientacao = 'Este número pode ser encontrado em carnês anteriores ou documentos de cadastro.';
-    } else if (msg === '2') {
-      orientacao = 'Este número pode ser encontrado no carnê do IPTU ou documentos do imóvel.';
-    } else if (msg === '3') {
-      orientacao = 'Este número pode ser encontrado no alvará de funcionamento ou documentos da empresa.';
+    let orientacao = "";
+    let tipoDocumento = "";
+
+    if (msg === "1") {
+      tipoDocumento = "CPF ou CNPJ";
+      orientacao =
+        "Digite seu CPF (para pessoa física) ou CNPJ (para pessoa jurídica).";
+    } else if (msg === "2") {
+      tipoDocumento = "Inscrição Municipal do Imóvel";
+      orientacao =
+        "Este número pode ser encontrado no carnê do IPTU ou documentos do imóvel.";
+    } else if (msg === "3") {
+      tipoDocumento = "Inscrição Municipal da Empresa";
+      orientacao =
+        "Este número pode ser encontrado no alvará de funcionamento ou documentos da empresa.";
     }
 
     return {
-      type: 'text',
+      type: "text",
       text: `✅ *Tipo selecionado:* ${tipos[msg]}
 
-*2️⃣ Inscrição Municipal:*
+    *2️⃣ ${tipoDocumento}:*
 
-${sessao.nome}, agora preciso do número da sua inscrição municipal.
+    ${sessao.nome}, agora preciso do seu ${tipoDocumento.toLowerCase()}.
 
-${orientacao}
+    ${orientacao}
 
-📝 *Digite apenas os números* (sem pontos, traços ou espaços):
+    📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 123456789
+    ${
+      msg === "1"
+        ? "Exemplo: 12345678901 (CPF) ou 12345678000195 (CNPJ)"
+        : "Exemplo: 123456789"
+    }
 
-Ou *0* para voltar ao menu principal.`
+    Ou *0* para voltar ao menu principal.`,
     };
   }
 
@@ -139,13 +151,13 @@ Ou *0* para voltar ao menu principal.`
    */
   processarInscricao(sender, msg) {
     const sessao = this.getSessao(sender);
-    
+
     // Remove caracteres não numéricos
-    const inscricaoLimpa = msg.replace(/[^0-9]/g, '');
-    
+    const inscricaoLimpa = msg.replace(/[^0-9]/g, "");
+
     if (inscricaoLimpa.length < 6) {
       return {
-        type: 'text',
+        type: "text",
         text: `❌ Inscrição inválida!
 
 A inscrição municipal deve ter pelo menos 6 dígitos.
@@ -154,19 +166,19 @@ A inscrição municipal deve ter pelo menos 6 dígitos.
 
 Exemplo: 123456789
 
-Ou *0* para voltar ao menu principal.`
+Ou *0* para voltar ao menu principal.`,
       };
     }
 
-    this.updateSessao(sender, { 
+    this.updateSessao(sender, {
       inscricao: this.debitosApi.formatarInscricao(inscricaoLimpa),
-      etapa: 'exercicio'
+      etapa: "exercicio",
     });
 
     const anoAtual = new Date().getFullYear();
 
     return {
-      type: 'text',
+      type: "text",
       text: `✅ *Inscrição registrada:* ${inscricaoLimpa}
 
 *3️⃣ Ano/Exercício:*
@@ -181,7 +193,7 @@ Digite o ano desejado:
 
 Exemplo: *${anoAtual}* (para débitos de ${anoAtual})
 
-Ou *0* para voltar ao menu principal.`
+Ou *0* para voltar ao menu principal.`,
     };
   }
 
@@ -190,21 +202,25 @@ Ou *0* para voltar ao menu principal.`
    */
   async processarExercicio(sender, msg) {
     const sessao = this.getSessao(sender);
-    
+
     const exercicio = msg.trim();
     const anoAtual = new Date().getFullYear();
     const exercicioNum = parseInt(exercicio);
 
-    if (isNaN(exercicioNum) || exercicioNum < 2020 || exercicioNum > anoAtual + 1) {
+    if (
+      isNaN(exercicioNum) ||
+      exercicioNum < 2020 ||
+      exercicioNum > anoAtual + 1
+    ) {
       return {
-        type: 'text',
+        type: "text",
         text: `❌ Ano inválido!
 
 Digite um ano entre 2020 e ${anoAtual + 1}.
 
 Exemplo: *${anoAtual}*
 
-Ou *0* para voltar ao menu principal.`
+Ou *0* para voltar ao menu principal.`,
       };
     }
 
@@ -215,17 +231,17 @@ Ou *0* para voltar ao menu principal.`
     const validacao = this.debitosApi.validarParametros({
       tipoContribuinte: sessao.tipoContribuinte,
       inscricao: sessao.inscricao,
-      exercicio: sessao.exercicio
+      exercicio: sessao.exercicio,
     });
 
     if (!validacao.valido) {
       return {
-        type: 'text',
+        type: "text",
         text: `❌ Dados inválidos:
 
-${validacao.erros.join('\n')}
+${validacao.erros.join("\n")}
 
-Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`
+Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
       };
     }
 
@@ -241,9 +257,9 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`
    */
   async enviarMensagemConsultando(sender) {
     const sessao = this.getSessao(sender);
-    
+
     return {
-      type: 'text',
+      type: "text",
       text: `🔍 *Consultando débitos...*
 
 📋 *Dados informados:*
@@ -251,7 +267,7 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`
 • Inscrição: ${sessao.inscricao}
 • Exercício: ${sessao.exercicio}
 
-⏳ Aguarde, estou consultando todos os seus débitos disponíveis...`
+⏳ Aguarde, estou consultando todos os seus débitos disponíveis...`,
     };
   }
 
@@ -265,26 +281,29 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`
       const resultado = await this.debitosApi.consultarDebitos({
         tipoContribuinte: sessao.tipoContribuinte,
         inscricao: sessao.inscricao,
-        exercicio: sessao.exercicio
+        exercicio: sessao.exercicio,
       });
 
       // Limpar sessão após consulta
       this.limparSessao(sender);
 
-      if (resultado.SSACodigo === 0 && resultado.SDTSaidaAPIDebito && resultado.SDTSaidaAPIDebito.length > 0) {
+      if (
+        resultado.SSACodigo === 0 &&
+        resultado.SDTSaidaAPIDebito &&
+        resultado.SDTSaidaAPIDebito.length > 0
+      ) {
         return this.formatarListaDebitos(resultado, sessao.nome);
       } else if (resultado.SSACodigo === 0) {
         return this.formatarNenhumDebito(sessao);
       } else {
         return this.formatarErroConsulta(resultado, sessao);
       }
-
     } catch (error) {
-      console.error('[DebitosService] Erro na execução da consulta:', error);
+      console.error("[DebitosService] Erro na execução da consulta:", error);
       this.limparSessao(sender);
-      
+
       return {
-        type: 'text',
+        type: "text",
         text: `❌ *Erro interno*
 
 ${sessao.nome}, ocorreu um erro inesperado durante a consulta.
@@ -293,7 +312,7 @@ ${sessao.nome}, ocorreu um erro inesperado durante a consulta.
 
 📧 smfaz@arapiraca.al.gov.br
 
-Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`
+Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`,
       };
     }
   }
@@ -314,7 +333,7 @@ ${nome}, foram encontrados *${debitos.length}* débito(s) em aberto para sua ins
       const numero = index + 1;
       const valorFormatado = this.formatarMoeda(debito.SSAValorTotal);
       const vencimento = this.formatarData(debito.SSAVencimento);
-      
+
       resposta += `*${numero}️⃣ ${debito.SSATributo}*
 💰 Valor: ${valorFormatado}
 📅 Vencimento: ${vencimento}
@@ -328,12 +347,17 @@ ${nome}, foram encontrados *${debitos.length}* débito(s) em aberto para sua ins
       if (debito.SSAReferencia) {
         resposta += `📌 Referência: ${debito.SSAReferencia}\n`;
       }
-      
-      if (debito.SSAValorOriginal && debito.SSAValorOriginal !== debito.SSAValorTotal) {
-        resposta += `💵 Valor original: ${this.formatarMoeda(debito.SSAValorOriginal)}\n`;
+
+      if (
+        debito.SSAValorOriginal &&
+        debito.SSAValorOriginal !== debito.SSAValorTotal
+      ) {
+        resposta += `💵 Valor original: ${this.formatarMoeda(
+          debito.SSAValorOriginal
+        )}\n`;
       }
 
-      resposta += '\n';
+      resposta += "\n";
     });
 
     resposta += `💡 *Para pagamento:*
@@ -345,7 +369,7 @@ ${nome}, foram encontrados *${debitos.length}* débito(s) em aberto para sua ins
 
 Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`;
 
-    return { type: 'text', text: resposta };
+    return { type: "text", text: resposta };
   }
 
   /**
@@ -353,7 +377,7 @@ Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`;
    */
   formatarNenhumDebito(sessao) {
     return {
-      type: 'text',
+      type: "text",
       text: `✅ *Nenhum débito encontrado*
 
 ${sessao.nome}, não foram localizados débitos em aberto para:
@@ -370,7 +394,7 @@ ${sessao.nome}, não foram localizados débitos em aberto para:
 
 🔄 Deseja consultar outro exercício/inscrição?
 
-Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`
+Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`,
     };
   }
 
@@ -379,12 +403,12 @@ Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`
    */
   formatarErroConsulta(resultado, sessao) {
     return {
-      type: 'text',
+      type: "text",
       text: `❌ *Erro na consulta*
 
 ${sessao.nome}, não foi possível consultar os débitos no momento.
 
-🔍 *Detalhes:* ${resultado.SSAMensagem || 'Erro desconhecido'}
+🔍 *Detalhes:* ${resultado.SSAMensagem || "Erro desconhecido"}
 
 📋 *Dados informados:*
 • Tipo: ${sessao.tipoDescricao}
@@ -398,7 +422,7 @@ ${sessao.nome}, não foi possível consultar os débitos no momento.
 
 📧 *Contato:* smfaz@arapiraca.al.gov.br
 
-Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`
+Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`,
     };
   }
 
@@ -406,30 +430,31 @@ Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`
    * Verifica se uma mensagem indica intenção de consultar débitos
    */
   detectarIntencaoConsultaDebitos(message) {
-    const msgLimpa = message.toLowerCase()
+    const msgLimpa = message
+      .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "");
 
     const palavrasChave = [
-      'segunda via',
-      'boleto',
-      'dam',
-      'debito',
-      'debitos',
-      'imposto',
-      'iptu',
-      'cosip',
-      'tributo',
-      'carne',
-      'guia',
-      'pagamento',
-      'pagar',
-      'vencimento',
-      'atraso',
-      'multa'
+      "segunda via",
+      "boleto",
+      "dam",
+      "debito",
+      "debitos",
+      "imposto",
+      "iptu",
+      "cosip",
+      "tributo",
+      "carne",
+      "guia",
+      "pagamento",
+      "pagar",
+      "vencimento",
+      "atraso",
+      "multa",
     ];
 
-    return palavrasChave.some(palavra => msgLimpa.includes(palavra));
+    return palavrasChave.some((palavra) => msgLimpa.includes(palavra));
   }
 
   /**
@@ -456,21 +481,22 @@ Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`
    * Funções auxiliares de formatação
    */
   formatarMoeda(valor) {
-    if (!valor) return 'R$ 0,00';
-    
-    const num = typeof valor === 'string' ? parseFloat(valor.replace(',', '.')) : valor;
-    return `R$ ${num.toFixed(2).replace('.', ',')}`;
+    if (!valor) return "R$ 0,00";
+
+    const num =
+      typeof valor === "string" ? parseFloat(valor.replace(",", ".")) : valor;
+    return `R$ ${num.toFixed(2).replace(".", ",")}`;
   }
 
   formatarData(data) {
-    if (!data) return 'Não informado';
-    
+    if (!data) return "Não informado";
+
     // Se a data está no formato YYYY-MM-DD, converter para DD/MM/YYYY
-    if (data.includes('-')) {
-      const [ano, mes, dia] = data.split('-');
+    if (data.includes("-")) {
+      const [ano, mes, dia] = data.split("-");
       return `${dia}/${mes}/${ano}`;
     }
-    
+
     return data;
   }
 }
