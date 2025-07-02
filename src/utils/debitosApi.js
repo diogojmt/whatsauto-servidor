@@ -111,13 +111,12 @@ class DebitosApi {
       const apenasNumeros = inscricaoStr.replace(/[^0-9]/g, "");
 
       if (tipoStr === "1") {
-        // Pessoa Física/Jurídica - validar CPF (11) ou CNPJ (14)
-        if (apenasNumeros.length !== 11 && apenasNumeros.length !== 14) {
-          erros.push(
-            "Para Pessoa Física/Jurídica, informe código do Contribuinte geral"
-          );
+        // Contribuinte geral - aceitar qualquer código numérico válido
+        if (apenasNumeros.length < 1) {
+          erros.push("Informe o código do Contribuinte geral");
         }
-      } else {
+        // Remover validação restritiva de CPF/CNPJ para permitir códigos de contribuinte
+      } else if (tipoStr === "2" || tipoStr === "3") {
         // Imóvel ou Empresa - validar inscrição municipal
         if (apenasNumeros.length < 6) {
           erros.push("Inscrição municipal deve ter pelo menos 6 dígitos");
@@ -166,8 +165,15 @@ class DebitosApi {
 
     const apenasNumeros = String(inscricao).replace(/[^0-9]/g, "");
 
+    // Para tipo 1 (Contribuinte geral), não fazer padding - enviar como está
     // Para CPF/CNPJ, não fazer padding
     if (apenasNumeros.length === 11 || apenasNumeros.length === 14) {
+      return apenasNumeros;
+    }
+
+    // Para códigos de contribuinte geral menores, não fazer padding
+    // A API deve aceitar o código como fornecido
+    if (apenasNumeros.length < 11) {
       return apenasNumeros;
     }
 
@@ -265,7 +271,7 @@ class DebitosApi {
     const tipo = String(tipoContribuinte);
 
     if (tipo === "1") {
-      // Pessoa Física/Jurídica
+      // Contribuinte geral - pode ser CPF, CNPJ ou código de contribuinte
       if (apenasNumeros.length === 11) {
         return {
           valido: this.validarCPF(apenasNumeros),
@@ -279,9 +285,15 @@ class DebitosApi {
           documento: apenasNumeros,
         };
       } else {
+        // Código de contribuinte geral - aceitar qualquer código numérico
         return {
-          valido: false,
-          erro: "CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos",
+          valido: apenasNumeros.length >= 1,
+          tipo: "Código de Contribuinte",
+          documento: apenasNumeros,
+          erro:
+            apenasNumeros.length < 1
+              ? "Código deve ter pelo menos 1 dígito"
+              : null,
         };
       }
     } else {
