@@ -15,6 +15,7 @@ Escolha uma das opções abaixo digitando o número:
 *3* - 🧾 NFSe e ISSQN
 *4* - ${EMOJIS.MENU} Lista de Substitutos Tributários
 *5* - ${EMOJIS.DINHEIRO} TFLF 2025
+*6* - 🏠 Consulta de BCI (Boletim de Cadastro Imobiliário)
 *0* - ${EMOJIS.SAUDACAO} Encerrar Atendimento
 
 Digite o número da opção desejada ou descreva sua dúvida.`;
@@ -97,6 +98,7 @@ ${EMOJIS.ROBÔ} *Para continuar, você pode:*
 • Digite *3* para NFSe
 • Digite *4* para Lista de Substitutos Tributários
 • Digite *5* para TFLF 2025
+• Digite *6* para Consulta de BCI
 • Digite *0* para encerrar o atendimento
 
 🏛️ *Ou compareça pessoalmente:*

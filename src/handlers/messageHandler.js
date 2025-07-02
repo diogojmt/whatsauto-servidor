@@ -7,6 +7,7 @@ const {
   buscarPorDescricaoCNAE 
 } = require("../services/searchService");
 const { DebitosService } = require("../services/debitosService");
+const { BciService } = require("../services/bciService");
 
 const { 
   ESTADOS, 
@@ -59,8 +60,9 @@ const {
   ehSolicitacaoCertidao 
 } = require("../services/certidaoService");
 
-// Instanciar serviço de débitos
+// Instanciar serviços
 const debitosService = new DebitosService();
+const bciService = new BciService();
 
 /**
  * Verifica se a mensagem contém palavras de agradecimento
@@ -206,6 +208,24 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
     return resultado;
   }
 
+  // Verificar se está no fluxo de consulta de BCI
+  if (estadoAtual.startsWith('bci_')) {
+    const resultado = await bciService.processarEtapa(sender, message);
+    
+    // Se for redirecionamento, processar conforme a ação
+    if (resultado.type === 'redirect') {
+      if (resultado.action === 'menu_principal') {
+        definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+        return gerarMenuPrincipal(nome);
+      }
+    }
+    
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
   // Verificar mensagens de agradecimento
   if (ehMensagemAgradecimento(msgLimpa)) {
     return gerarRespostaAgradecimento(nome);
@@ -227,6 +247,16 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   if (debitosService.detectarIntencaoConsultaDebitos(message)) {
     definirEstadoUsuario(sender, ESTADOS.DEBITOS_ATIVO);
     const resultado = debitosService.iniciarConsultaDebitos(sender, nome);
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
+  // Detecção de intenção para consulta de BCI
+  if (bciService.detectarIntencaoBCI(message)) {
+    definirEstadoUsuario(sender, ESTADOS.BCI_ATIVO);
+    const resultado = bciService.iniciarConsultaBCI(sender, nome);
     if (resultado.type === 'text') {
       return resultado.text;
     }
@@ -330,6 +360,16 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
     return gerarRespostaPlanilhaTFLF(nome);
   }
 
+  // Opção 6 - BCI
+  if (opcao === "6" || msgLimpa.includes("opcao 6")) {
+    definirEstadoUsuario(sender, ESTADOS.BCI_ATIVO);
+    const resultado = bciService.iniciarConsultaBCI(sender, nome);
+    if (resultado.type === 'text') {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
   // Opção 0 - Encerrar
   if (opcao === "0" || msgLimpa.includes("opcao 0") || msgLimpa.includes("encerrar")) {
     return gerarRespstaEncerramento(nome);
@@ -360,6 +400,9 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   }
   if (msgLimpa.includes("valor tflf") || msgLimpa.includes("tflf 2025")) {
     return `${nome}, digite *5* para acessar as opções da TFLF 2025: consultar por CNAE ou baixar planilha completa.`;
+  }
+  if (msgLimpa.includes("bci") || msgLimpa.includes("boletim cadastro") || msgLimpa.includes("cadastro imobiliario")) {
+    return `${nome}, digite *6* para consultar o Boletim de Cadastro Imobiliário (BCI) do seu imóvel.`;
   }
 
   // Resposta padrão

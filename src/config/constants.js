@@ -67,6 +67,8 @@ const ESTADOS = {
   DEBITOS_TIPO_CONTRIBUINTE: "debitos_tipo_contribuinte",
   DEBITOS_INSCRICAO: "debitos_inscricao",
   DEBITOS_EXERCICIO: "debitos_exercicio",
+  // Estados para consulta de BCI
+  BCI_ATIVO: "bci_ativo",
 };
 
 // Emojis - TODOS DEFINIDOS para evitar undefined
