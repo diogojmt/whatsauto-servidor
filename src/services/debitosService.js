@@ -117,9 +117,9 @@ Ou *0* para voltar ao menu principal.`,
     let tipoDocumento = "";
 
     if (msg === "1") {
-      tipoDocumento = "CPF ou CNPJ";
+      tipoDocumento = "Código de Constribuinte Geral";
       orientacao =
-        "Digite seu CPF (para pessoa física) ou CNPJ (para pessoa jurídica).";
+        "Este número pode ser encontrado na Certidão de Regularidade Fiscal.";
     } else if (msg === "2") {
       tipoDocumento = "Inscrição Municipal do Imóvel";
       orientacao =
