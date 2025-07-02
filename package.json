@@ -2,11 +2,11 @@
   "name": "whatauto-servidor",
   "version": "1.0.0",
   "description": "Servidor Express para chatbot WhatsAuto (Contribuintes Arapiraca)",
-  "main": "index.refatorado.js",
+  "main": "index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node index.refatorado.js",
-    "dev": "nodemon index.refatorado.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
