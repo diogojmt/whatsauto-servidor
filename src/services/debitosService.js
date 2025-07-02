@@ -65,13 +65,85 @@ Digite o número da opção ou *0* para voltar ao menu principal.`,
     switch (sessao.etapa) {
       case "tipo_contribuinte":
         return this.processarTipoContribuinte(sender, msgLimpa);
-      case "inscricao":
-        return this.processarInscricao(sender, msgLimpa);
+      case "documento": // ← Mudança aqui
+        return this.processarDocumento(sender, msgLimpa);
       case "exercicio":
         return await this.processarExercicio(sender, msgLimpa);
       default:
         return this.iniciarConsultaDebitos(sender, sessao.nome || "usuário");
     }
+  }
+
+  /**
+   * Processa o documento (CPF/CNPJ ou Inscrição Municipal)
+   */
+  processarDocumento(sender, msg) {
+    const sessao = this.getSessao(sender);
+
+    // Remove caracteres não numéricos
+    const documentoLimpo = msg.replace(/[^0-9]/g, "");
+
+    // Validação baseada no tipo de contribuinte
+    if (sessao.tipoContribuinte === "1") {
+      // Pessoa Física/Jurídica - validar CPF/CNPJ
+      if (documentoLimpo.length !== 11 && documentoLimpo.length !== 14) {
+        return {
+          type: "text",
+          text: `❌ CPF/CNPJ inválido!
+
+    O CPF deve ter 11 dígitos e o CNPJ deve ter 14 dígitos.
+
+    📝 *Digite apenas os números* (sem pontos, traços ou espaços):
+
+    Exemplo: 12345678901 (CPF) ou 12345678000195 (CNPJ)
+
+    Ou *0* para voltar ao menu principal.`,
+        };
+      }
+    } else {
+      // Imóvel ou Empresa - validar inscrição municipal
+      if (documentoLimpo.length < 6) {
+        return {
+          type: "text",
+          text: `❌ Inscrição inválida!
+
+    A inscrição municipal deve ter pelo menos 6 dígitos.
+
+    📝 *Digite apenas os números* (sem pontos, traços ou espaços):
+
+    Exemplo: 123456789
+
+    Ou *0* para voltar ao menu principal.`,
+        };
+      }
+    }
+
+    // Para a API, sempre usar o campo inscricao
+    this.updateSessao(sender, {
+      inscricao: documentoLimpo,
+      etapa: "exercicio",
+    });
+
+    const anoAtual = new Date().getFullYear();
+
+    return {
+      type: "text",
+      text: `✅ *Documento registrado:* ${documentoLimpo}
+
+    *3️⃣ Ano/Exercício:*
+
+    ${sessao.nome}, para qual ano deseja consultar os débitos?
+
+    💡 O "exercício" é o ano de referência do débito.
+
+    📅 *Anos disponíveis:* 2020 a ${anoAtual + 1}
+
+    Digite o ano desejado:
+
+    Exemplo: *${anoAtual}* (para débitos de ${anoAtual})
+
+    Ou *0* para voltar ao menu principal.`,
+    };
   }
 
   /**
