@@ -64,6 +64,8 @@ app.use((err, req, res, next) => {
 function extrairNomeUsuario(body) {
   if (!body) return "cidadão";
 
+  console.log("🔍 Extraindo nome de:", JSON.stringify(body, null, 2));
+
   // Tentar diferentes campos onde o nome pode estar
   const possiveisNomes = [
     body.pushName,
@@ -77,18 +79,28 @@ function extrairNomeUsuario(body) {
     body.profile?.name,
     body.sender_name,
     body.from_name,
+    // Adicionar mais possibilidades:
+    body.chat?.name,
+    body.info?.pushname,
+    body._data?.notifyName,
+    body.message?.from?.pushname,
+    body.webhook?.contact?.name,
   ];
+
+  console.log("🔍 Campos verificados:", possiveisNomes);
 
   // Encontrar o primeiro nome válido
   for (const nome of possiveisNomes) {
     if (nome && typeof nome === "string" && nome.trim() !== "") {
       const nomeDecodificado = decodeURIComponent(nome).trim();
+      console.log("🔍 Nome encontrado:", nomeDecodificado);
       if (nomeDecodificado !== "" && !nomeDecodificado.includes("@")) {
         return nomeDecodificado;
       }
     }
   }
 
+  console.log("🔍 Nenhum nome encontrado, usando 'cidadão'");
   return "cidadão";
 }
 
@@ -144,6 +156,12 @@ app.post("/", async (req, res) => {
   if (!req.body || Object.keys(req.body).length === 0) {
     req.body = qs.parse(req.rawBody);
   }
+
+  // ADICIONAR ESTES LOGS TEMPORÁRIOS:
+  console.log("🔍 DADOS COMPLETOS RECEBIDOS:");
+  console.log("📋 req.body:", JSON.stringify(req.body, null, 2));
+  console.log("📋 req.rawBody:", req.rawBody);
+  console.log("📋 Todas as chaves do body:", Object.keys(req.body || {}));
 
   // Log dos dados recebidos para debug (remover em produção se necessário)
   console.log("📋 Dados recebidos:", {
