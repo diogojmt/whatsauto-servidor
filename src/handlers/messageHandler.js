@@ -202,6 +202,7 @@ function processarBuscaCNAE(msgLimpa, dadosTFLF, nome) {
  * @param {Array} dadosTFLF - Dados da TFLF
  * @param {Array} dadosISS - Dados do ISS
  * @param {Object} req - Request object (opcional)
+ * @param {string} nomeUsuario - Nome do usuário (NOVO PARÂMETRO)
  * @returns {string|Object} Resposta processada
  */
 async function processarMensagem(
@@ -209,9 +210,20 @@ async function processarMensagem(
   sender,
   dadosTFLF,
   dadosISS,
-  req = null
+  req = null,
+  nomeUsuario = null
 ) {
+  // CORREÇÃO PRINCIPAL: Usar nomeUsuario em vez de sender
   const nome = nomeUsuario || "cidadão";
+
+  // Log para debug (pode remover depois)
+  console.log("🔍 [MessageHandler] Processando mensagem:", {
+    sender: sender,
+    nomeUsuario: nomeUsuario,
+    nomeUsado: nome,
+    message: message,
+  });
+
   const msgLimpa = normalizarTexto(message);
   const estadoAtual = obterEstadoUsuario(sender);
 
