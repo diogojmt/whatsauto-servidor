@@ -75,6 +75,8 @@ Digite o número da opção ou *0* para voltar ao menu principal.`,
         return this.processarDocumento(sender, msgLimpa);
       case "exercicio":
         return await this.processarExercicio(sender, msgLimpa);
+      case "exercicio_alternativo":
+        return await this.processarExercicioAlternativo(sender, msgLimpa);
       default:
         return this.iniciarConsultaDebitos(sender, sessao.nome || "usuário");
     }
@@ -296,6 +298,114 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
   }
 
   /**
+   * Processa consulta de exercício alternativo (após qualquer consulta)
+   */
+  async processarExercicioAlternativo(sender, msg) {
+    const sessao = this.getSessao(sender);
+    const msgLimpa = msg.trim().toLowerCase();
+
+    // Verificar se quer repetir a consulta anterior
+    if (msgLimpa === "repetir") {
+      const parametros = {
+        tipoContribuinte: sessao.tipoContribuinte,
+        inscricao: sessao.inscricao,
+        exercicio:
+          sessao.exercicioAnterior || new Date().getFullYear().toString(),
+      };
+
+      // Mostrar mensagem de repetição e executar consulta
+      await this.enviarMensagemConsultando(sender, parametros);
+      return await this.executarConsulta(sender, parametros);
+    }
+
+    // Processar novo exercício
+    const exercicio = msg.trim();
+    const anoAtual = new Date().getFullYear();
+    const exercicioNum = parseInt(exercicio);
+
+    console.log("[DebitosService] Processando exercício alternativo:", {
+      exercicioOriginal: msg,
+      exercicioNum: exercicioNum,
+      sessao: sessao,
+    });
+
+    // Validação do exercício
+    if (
+      isNaN(exercicioNum) ||
+      exercicioNum < 2020 ||
+      exercicioNum > anoAtual + 1
+    ) {
+      return {
+        type: "text",
+        text: `❌ Ano inválido!
+
+Digite um ano entre 2020 e ${anoAtual + 1}.
+
+💡 *Sugestões:*
+• *${anoAtual}* (ano atual)
+• *${anoAtual - 1}* (ano anterior)
+• *${anoAtual - 2}* (${anoAtual - 2})
+
+Ou digite:
+• *repetir* para consultar o ano anterior novamente
+• *menu* para voltar ao menu principal`,
+      };
+    }
+
+    // Verificar se não é o mesmo ano da consulta anterior
+    if (exercicio === sessao.exercicioAnterior) {
+      return {
+        type: "text",
+        text: `⚠️ *Mesmo ano da consulta anterior*
+
+Você já consultou o exercício ${exercicio}.
+
+💡 *Tente outro ano:*
+• *${anoAtual}* (ano atual)
+• *${anoAtual - 1}* (ano anterior)
+• *${anoAtual - 2}* (${anoAtual - 2})
+
+Ou digite:
+• *repetir* para consultar ${exercicio} novamente
+• *menu* para voltar ao menu principal`,
+      };
+    }
+
+    // Preparar parâmetros para a nova consulta
+    const parametros = {
+      tipoContribuinte: sessao.tipoContribuinte,
+      inscricao: sessao.inscricao,
+      exercicio: exercicio,
+    };
+
+    // Validar parâmetros
+    const validacao = this.debitosApi.validarParametros(parametros);
+
+    if (!validacao.valido) {
+      return {
+        type: "text",
+        text: `❌ Dados inválidos:
+
+${validacao.erros.join("\n")}
+
+Digite um ano válido ou *menu* para voltar ao menu principal.`,
+      };
+    }
+
+    // Salvar o exercício anterior para possível repetição
+    this.updateSessao(sender, {
+      exercicioAnterior: sessao.exercicio || sessao.exercicioAnterior,
+      exercicio: exercicio,
+    });
+
+    // Exibir dados coletados e iniciar consulta
+    await this.enviarMensagemConsultando(sender, parametros);
+
+    // Executar nova consulta
+    return await this.executarConsulta(sender, parametros);
+  }
+
+  /**
    * Envia mensagem informando que está consultando
    */
   async enviarMensagemConsultando(sender, parametros = null) {
@@ -342,23 +452,30 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
         temDebitos: resultado.SDTSaidaAPIDebito?.length > 0,
       });
 
-      // Limpar sessão após consulta
-      this.limparSessao(sender);
-
       if (
         resultado.SSACodigo === 0 &&
         resultado.SDTSaidaAPIDebito &&
         resultado.SDTSaidaAPIDebito.length > 0
       ) {
-        return this.formatarListaDebitos(resultado, sessao.nome);
+        // NÃO limpar sessão - manter para permitir consulta de outros anos
+        return this.formatarListaDebitos(resultado, sessao.nome, {
+          ...sessao,
+          ...params,
+          sender,
+        });
       } else if (resultado.SSACodigo === 0) {
-        return this.formatarNenhumDebito({ ...sessao, ...params });
+        // NÃO limpar sessão - manter para permitir nova consulta
+        return this.formatarNenhumDebito({ ...sessao, ...params, sender });
       } else {
-        return this.formatarErroConsulta(resultado, { ...sessao, ...params });
+        // NÃO limpar sessão - manter para permitir nova tentativa
+        return this.formatarErroConsulta(resultado, {
+          ...sessao,
+          ...params,
+          sender,
+        });
       }
     } catch (error) {
       console.error("[DebitosService] Erro na execução da consulta:", error);
-      this.limparSessao(sender);
 
       return {
         type: "text",
@@ -366,11 +483,15 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
 
 ${sessao.nome}, ocorreu um erro inesperado durante a consulta.
 
-🔄 Tente novamente em alguns minutos ou entre em contato conosco:
+🔄 *Tentar outro ano?*
+📅 Digite um ano entre 2020 e ${new Date().getFullYear() + 1}
+
+🔄 *Tentar novamente?*
+Digite *repetir*
 
 📧 smfaz@arapiraca.al.gov.br
 
-Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`,
+Ou digite *menu* para voltar ao menu principal.`,
       };
     }
   }
@@ -378,8 +499,21 @@ Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`,
   /**
    * Formata a lista de débitos encontrados
    */
-  formatarListaDebitos(resultado, nome) {
+  formatarListaDebitos(resultado, nome, sessaoComParams = null) {
     const debitos = resultado.SDTSaidaAPIDebito;
+
+    // Se temos dados da sessão, manter para permitir nova consulta
+    if (sessaoComParams) {
+      this.updateSessao(sessaoComParams.sender, {
+        etapa: "exercicio_alternativo",
+        tipoContribuinte: sessaoComParams.tipoContribuinte,
+        tipoDescricao: sessaoComParams.tipoDescricao,
+        inscricao: sessaoComParams.inscricao,
+        nome: sessaoComParams.nome,
+        exercicioAnterior: sessaoComParams.exercicio,
+      });
+    }
+
     let resposta = `✅ *Débitos encontrados*
 
 ${nome}, foram encontrados *${debitos.length}* débito(s) em aberto para sua inscrição:
@@ -418,14 +552,23 @@ ${nome}, foram encontrados *${debitos.length}* débito(s) em aberto para sua ins
       resposta += "\n";
     });
 
+    const anoAtual = new Date().getFullYear();
+    const exercicioAtual = sessaoComParams?.exercicio || anoAtual;
+
     resposta += `💡 *Para pagamento:*
 • Clique no link "Segunda via (DAM)" para baixar o boleto
 • Use a linha digitável para pagamento via app bancário
 • Guarde o comprovante de pagamento
 
+🔄 *Consultar outro ano?*
+
+📅 Digite um ano entre 2020 e ${anoAtual + 1} para consultar outros débitos:
+
+Exemplo: *${exercicioAtual != anoAtual ? anoAtual : anoAtual - 1}*
+
 📞 *Dúvidas:* smfaz@arapiraca.al.gov.br
 
-Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`;
+Ou digite *menu* para voltar ao menu principal.`;
 
     return { type: "text", text: resposta };
   }
@@ -434,6 +577,18 @@ Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`;
    * Formata resposta quando não há débitos
    */
   formatarNenhumDebito(sessaoComParams) {
+    // Manter os dados na sessão para permitir nova consulta
+    this.updateSessao(sessaoComParams.sender, {
+      etapa: "exercicio_alternativo",
+      tipoContribuinte: sessaoComParams.tipoContribuinte,
+      tipoDescricao: sessaoComParams.tipoDescricao,
+      inscricao: sessaoComParams.inscricao,
+      nome: sessaoComParams.nome,
+      exercicioAnterior: sessaoComParams.exercicio,
+    });
+
+    const anoAtual = new Date().getFullYear();
+
     return {
       type: "text",
       text: `✅ *Nenhum débito encontrado*
@@ -450,9 +605,15 @@ ${sessaoComParams.nome}, não foram localizados débitos em aberto para:
 • Não há débitos lançados para este exercício
 • Dados informados podem estar incorretos
 
-🔄 Deseja consultar outro exercício/documento?
+🔄 *Deseja consultar outro ano?*
 
-Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`,
+📅 Digite um ano entre 2020 e ${anoAtual + 1}:
+
+Exemplo: *${anoAtual}* ou *${anoAtual - 1}*
+
+Ou digite:
+• *menu* para voltar ao menu principal
+• *0* para sair`,
     };
   }
 
@@ -460,6 +621,18 @@ Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`,
    * Formata resposta de erro da API
    */
   formatarErroConsulta(resultado, sessaoComParams) {
+    // Manter os dados na sessão para permitir nova tentativa
+    this.updateSessao(sessaoComParams.sender, {
+      etapa: "exercicio_alternativo",
+      tipoContribuinte: sessaoComParams.tipoContribuinte,
+      tipoDescricao: sessaoComParams.tipoDescricao,
+      inscricao: sessaoComParams.inscricao,
+      nome: sessaoComParams.nome,
+      exercicioAnterior: sessaoComParams.exercicio,
+    });
+
+    const anoAtual = new Date().getFullYear();
+
     return {
       type: "text",
       text: `❌ *Erro na consulta*
@@ -473,14 +646,39 @@ ${sessaoComParams.nome}, não foi possível consultar os débitos no momento.
 • Documento: ${sessaoComParams.inscricao}
 • Exercício: ${sessaoComParams.exercicio}
 
-💡 *Sugestões:*
-• Verifique se os dados estão corretos
-• Tente novamente em alguns minutos
-• Entre em contato para suporte
+💡 *Opções:*
+
+🔄 *Tentar outro ano?*
+📅 Digite um ano entre 2020 e ${anoAtual + 1}
+
+🔄 *Tentar o mesmo ano novamente?*
+Digite *repetir*
 
 📧 *Contato:* smfaz@arapiraca.al.gov.br
 
-Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`,
+Ou digite *menu* para voltar ao menu principal.`,
+    };
+  }
+
+  /**
+   * Limpa a sessão apenas quando o usuário explicitamente sair
+   */
+  finalizarConsultas(sender) {
+    this.limparSessao(sender);
+    return {
+      type: "text",
+      text: `✅ *Consultas finalizadas*
+
+Obrigado por usar nosso serviço de consulta de débitos!
+
+💡 *Lembre-se:*
+• Guarde os comprovantes de pagamento
+• Fique atento aos vencimentos
+• Em caso de dúvidas, entre em contato conosco
+
+📧 *Contato:* smfaz@arapiraca.al.gov.br
+
+Digite *menu* para voltar ao menu principal.`,
     };
   }
 
