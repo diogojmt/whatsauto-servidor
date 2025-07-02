@@ -153,7 +153,7 @@ Ou *0* para voltar ao menu principal.`,
   }
 
   /**
-   * Processa o documento (CPF/CNPJ ou Inscrição Municipal)
+   * Processa o documento (Contribuinte geral)
    */
   processarDocumento(sender, msg) {
     const sessao = this.getSessao(sender);
@@ -183,16 +183,16 @@ Ou *0* para voltar ao menu principal.`,
       };
     }
 
-    if (documentoLimpo.length < 6) {
+    if (documentoLimpo.length < 1) {
       return {
         type: "text",
         text: `❌ Documento muito curto!
 
-O documento deve ter pelo menos 6 dígitos.
+O documento deve ter pelo menos 1 dígitos.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 123456789
+Exemplo: 1234
 
 Ou *0* para voltar ao menu principal.`,
       };

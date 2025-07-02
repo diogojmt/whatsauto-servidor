@@ -300,15 +300,13 @@ ${EMOJIS.SETA} *Digite apenas o número 1 ou 2:*`;
 
 Você selecionou: *${tipoSelecionado}*
 
-${EMOJIS.DOCUMENTO} *Agora preciso do seu CPF ou CNPJ:*
+${EMOJIS.DOCUMENTO} *Agora preciso do seu código de Contribuinte Geral:*
 
 ${EMOJIS.INFO} *Dicas importantes:*
 • Digite *apenas os números* (sem pontos, traços ou barras)
-• CPF: 11 números | CNPJ: 14 números
-• Exemplo CPF: 12345678901
-• Exemplo CNPJ: 12345678000195
+• Exemplo: 1234
 
-${EMOJIS.SETA} *Digite seu CPF ou CNPJ:*`;
+${EMOJIS.SETA} *Digite seu código de Contribuinte Geral:*`;
 }
 
 /**
