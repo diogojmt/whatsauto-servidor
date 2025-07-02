@@ -62,88 +62,22 @@ Digite o número da opção ou *0* para voltar ao menu principal.`,
       return this.iniciarConsultaDebitos(sender, "usuário");
     }
 
+    console.log("[DebitosService] Processando etapa:", {
+      etapa: sessao.etapa,
+      mensagem: msgLimpa,
+      sessao: sessao,
+    });
+
     switch (sessao.etapa) {
       case "tipo_contribuinte":
         return this.processarTipoContribuinte(sender, msgLimpa);
-      case "documento": // ← Mudança aqui
+      case "documento":
         return this.processarDocumento(sender, msgLimpa);
       case "exercicio":
         return await this.processarExercicio(sender, msgLimpa);
       default:
         return this.iniciarConsultaDebitos(sender, sessao.nome || "usuário");
     }
-  }
-
-  /**
-   * Processa o documento (CPF/CNPJ ou Inscrição Municipal)
-   */
-  processarDocumento(sender, msg) {
-    const sessao = this.getSessao(sender);
-
-    // Remove caracteres não numéricos
-    const documentoLimpo = msg.replace(/[^0-9]/g, "");
-
-    // Validação baseada no tipo de contribuinte
-    if (sessao.tipoContribuinte === "1") {
-      // Pessoa Física/Jurídica - validar CPF/CNPJ
-      if (documentoLimpo.length !== 11 && documentoLimpo.length !== 14) {
-        return {
-          type: "text",
-          text: `❌ CPF/CNPJ inválido!
-
-    O CPF deve ter 11 dígitos e o CNPJ deve ter 14 dígitos.
-
-    📝 *Digite apenas os números* (sem pontos, traços ou espaços):
-
-    Exemplo: 12345678901 (CPF) ou 12345678000195 (CNPJ)
-
-    Ou *0* para voltar ao menu principal.`,
-        };
-      }
-    } else {
-      // Imóvel ou Empresa - validar inscrição municipal
-      if (documentoLimpo.length < 6) {
-        return {
-          type: "text",
-          text: `❌ Inscrição inválida!
-
-    A inscrição municipal deve ter pelo menos 6 dígitos.
-
-    📝 *Digite apenas os números* (sem pontos, traços ou espaços):
-
-    Exemplo: 123456789
-
-    Ou *0* para voltar ao menu principal.`,
-        };
-      }
-    }
-
-    // Para a API, sempre usar o campo inscricao
-    this.updateSessao(sender, {
-      inscricao: documentoLimpo,
-      etapa: "exercicio",
-    });
-
-    const anoAtual = new Date().getFullYear();
-
-    return {
-      type: "text",
-      text: `✅ *Documento registrado:* ${documentoLimpo}
-
-    *3️⃣ Ano/Exercício:*
-
-    ${sessao.nome}, para qual ano deseja consultar os débitos?
-
-    💡 O "exercício" é o ano de referência do débito.
-
-    📅 *Anos disponíveis:* 2020 a ${anoAtual + 1}
-
-    Digite o ano desejado:
-
-    Exemplo: *${anoAtual}* (para débitos de ${anoAtual})
-
-    Ou *0* para voltar ao menu principal.`,
-    };
   }
 
   /**
@@ -157,13 +91,13 @@ Digite o número da opção ou *0* para voltar ao menu principal.`,
         type: "text",
         text: `❌ Opção inválida!
 
-    Por favor, digite apenas o número correspondente ao tipo:
+Por favor, digite apenas o número correspondente ao tipo:
 
-    *1* - 👤 Pessoa Física/Jurídica
-    *2* - 🏠 Imóvel (IPTU, COSIP)
-    *3* - 🏢 Empresa (taxas empresariais)
+*1* - 👤 Pessoa Física/Jurídica
+*2* - 🏠 Imóvel (IPTU, COSIP)
+*3* - 🏢 Empresa (taxas empresariais)
 
-    Ou *0* para voltar ao menu principal.`,
+Ou *0* para voltar ao menu principal.`,
       };
     }
 
@@ -176,7 +110,7 @@ Digite o número da opção ou *0* para voltar ao menu principal.`,
     this.updateSessao(sender, {
       tipoContribuinte: msg,
       tipoDescricao: tipos[msg],
-      etapa: "documento", // Mudança aqui
+      etapa: "documento",
     });
 
     let orientacao = "";
@@ -200,37 +134,62 @@ Digite o número da opção ou *0* para voltar ao menu principal.`,
       type: "text",
       text: `✅ *Tipo selecionado:* ${tipos[msg]}
 
-    *2️⃣ ${tipoDocumento}:*
+*2️⃣ ${tipoDocumento}:*
 
-    ${sessao.nome}, agora preciso do seu ${tipoDocumento.toLowerCase()}.
+${sessao.nome}, agora preciso do seu ${tipoDocumento.toLowerCase()}.
 
-    ${orientacao}
+${orientacao}
 
-    📝 *Digite apenas os números* (sem pontos, traços ou espaços):
+📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-    ${
-      msg === "1"
-        ? "Exemplo: 12345678901 (CPF) ou 12345678000195 (CNPJ)"
-        : "Exemplo: 123456789"
-    }
+${
+  msg === "1"
+    ? "Exemplo: 12345678901 (CPF) ou 12345678000195 (CNPJ)"
+    : "Exemplo: 123456789"
+}
 
-    Ou *0* para voltar ao menu principal.`,
+Ou *0* para voltar ao menu principal.`,
     };
   }
 
   /**
-   * Processa a inscrição municipal
+   * Processa o documento (CPF/CNPJ ou Inscrição Municipal)
    */
-  processarInscricao(sender, msg) {
+  processarDocumento(sender, msg) {
     const sessao = this.getSessao(sender);
 
     // Remove caracteres não numéricos
-    const inscricaoLimpa = msg.replace(/[^0-9]/g, "");
+    const documentoLimpo = msg.replace(/[^0-9]/g, "");
 
-    if (inscricaoLimpa.length < 6) {
-      return {
-        type: "text",
-        text: `❌ Inscrição inválida!
+    console.log("[DebitosService] Processando documento:", {
+      documentoOriginal: msg,
+      documentoLimpo: documentoLimpo,
+      tipoContribuinte: sessao.tipoContribuinte,
+    });
+
+    // Validação baseada no tipo de contribuinte
+    if (sessao.tipoContribuinte === "1") {
+      // Pessoa Física/Jurídica - validar CPF/CNPJ
+      if (documentoLimpo.length !== 11 && documentoLimpo.length !== 14) {
+        return {
+          type: "text",
+          text: `❌ CPF/CNPJ inválido!
+
+O CPF deve ter 11 dígitos e o CNPJ deve ter 14 dígitos.
+
+📝 *Digite apenas os números* (sem pontos, traços ou espaços):
+
+Exemplo: 12345678901 (CPF) ou 12345678000195 (CNPJ)
+
+Ou *0* para voltar ao menu principal.`,
+        };
+      }
+    } else {
+      // Imóvel ou Empresa - validar inscrição municipal
+      if (documentoLimpo.length < 6) {
+        return {
+          type: "text",
+          text: `❌ Inscrição inválida!
 
 A inscrição municipal deve ter pelo menos 6 dígitos.
 
@@ -239,11 +198,13 @@ A inscrição municipal deve ter pelo menos 6 dígitos.
 Exemplo: 123456789
 
 Ou *0* para voltar ao menu principal.`,
-      };
+        };
+      }
     }
 
+    // Salvar o documento na sessão
     this.updateSessao(sender, {
-      inscricao: this.debitosApi.formatarInscricao(inscricaoLimpa),
+      inscricao: documentoLimpo,
       etapa: "exercicio",
     });
 
@@ -251,7 +212,7 @@ Ou *0* para voltar ao menu principal.`,
 
     return {
       type: "text",
-      text: `✅ *Inscrição registrada:* ${inscricaoLimpa}
+      text: `✅ *Documento registrado:* ${documentoLimpo}
 
 *3️⃣ Ano/Exercício:*
 
@@ -279,6 +240,15 @@ Ou *0* para voltar ao menu principal.`,
     const anoAtual = new Date().getFullYear();
     const exercicioNum = parseInt(exercicio);
 
+    console.log("[DebitosService] Processando exercício:", {
+      exercicioOriginal: msg,
+      exercicioTrimmed: exercicio,
+      exercicioNum: exercicioNum,
+      anoAtual: anoAtual,
+      sessaoAtual: sessao,
+    });
+
+    // Validação inicial do exercício
     if (
       isNaN(exercicioNum) ||
       exercicioNum < 2020 ||
@@ -296,15 +266,24 @@ Ou *0* para voltar ao menu principal.`,
       };
     }
 
-    // Atualiza a sessão com o exercício
-    this.updateSessao(sender, { exercicio });
+    // Atualizar a sessão com o exercício
+    this.updateSessao(sender, { exercicio: exercicio });
+
+    // Verificar se a sessão foi atualizada corretamente
+    const sessaoAtualizada = this.getSessao(sender);
+    console.log("[DebitosService] Sessão após update:", sessaoAtualizada);
+
+    // Preparar parâmetros para validação
+    const parametros = {
+      tipoContribuinte: sessaoAtualizada.tipoContribuinte,
+      inscricao: sessaoAtualizada.inscricao,
+      exercicio: exercicio, // Usar a variável local
+    };
+
+    console.log("[DebitosService] Parâmetros para validação:", parametros);
 
     // Validar parâmetros antes da consulta
-    const validacao = this.debitosApi.validarParametros({
-      tipoContribuinte: sessao.tipoContribuinte,
-      inscricao: sessao.inscricao,
-      exercicio: sessao.exercicio,
-    });
+    const validacao = this.debitosApi.validarParametros(parametros);
 
     if (!validacao.valido) {
       return {
@@ -318,17 +297,22 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
     }
 
     // Exibir dados coletados e iniciar consulta
-    await this.enviarMensagemConsultando(sender);
+    await this.enviarMensagemConsultando(sender, parametros);
 
     // Realizar a consulta
-    return await this.executarConsulta(sender);
+    return await this.executarConsulta(sender, parametros);
   }
 
   /**
    * Envia mensagem informando que está consultando
    */
-  async enviarMensagemConsultando(sender) {
+  async enviarMensagemConsultando(sender, parametros = null) {
     const sessao = this.getSessao(sender);
+    const params = parametros || {
+      tipoContribuinte: sessao.tipoContribuinte,
+      inscricao: sessao.inscricao,
+      exercicio: sessao.exercicio,
+    };
 
     return {
       type: "text",
@@ -336,8 +320,8 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
 
 📋 *Dados informados:*
 • Tipo: ${sessao.tipoDescricao}
-• Inscrição: ${sessao.inscricao}
-• Exercício: ${sessao.exercicio}
+• Documento: ${params.inscricao}
+• Exercício: ${params.exercicio}
 
 ⏳ Aguarde, estou consultando todos os seus débitos disponíveis...`,
     };
@@ -346,14 +330,24 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
   /**
    * Executa a consulta na API e formata a resposta
    */
-  async executarConsulta(sender) {
+  async executarConsulta(sender, parametros = null) {
     const sessao = this.getSessao(sender);
 
+    // Usar parâmetros passados ou da sessão
+    const params = parametros || {
+      tipoContribuinte: sessao.tipoContribuinte,
+      inscricao: sessao.inscricao,
+      exercicio: sessao.exercicio,
+    };
+
+    console.log("[DebitosService] Executando consulta com parâmetros:", params);
+
     try {
-      const resultado = await this.debitosApi.consultarDebitos({
-        tipoContribuinte: sessao.tipoContribuinte,
-        inscricao: sessao.inscricao,
-        exercicio: sessao.exercicio,
+      const resultado = await this.debitosApi.consultarDebitos(params);
+
+      console.log("[DebitosService] Resultado da consulta:", {
+        codigo: resultado.SSACodigo,
+        temDebitos: resultado.SDTSaidaAPIDebito?.length > 0,
       });
 
       // Limpar sessão após consulta
@@ -366,9 +360,9 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
       ) {
         return this.formatarListaDebitos(resultado, sessao.nome);
       } else if (resultado.SSACodigo === 0) {
-        return this.formatarNenhumDebito(sessao);
+        return this.formatarNenhumDebito({ ...sessao, ...params });
       } else {
-        return this.formatarErroConsulta(resultado, sessao);
+        return this.formatarErroConsulta(resultado, { ...sessao, ...params });
       }
     } catch (error) {
       console.error("[DebitosService] Erro na execução da consulta:", error);
@@ -447,24 +441,24 @@ Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`;
   /**
    * Formata resposta quando não há débitos
    */
-  formatarNenhumDebito(sessao) {
+  formatarNenhumDebito(sessaoComParams) {
     return {
       type: "text",
       text: `✅ *Nenhum débito encontrado*
 
-${sessao.nome}, não foram localizados débitos em aberto para:
+${sessaoComParams.nome}, não foram localizados débitos em aberto para:
 
 📋 *Dados consultados:*
-• Tipo: ${sessao.tipoDescricao}
-• Inscrição: ${sessao.inscricao}
-• Exercício: ${sessao.exercicio}
+• Tipo: ${sessaoComParams.tipoDescricao}
+• Documento: ${sessaoComParams.inscricao}
+• Exercício: ${sessaoComParams.exercicio}
 
 💡 *Possíveis motivos:*
 • Todos os débitos já foram pagos
 • Não há débitos lançados para este exercício
 • Dados informados podem estar incorretos
 
-🔄 Deseja consultar outro exercício/inscrição?
+🔄 Deseja consultar outro exercício/documento?
 
 Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`,
     };
@@ -473,19 +467,19 @@ Digite *1* para nova consulta ou *menu* para voltar ao menu principal.`,
   /**
    * Formata resposta de erro da API
    */
-  formatarErroConsulta(resultado, sessao) {
+  formatarErroConsulta(resultado, sessaoComParams) {
     return {
       type: "text",
       text: `❌ *Erro na consulta*
 
-${sessao.nome}, não foi possível consultar os débitos no momento.
+${sessaoComParams.nome}, não foi possível consultar os débitos no momento.
 
 🔍 *Detalhes:* ${resultado.SSAMensagem || "Erro desconhecido"}
 
 📋 *Dados informados:*
-• Tipo: ${sessao.tipoDescricao}
-• Inscrição: ${sessao.inscricao}
-• Exercício: ${sessao.exercicio}
+• Tipo: ${sessaoComParams.tipoDescricao}
+• Documento: ${sessaoComParams.inscricao}
+• Exercício: ${sessaoComParams.exercicio}
 
 💡 *Sugestões:*
 • Verifique se os dados estão corretos
@@ -537,15 +531,26 @@ Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`,
   }
 
   setSessao(sender, dados) {
+    console.log("[DebitosService] Definindo sessão:", { sender, dados });
     this.sessoes.set(sender, dados);
   }
 
   updateSessao(sender, novosDados) {
     const sessaoAtual = this.getSessao(sender) || {};
-    this.setSessao(sender, { ...sessaoAtual, ...novosDados });
+    const sessaoAtualizada = { ...sessaoAtual, ...novosDados };
+
+    console.log("[DebitosService] Atualizando sessão:", {
+      sender,
+      sessaoAnterior: sessaoAtual,
+      novosDados,
+      sessaoAtualizada,
+    });
+
+    this.setSessao(sender, sessaoAtualizada);
   }
 
   limparSessao(sender) {
+    console.log("[DebitosService] Limpando sessão:", sender);
     this.sessoes.delete(sender);
   }
 
@@ -570,6 +575,26 @@ Digite *1* para tentar novamente ou *menu* para voltar ao menu principal.`,
     }
 
     return data;
+  }
+
+  /**
+   * Método para debug - listar todas as sessões ativas
+   */
+  listarSessoes() {
+    console.log("[DebitosService] Sessões ativas:", {
+      total: this.sessoes.size,
+      sessoes: Array.from(this.sessoes.entries()),
+    });
+  }
+
+  /**
+   * Método para obter estatísticas do serviço
+   */
+  obterEstatisticas() {
+    return {
+      sessoesAtivas: this.sessoes.size,
+      usuarios: Array.from(this.sessoes.keys()),
+    };
   }
 }
 
