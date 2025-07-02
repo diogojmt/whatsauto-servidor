@@ -1,70 +1,78 @@
-const axios = require('axios');
+const axios = require("axios");
 
 /**
  * Integração com API Ábaco para consulta de débitos
  */
 class DebitosApi {
   constructor() {
-    this.baseUrl = 'https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidebito';
-    this.chaveApi = process.env.ABACO_API_KEY || '@C0sS0_@P1'; // Chave deve ser configurada nas variáveis de ambiente
+    this.baseUrl =
+      "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidebito";
+    this.chaveApi = process.env.ABACO_API_KEY || "@C0sS0_@P1"; // Chave deve ser configurada nas variáveis de ambiente
   }
 
   /**
    * Consulta lista completa de débitos para um contribuinte
    * @param {Object} params - Parâmetros da consulta
    * @param {string} params.tipoContribuinte - Tipo do contribuinte (1-PF/PJ, 2-IMÓVEL, 3-EMPRESA)
-   * @param {string} params.inscricao - Inscrição municipal
+   * @param {string} params.inscricao - Inscrição municipal ou CPF/CNPJ
    * @param {string} params.exercicio - Ano/exercício do débito
    * @returns {Promise<Object>} Resposta da API
    */
   async consultarDebitos({ tipoContribuinte, inscricao, exercicio }) {
     try {
+      // Garantir que os parâmetros estão no formato correto
+      const inscricaoFormatada = this.formatarInscricao(String(inscricao));
+      const exercicioStr = String(exercicio).trim();
+
       const payload = {
         SSEChave: this.chaveApi,
-        SSETipoContribuinte: tipoContribuinte,
-        SSEInscricao: inscricao,
-        SSEExercicioDebito: exercicio,
+        SSETipoContribuinte: String(tipoContribuinte),
+        SSEInscricao: inscricaoFormatada,
+        SSEExercicioDebito: exercicioStr,
         SSETipoConsumo: "1", // Lista todos os débitos
         SSENossoNumero: "",
         SSECPFCNPJ: "",
         SSEOperacao: "",
-        SSEIdentificador: ""
+        SSEIdentificador: "",
       };
 
-      console.log(`[DebitosApi] Consultando débitos para: Tipo=${tipoContribuinte}, Inscrição=${inscricao}, Exercício=${exercicio}`);
+      console.log(
+        `[DebitosApi] Consultando débitos para: Tipo=${tipoContribuinte}, Inscrição=${inscricaoFormatada}, Exercício=${exercicioStr}`
+      );
 
       const response = await axios.get(this.baseUrl, {
         headers: {
-          'DadosAPI': JSON.stringify(payload),
-          'Content-Type': 'application/json'
+          DadosAPI: JSON.stringify(payload),
+          "Content-Type": "application/json",
         },
-        timeout: 30000 // 30 segundos de timeout
+        timeout: 30000, // 30 segundos de timeout
       });
 
-      console.log(`[DebitosApi] Resposta recebida: Código=${response.data.SSACodigo}`);
+      console.log(
+        `[DebitosApi] Resposta recebida: Código=${response.data.SSACodigo}`
+      );
       return response.data;
-
     } catch (error) {
-      console.error('[DebitosApi] Erro na consulta:', error.message);
-      
+      console.error("[DebitosApi] Erro na consulta:", error.message);
+
       if (error.response) {
-        console.error('[DebitosApi] Resposta de erro:', error.response.data);
+        console.error("[DebitosApi] Resposta de erro:", error.response.data);
         return {
           SSACodigo: 99,
           SSAMensagem: `Erro no servidor: ${error.response.status}`,
-          SDTSaidaAPIDebito: []
+          SDTSaidaAPIDebito: [],
         };
       } else if (error.request) {
         return {
           SSACodigo: 98,
-          SSAMensagem: 'Erro de comunicação com o servidor da Prefeitura',
-          SDTSaidaAPIDebito: []
+          SSAMensagem: "Erro de comunicação com o servidor da Prefeitura",
+          SDTSaidaAPIDebito: [],
         };
       } else {
         return {
           SSACodigo: 97,
-          SSAMensagem: 'Erro interno na consulta de débitos',
-          SDTSaidaAPIDebito: []
+          SSAMensagem: "Erro interno na consulta de débitos",
+          SDTSaidaAPIDebito: [],
         };
       }
     }
@@ -78,40 +86,93 @@ class DebitosApi {
   validarParametros({ tipoContribuinte, inscricao, exercicio }) {
     const erros = [];
 
+    console.log("[DebitosApi] Validando parâmetros:", {
+      tipoContribuinte: tipoContribuinte,
+      tipoContribuinteType: typeof tipoContribuinte,
+      inscricao: inscricao,
+      inscricaoType: typeof inscricao,
+      exercicio: exercicio,
+      exercicioType: typeof exercicio,
+    });
+
     // Validar tipo de contribuinte
-    if (!tipoContribuinte || !['1', '2', '3'].includes(tipoContribuinte)) {
-      erros.push('Tipo de contribuinte deve ser 1 (PF/PJ), 2 (Imóvel) ou 3 (Empresa)');
+    const tipoStr = String(tipoContribuinte || "").trim();
+    if (!tipoStr || !["1", "2", "3"].includes(tipoStr)) {
+      erros.push(
+        "Tipo de contribuinte deve ser 1 (PF/PJ), 2 (Imóvel) ou 3 (Empresa)"
+      );
     }
 
-    // Validar inscrição
-    if (!inscricao || inscricao.trim().length === 0) {
-      erros.push('Inscrição municipal é obrigatória');
-    } else if (inscricao.replace(/[^0-9]/g, '').length < 6) {
-      erros.push('Inscrição municipal deve ter pelo menos 6 dígitos');
+    // Validar inscrição/documento
+    const inscricaoStr = String(inscricao || "").trim();
+    if (!inscricaoStr || inscricaoStr.length === 0) {
+      erros.push("Documento (CPF/CNPJ ou Inscrição Municipal) é obrigatório");
+    } else {
+      const apenasNumeros = inscricaoStr.replace(/[^0-9]/g, "");
+
+      if (tipoStr === "1") {
+        // Pessoa Física/Jurídica - validar CPF (11) ou CNPJ (14)
+        if (apenasNumeros.length !== 11 && apenasNumeros.length !== 14) {
+          erros.push(
+            "Para Pessoa Física/Jurídica, informe CPF (11 dígitos) ou CNPJ (14 dígitos)"
+          );
+        }
+      } else {
+        // Imóvel ou Empresa - validar inscrição municipal
+        if (apenasNumeros.length < 6) {
+          erros.push("Inscrição municipal deve ter pelo menos 6 dígitos");
+        }
+      }
     }
 
     // Validar exercício
+    const exercicioStr = String(exercicio || "").trim();
     const anoAtual = new Date().getFullYear();
-    const exercicioNum = parseInt(exercicio);
-    if (!exercicio || isNaN(exercicioNum)) {
-      erros.push('Exercício deve ser um ano válido');
-    } else if (exercicioNum < 2020 || exercicioNum > anoAtual + 1) {
-      erros.push(`Exercício deve estar entre 2020 e ${anoAtual + 1}`);
+
+    console.log("[DebitosApi] Validando exercício:", {
+      exercicioOriginal: exercicio,
+      exercicioStr: exercicioStr,
+      anoAtual: anoAtual,
+    });
+
+    if (!exercicioStr || exercicioStr === "") {
+      erros.push("Exercício é obrigatório");
+    } else {
+      const exercicioNum = parseInt(exercicioStr);
+
+      if (isNaN(exercicioNum)) {
+        erros.push("Exercício deve ser um ano válido (apenas números)");
+      } else if (exercicioNum < 2020 || exercicioNum > anoAtual + 1) {
+        erros.push(`Exercício deve estar entre 2020 e ${anoAtual + 1}`);
+      }
     }
 
-    return {
+    const resultado = {
       valido: erros.length === 0,
-      erros
+      erros,
     };
+
+    console.log("[DebitosApi] Resultado da validação:", resultado);
+    return resultado;
   }
 
   /**
-   * Formata a inscrição removendo caracteres especiais
+   * Formata a inscrição/documento removendo caracteres especiais
    * @param {string} inscricao - Inscrição a ser formatada
    * @returns {string} Inscrição formatada
    */
   formatarInscricao(inscricao) {
-    return inscricao.replace(/[^0-9]/g, '').padStart(15, '0');
+    if (!inscricao) return "";
+
+    const apenasNumeros = String(inscricao).replace(/[^0-9]/g, "");
+
+    // Para CPF/CNPJ, não fazer padding
+    if (apenasNumeros.length === 11 || apenasNumeros.length === 14) {
+      return apenasNumeros;
+    }
+
+    // Para inscrição municipal, fazer padding até 15 dígitos
+    return apenasNumeros.padStart(15, "0");
   }
 
   /**
@@ -121,11 +182,120 @@ class DebitosApi {
    */
   obterDescricaoTipoContribuinte(tipo) {
     const tipos = {
-      '1': 'Pessoa Física/Jurídica',
-      '2': 'Imóvel',
-      '3': 'Empresa'
+      1: "Pessoa Física/Jurídica",
+      2: "Imóvel",
+      3: "Empresa",
     };
-    return tipos[tipo] || 'Tipo não identificado';
+    return tipos[String(tipo)] || "Tipo não identificado";
+  }
+
+  /**
+   * Valida CPF (algoritmo básico)
+   * @param {string} cpf - CPF a ser validado
+   * @returns {boolean} True se válido
+   */
+  validarCPF(cpf) {
+    const apenasNumeros = String(cpf).replace(/[^0-9]/g, "");
+
+    if (apenasNumeros.length !== 11) return false;
+    if (/^(\d)\1{10}$/.test(apenasNumeros)) return false; // Todos os dígitos iguais
+
+    // Validação básica dos dígitos verificadores
+    let soma = 0;
+    for (let i = 0; i < 9; i++) {
+      soma += parseInt(apenasNumeros.charAt(i)) * (10 - i);
+    }
+    let resto = 11 - (soma % 11);
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(apenasNumeros.charAt(9))) return false;
+
+    soma = 0;
+    for (let i = 0; i < 10; i++) {
+      soma += parseInt(apenasNumeros.charAt(i)) * (11 - i);
+    }
+    resto = 11 - (soma % 11);
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(apenasNumeros.charAt(10))) return false;
+
+    return true;
+  }
+
+  /**
+   * Valida CNPJ (algoritmo básico)
+   * @param {string} cnpj - CNPJ a ser validado
+   * @returns {boolean} True se válido
+   */
+  validarCNPJ(cnpj) {
+    const apenasNumeros = String(cnpj).replace(/[^0-9]/g, "");
+
+    if (apenasNumeros.length !== 14) return false;
+    if (/^(\d)\1{13}$/.test(apenasNumeros)) return false; // Todos os dígitos iguais
+
+    // Validação básica dos dígitos verificadores
+    const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+    let soma = 0;
+    for (let i = 0; i < 12; i++) {
+      soma += parseInt(apenasNumeros.charAt(i)) * pesos1[i];
+    }
+    let resto = soma % 11;
+    const digito1 = resto < 2 ? 0 : 11 - resto;
+    if (digito1 !== parseInt(apenasNumeros.charAt(12))) return false;
+
+    soma = 0;
+    for (let i = 0; i < 13; i++) {
+      soma += parseInt(apenasNumeros.charAt(i)) * pesos2[i];
+    }
+    resto = soma % 11;
+    const digito2 = resto < 2 ? 0 : 11 - resto;
+    if (digito2 !== parseInt(apenasNumeros.charAt(13))) return false;
+
+    return true;
+  }
+
+  /**
+   * Valida documento baseado no tipo de contribuinte
+   * @param {string} documento - Documento a ser validado
+   * @param {string} tipoContribuinte - Tipo do contribuinte
+   * @returns {Object} Resultado da validação
+   */
+  validarDocumento(documento, tipoContribuinte) {
+    const apenasNumeros = String(documento).replace(/[^0-9]/g, "");
+    const tipo = String(tipoContribuinte);
+
+    if (tipo === "1") {
+      // Pessoa Física/Jurídica
+      if (apenasNumeros.length === 11) {
+        return {
+          valido: this.validarCPF(apenasNumeros),
+          tipo: "CPF",
+          documento: apenasNumeros,
+        };
+      } else if (apenasNumeros.length === 14) {
+        return {
+          valido: this.validarCNPJ(apenasNumeros),
+          tipo: "CNPJ",
+          documento: apenasNumeros,
+        };
+      } else {
+        return {
+          valido: false,
+          erro: "CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos",
+        };
+      }
+    } else {
+      // Imóvel ou Empresa - inscrição municipal
+      return {
+        valido: apenasNumeros.length >= 6,
+        tipo: "Inscrição Municipal",
+        documento: apenasNumeros,
+        erro:
+          apenasNumeros.length < 6
+            ? "Inscrição municipal deve ter pelo menos 6 dígitos"
+            : null,
+      };
+    }
   }
 }
 
