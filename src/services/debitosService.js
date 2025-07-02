@@ -142,11 +142,7 @@ ${orientacao}
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-${
-  msg === "1"
-    ? "Exemplo: 12345678901 (CPF) ou 12345678000195 (CNPJ)"
-    : "Exemplo: 123456789"
-}
+${msg === "1" ? "Exemplo: 123" : ""}
 
 Ou *0* para voltar ao menu principal.`,
     };
