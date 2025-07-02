@@ -214,7 +214,7 @@ async function processarMensagem(
   nomeUsuario = null
 ) {
   // CORREÇÃO PRINCIPAL: Usar nomeUsuario em vez de sender
-  const nome = nomeUsuario || "cidadão";
+  const nome = nomeUsuario || "Cidadão";
 
   // Log para debug (pode remover depois)
   console.log("🔍 [MessageHandler] Processando mensagem:", {

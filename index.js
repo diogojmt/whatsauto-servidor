@@ -62,7 +62,7 @@ app.use((err, req, res, next) => {
 
 // ---------- Função auxiliar para extrair nome do usuário ----------
 function extrairNomeUsuario(body) {
-  if (!body) return "cidadão";
+  if (!body) return "Cidadão";
 
   // Tentar diferentes campos onde o nome pode estar
   const possiveisNomes = [
@@ -89,7 +89,7 @@ function extrairNomeUsuario(body) {
     }
   }
 
-  return "cidadão";
+  return "Cidadão";
 }
 
 // ---------- Função para processar resposta ----------
@@ -98,7 +98,7 @@ async function processarResposta(
   res,
   sender,
   message,
-  nomeUsuario = "cidadão"
+  nomeUsuario = "Cidadão"
 ) {
   // Verificar se é mensagem do sistema para evitar loop
   if (ehMensagemDoSistema(message)) {
