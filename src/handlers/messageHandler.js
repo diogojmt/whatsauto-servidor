@@ -1,63 +1,70 @@
-const { normalizarTexto, extrairNumeros, contemLetras } = require("../utils/textUtils");
-const { obterEstadoUsuario, definirEstadoUsuario } = require("../services/stateService");
-const { 
-  buscarPorCNAE, 
-  buscarPorCodigoServico, 
-  buscarPorDescricaoServico, 
-  buscarPorDescricaoCNAE 
+const {
+  normalizarTexto,
+  extrairNumeros,
+  contemLetras,
+} = require("../utils/textUtils");
+const {
+  obterEstadoUsuario,
+  definirEstadoUsuario,
+} = require("../services/stateService");
+const {
+  buscarPorCNAE,
+  buscarPorCodigoServico,
+  buscarPorDescricaoServico,
+  buscarPorDescricaoCNAE,
 } = require("../services/searchService");
 const { DebitosService } = require("../services/debitosService");
 const { BciService } = require("../services/bciService");
 
-const { 
-  ESTADOS, 
-  PALAVRAS_AGRADECIMENTO, 
-  PALAVRAS_SAUDACAO, 
-  LIMITES 
+const {
+  ESTADOS,
+  PALAVRAS_AGRADECIMENTO,
+  PALAVRAS_SAUDACAO,
+  LIMITES,
 } = require("../config/constants");
 
 // Importar respostas
-const { 
-  gerarMenuPrincipal, 
-  gerarRespstaEncerramento, 
-  gerarRespostaAgradecimento, 
-  gerarRespostaAtendente, 
-  gerarRespostaPadrao 
+const {
+  gerarMenuPrincipal,
+  gerarRespstaEncerramento,
+  gerarRespostaAgradecimento,
+  gerarRespostaAtendente,
+  gerarRespostaPadrao,
 } = require("../responses/menuResponses");
 
 const { criarRespostaDAM } = require("../responses/damResponses");
 // Certidões agora são processadas diretamente pelo serviço
 
-const { 
-  gerarMenuNFSe, 
-  gerarRespostaAcessoNFSe, 
-  gerarRespostaDuvidasNFSe, 
-  gerarMenuManuaisNFSe, 
-  gerarRespostasManuais, 
-  gerarMenuConsultaISS 
+const {
+  gerarMenuNFSe,
+  gerarRespostaAcessoNFSe,
+  gerarRespostaDuvidasNFSe,
+  gerarMenuManuaisNFSe,
+  gerarRespostasManuais,
+  gerarMenuConsultaISS,
 } = require("../responses/nfseResponses");
 
-const { 
-  gerarRespostaSubstitutos, 
-  gerarMenuTFLF, 
-  gerarMenuConsultaCNAE, 
-  gerarRespostaPlanilhaTFLF 
+const {
+  gerarRespostaSubstitutos,
+  gerarMenuTFLF,
+  gerarMenuConsultaCNAE,
+  gerarRespostaPlanilhaTFLF,
 } = require("../responses/tFLFResponses");
 
-const { 
-  gerarRespostaUnicaISS, 
-  gerarRespostaMultiplaISS, 
-  gerarRespostaUnicaCNAE, 
-  gerarRespostaMultiplaCNAE, 
-  gerarRespostaNenhumResultado 
+const {
+  gerarRespostaUnicaISS,
+  gerarRespostaMultiplaISS,
+  gerarRespostaUnicaCNAE,
+  gerarRespostaMultiplaCNAE,
+  gerarRespostaNenhumResultado,
 } = require("../responses/searchResponses");
 
-const { 
-  iniciarFluxoCertidao, 
-  processarTipoContribuinte, 
+const {
+  iniciarFluxoCertidao,
+  processarTipoContribuinte,
   processarCpfCnpj,
-  processarInscricaoEEmitir, 
-  ehSolicitacaoCertidao 
+  processarInscricaoEEmitir,
+  ehSolicitacaoCertidao,
 } = require("../services/certidaoService");
 
 // Instanciar serviços
@@ -70,7 +77,7 @@ const bciService = new BciService();
  * @returns {boolean} True se contém agradecimento
  */
 function ehMensagemAgradecimento(msgLimpa) {
-  return PALAVRAS_AGRADECIMENTO.some(palavra => msgLimpa.includes(palavra));
+  return PALAVRAS_AGRADECIMENTO.some((palavra) => msgLimpa.includes(palavra));
 }
 
 /**
@@ -79,9 +86,13 @@ function ehMensagemAgradecimento(msgLimpa) {
  * @returns {boolean} True se contém saudação
  */
 function ehMensagemSaudacao(msgLimpa) {
-  return PALAVRAS_SAUDACAO.some(palavra => msgLimpa.includes(palavra)) ||
-         msgLimpa.includes("opcoes") || msgLimpa.includes("ajuda") ||
-         msgLimpa.trim() === "hi" || msgLimpa.trim() === "hello";
+  return (
+    PALAVRAS_SAUDACAO.some((palavra) => msgLimpa.includes(palavra)) ||
+    msgLimpa.includes("opcoes") ||
+    msgLimpa.includes("ajuda") ||
+    msgLimpa.trim() === "hi" ||
+    msgLimpa.trim() === "hello"
+  );
 }
 
 /**
@@ -96,9 +107,13 @@ function processarBuscaISS(msgLimpa, dadosISS, nome) {
   const temLetras = contemLetras(msgLimpa);
 
   // Busca por descrição (se tem letras e pelo menos 3 caracteres)
-  if (temLetras && msgLimpa.length >= LIMITES.MIN_DESCRICAO && dadosISS.length > 0) {
+  if (
+    temLetras &&
+    msgLimpa.length >= LIMITES.MIN_DESCRICAO &&
+    dadosISS.length > 0
+  ) {
     const resultados = buscarPorDescricaoServico(dadosISS, msgLimpa);
-    
+
     if (resultados && resultados.length > 0) {
       if (resultados.length === 1) {
         return gerarRespostaUnicaISS(resultados[0], nome);
@@ -144,7 +159,11 @@ function processarBuscaCNAE(msgLimpa, dadosTFLF, nome) {
   const temLetras = contemLetras(msgLimpa);
 
   // Busca por descrição (se tem letras e pelo menos 3 caracteres)
-  if (temLetras && msgLimpa.length >= LIMITES.MIN_DESCRICAO && dadosTFLF.length > 0) {
+  if (
+    temLetras &&
+    msgLimpa.length >= LIMITES.MIN_DESCRICAO &&
+    dadosTFLF.length > 0
+  ) {
     const resultados = buscarPorDescricaoCNAE(dadosTFLF, msgLimpa);
 
     if (resultados && resultados.length > 0) {
@@ -185,42 +204,48 @@ function processarBuscaCNAE(msgLimpa, dadosTFLF, nome) {
  * @param {Object} req - Request object (opcional)
  * @returns {string|Object} Resposta processada
  */
-async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = null) {
-  const nome = sender || "cidadão";
+async function processarMensagem(
+  message,
+  sender,
+  dadosTFLF,
+  dadosISS,
+  req = null
+) {
+  const nome = nomeUsuario || "cidadão";
   const msgLimpa = normalizarTexto(message);
   const estadoAtual = obterEstadoUsuario(sender);
 
   // Verificar se está no fluxo de consulta de débitos
-  if (estadoAtual.startsWith('debitos_')) {
+  if (estadoAtual.startsWith("debitos_")) {
     const resultado = await debitosService.processarEtapa(sender, message);
-    
+
     // Se for redirecionamento, processar conforme a ação
-    if (resultado.type === 'redirect') {
-      if (resultado.action === 'menu_principal') {
+    if (resultado.type === "redirect") {
+      if (resultado.action === "menu_principal") {
         definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
         return gerarMenuPrincipal(nome);
       }
     }
-    
-    if (resultado.type === 'text') {
+
+    if (resultado.type === "text") {
       return resultado.text;
     }
     return resultado;
   }
 
   // Verificar se está no fluxo de consulta de BCI
-  if (estadoAtual.startsWith('bci_')) {
+  if (estadoAtual.startsWith("bci_")) {
     const resultado = await bciService.processarEtapa(sender, message);
-    
+
     // Se for redirecionamento, processar conforme a ação
-    if (resultado.type === 'redirect') {
-      if (resultado.action === 'menu_principal') {
+    if (resultado.type === "redirect") {
+      if (resultado.action === "menu_principal") {
         definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
         return gerarMenuPrincipal(nome);
       }
     }
-    
-    if (resultado.type === 'text') {
+
+    if (resultado.type === "text") {
       return resultado.text;
     }
     return resultado;
@@ -247,7 +272,7 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   if (debitosService.detectarIntencaoConsultaDebitos(message)) {
     definirEstadoUsuario(sender, ESTADOS.DEBITOS_ATIVO);
     const resultado = debitosService.iniciarConsultaDebitos(sender, nome);
-    if (resultado.type === 'text') {
+    if (resultado.type === "text") {
       return resultado.text;
     }
     return resultado;
@@ -257,7 +282,7 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   if (bciService.detectarIntencaoBCI(message)) {
     definirEstadoUsuario(sender, ESTADOS.BCI_ATIVO);
     const resultado = bciService.iniciarConsultaBCI(sender, nome);
-    if (resultado.type === 'text') {
+    if (resultado.type === "text") {
       return resultado.text;
     }
     return resultado;
@@ -293,12 +318,12 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   }
 
   // PRIORIDADE 2: Navegação por números do menu
-  
+
   // Opção 1 - DAM's (Nova funcionalidade automática)
   if (opcao === "1" || msgLimpa.includes("opcao 1")) {
     definirEstadoUsuario(sender, ESTADOS.DEBITOS_ATIVO);
     const resultado = debitosService.iniciarConsultaDebitos(sender, nome);
-    if (resultado.type === 'text') {
+    if (resultado.type === "text") {
       return resultado.text;
     }
     return resultado;
@@ -316,13 +341,25 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   }
 
   // Sub-opções NFSe
-  if (opcao === "3.1" || msgLimpa.includes("opcao 3.1") || msgLimpa.includes("emissao nfse")) {
+  if (
+    opcao === "3.1" ||
+    msgLimpa.includes("opcao 3.1") ||
+    msgLimpa.includes("emissao nfse")
+  ) {
     return gerarRespostaAcessoNFSe(nome);
   }
-  if (opcao === "3.2" || msgLimpa.includes("opcao 3.2") || msgLimpa.includes("duvidas nfse")) {
+  if (
+    opcao === "3.2" ||
+    msgLimpa.includes("opcao 3.2") ||
+    msgLimpa.includes("duvidas nfse")
+  ) {
     return gerarRespostaDuvidasNFSe(nome);
   }
-  if (opcao === "3.3" || msgLimpa.includes("opcao 3.3") || msgLimpa.includes("manuais nfse")) {
+  if (
+    opcao === "3.3" ||
+    msgLimpa.includes("opcao 3.3") ||
+    msgLimpa.includes("manuais nfse")
+  ) {
     return gerarMenuManuaisNFSe(nome);
   }
 
@@ -364,14 +401,18 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
   if (opcao === "6" || msgLimpa.includes("opcao 6")) {
     definirEstadoUsuario(sender, ESTADOS.BCI_ATIVO);
     const resultado = bciService.iniciarConsultaBCI(sender, nome);
-    if (resultado.type === 'text') {
+    if (resultado.type === "text") {
       return resultado.text;
     }
     return resultado;
   }
 
   // Opção 0 - Encerrar
-  if (opcao === "0" || msgLimpa.includes("opcao 0") || msgLimpa.includes("encerrar")) {
+  if (
+    opcao === "0" ||
+    msgLimpa.includes("opcao 0") ||
+    msgLimpa.includes("encerrar")
+  ) {
     return gerarRespstaEncerramento(nome);
   }
 
@@ -391,17 +432,29 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
     }
     return `${nome}, digite *2* para ver todas as opções sobre certidões. Digite *2.0* para emissão automática.`;
   }
-  if (msgLimpa.includes("nota fiscal") || msgLimpa.includes("nfse") || msgLimpa.includes("nfs-e") || 
-      msgLimpa.includes("issqn") || msgLimpa.includes("iss")) {
+  if (
+    msgLimpa.includes("nota fiscal") ||
+    msgLimpa.includes("nfse") ||
+    msgLimpa.includes("nfs-e") ||
+    msgLimpa.includes("issqn") ||
+    msgLimpa.includes("iss")
+  ) {
     return `${nome}, digite *3* para ver todas as opções sobre NFSe e ISSQN.`;
   }
-  if (msgLimpa.includes("substituto tributario") || msgLimpa.includes("substitutos")) {
+  if (
+    msgLimpa.includes("substituto tributario") ||
+    msgLimpa.includes("substitutos")
+  ) {
     return `${nome}, digite *4* para consultar a Lista de Substitutos Tributários.`;
   }
   if (msgLimpa.includes("valor tflf") || msgLimpa.includes("tflf 2025")) {
     return `${nome}, digite *5* para acessar as opções da TFLF 2025: consultar por CNAE ou baixar planilha completa.`;
   }
-  if (msgLimpa.includes("bci") || msgLimpa.includes("boletim cadastro") || msgLimpa.includes("cadastro imobiliario")) {
+  if (
+    msgLimpa.includes("bci") ||
+    msgLimpa.includes("boletim cadastro") ||
+    msgLimpa.includes("cadastro imobiliario")
+  ) {
     return `${nome}, digite *6* para consultar o Boletim de Cadastro Imobiliário (BCI) do seu imóvel.`;
   }
 
@@ -410,5 +463,5 @@ async function processarMensagem(message, sender, dadosTFLF, dadosISS, req = nul
 }
 
 module.exports = {
-  processarMensagem
+  processarMensagem,
 };
