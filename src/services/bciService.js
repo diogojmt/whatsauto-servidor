@@ -42,7 +42,7 @@ Este número pode ser encontrado:
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 000000000010813
+Exemplo: 000000000012345
 
 Ou digite *0* para voltar ao menu principal.`,
     };
@@ -109,7 +109,7 @@ Por favor, digite apenas números.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 000000000010813
+Exemplo: 000000000012345
 
 Ou *0* para voltar ao menu principal.`,
       };
