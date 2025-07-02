@@ -9,21 +9,25 @@ A funcionalidade de consulta automática de débitos foi implementada para autom
 ### ✅ Implementado
 
 1. **Disparo Automático**
+
    - Opção 1 do menu principal
    - Detecção de intenção por palavras-chave
    - Fluxo guiado (wizard) para coleta de dados
 
 2. **Coleta de Dados Obrigatórios**
+
    - Tipo de Contribuinte (PF/PJ, Imóvel, Empresa)
    - Inscrição Municipal (com validação)
    - Ano/Exercício (com validação de período)
 
 3. **Integração com API Ábaco**
+
    - Módulo `DebitosApi` para comunicação
    - Validação de parâmetros
    - Tratamento de erros
 
 4. **Exibição de Resultados**
+
    - Lista completa de débitos formatada
    - Links para segunda via (DAM)
    - Linhas digitáveis para pagamento
@@ -46,20 +50,24 @@ src/
 ## Como Funciona
 
 ### 1. Acionamento
+
 - Usuário digita "1" no menu principal
 - OU usuário envia mensagem com palavras-chave relacionadas a débitos
 
 ### 2. Fluxo de Coleta
+
 ```
 📄 Tipo de Contribuinte → 📝 Inscrição → 📅 Exercício → 🔍 Consulta
 ```
 
 ### 3. Processamento
+
 - Validação dos dados informados
 - Chamada à API Ábaco com parâmetros formatados
 - Processamento da resposta
 
 ### 4. Exibição
+
 - Lista numerada de débitos encontrados
 - Para cada débito: tributo, valor, vencimento, link DAM, linha digitável
 - Opções para nova consulta ou retorno ao menu
@@ -67,11 +75,13 @@ src/
 ## Configuração da API
 
 ### Variáveis de Ambiente
+
 ```bash
 ABACO_API_KEY=sua_chave_aqui  # Chave de acesso à API Ábaco
 ```
 
 ### Endpoint
+
 ```
 URL: https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidebito
 Método: GET
@@ -81,6 +91,7 @@ Headers: DadosAPI (JSON com parâmetros)
 ## Exemplos de Uso
 
 ### Entrada do Usuário
+
 ```
 Usuário: "1"
 ou
@@ -90,6 +101,7 @@ Usuário: "carnê iptu"
 ```
 
 ### Saída do Sistema
+
 ```
 📄 Segunda via de DAM's
 
@@ -101,12 +113,13 @@ Para começar, preciso de algumas informações:
 
 Digite o número correspondente:
 
-1 - 👤 Pessoa Física/Jurídica
+1 - 👤 Contribuinte Geral
 2 - 🏠 Imóvel (IPTU, COSIP)
 3 - 🏢 Empresa (taxas empresariais)
 ```
 
 ### Resultado Final
+
 ```
 ✅ Débitos encontrados
 
@@ -127,11 +140,13 @@ João, foram encontrados 2 débito(s) em aberto para sua inscrição:
 ## Tratamento de Erros
 
 ### Validações Implementadas
+
 - Tipo de contribuinte (1, 2 ou 3)
 - Inscrição municipal (mínimo 6 dígitos)
 - Exercício (entre 2020 e ano atual + 1)
 
 ### Cenários de Erro
+
 1. **Nenhum débito encontrado**: Mensagem informativa com sugestões
 2. **Erro na API**: Mensagem de erro com orientações de contato
 3. **Dados inválidos**: Orientação para correção com exemplos
@@ -146,12 +161,14 @@ João, foram encontrados 2 débito(s) em aberto para sua inscrição:
 ## Estados do Sistema
 
 O fluxo utiliza estados para controlar a conversa:
+
 - `debitos_ativo`: Usuário está no fluxo de consulta
 - Estados internos da sessão: `tipo_contribuinte`, `inscricao`, `exercicio`
 
 ## Comandos de Navegação
 
 Durante o fluxo:
+
 - `0`: Volta ao menu principal
 - `menu`: Volta ao menu principal
 - `1`: Nova consulta (após finalização)
@@ -159,6 +176,7 @@ Durante o fluxo:
 ## Teste e Validação
 
 Execute o teste básico:
+
 ```bash
 node test-debitos.js
 ```

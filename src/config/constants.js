@@ -280,7 +280,7 @@ const TIPOS_CONTRIBUINTE = {
 };
 
 const TIPOS_CONTRIBUINTE_LABELS = {
-  [TIPOS_CONTRIBUINTE.GERAL]: "Pessoa Física/Jurídica",
+  [TIPOS_CONTRIBUINTE.GERAL]: "Contribuinte geral",
   [TIPOS_CONTRIBUINTE.IMOVEL]: "Imóvel",
 };
 

@@ -114,7 +114,7 @@ class DebitosApi {
         // Pessoa Física/Jurídica - validar CPF (11) ou CNPJ (14)
         if (apenasNumeros.length !== 11 && apenasNumeros.length !== 14) {
           erros.push(
-            "Para Pessoa Física/Jurídica, informe CPF (11 dígitos) ou CNPJ (14 dígitos)"
+            "Para Pessoa Física/Jurídica, informe código do Contribuinte geral"
           );
         }
       } else {
@@ -182,7 +182,7 @@ class DebitosApi {
    */
   obterDescricaoTipoContribuinte(tipo) {
     const tipos = {
-      1: "Pessoa Física/Jurídica",
+      1: "Contribuinte geral",
       2: "Imóvel",
       3: "Empresa",
     };

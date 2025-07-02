@@ -31,7 +31,7 @@ Para começar, preciso de algumas informações:
 
 Digite o número correspondente:
 
-*1* - 👤 Pessoa Física/Jurídica
+*1* - 👤 Contribuinte geral
 *2* - 🏠 Imóvel (IPTU, COSIP)
 *3* - 🏢 Empresa (taxas empresariais)
 
@@ -93,7 +93,7 @@ Digite o número da opção ou *0* para voltar ao menu principal.`,
 
 Por favor, digite apenas o número correspondente ao tipo:
 
-*1* - 👤 Pessoa Física/Jurídica
+*1* - 👤 Contribuinte geral
 *2* - 🏠 Imóvel (IPTU, COSIP)
 *3* - 🏢 Empresa (taxas empresariais)
 
@@ -102,7 +102,7 @@ Ou *0* para voltar ao menu principal.`,
     }
 
     const tipos = {
-      1: "Pessoa Física/Jurídica",
+      1: "Contribuinte geral",
       2: "Imóvel",
       3: "Empresa",
     };
