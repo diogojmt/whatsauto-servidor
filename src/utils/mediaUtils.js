@@ -43,6 +43,10 @@ ${linkImagem}`,
  * @returns {boolean} True se é mensagem do sistema
  */
 function ehMensagemDoSistema(message) {
+  if (!message || typeof message !== 'string') {
+    return false;
+  }
+  
   return (
     message.includes("Escolha uma das opções abaixo digitando o número:") &&
     message.includes("1 - 📄 Segunda via de DAM's") &&

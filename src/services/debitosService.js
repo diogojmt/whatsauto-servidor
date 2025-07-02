@@ -686,6 +686,10 @@ Digite *menu* para voltar ao menu principal.`,
    * Verifica se uma mensagem indica intenção de consultar débitos
    */
   detectarIntencaoConsultaDebitos(message) {
+    if (!message || typeof message !== 'string') {
+      return false;
+    }
+    
     const msgLimpa = message
       .toLowerCase()
       .normalize("NFD")

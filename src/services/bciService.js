@@ -1,4 +1,4 @@
-const axios = require('axios');
+const axios = require("axios");
 
 /**
  * Serviço para consulta de BCI (Boletim de Cadastro Imobiliário)
@@ -6,7 +6,8 @@ const axios = require('axios');
 class BciService {
   constructor() {
     this.sessoes = new Map(); // Armazena dados das sessões por usuário
-    this.apiUrl = 'https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidocumento';
+    this.apiUrl =
+      "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidocumento";
   }
 
   /**
@@ -114,16 +115,16 @@ Ou *0* para voltar ao menu principal.`,
       };
     }
 
-    if (inscricaoLimpa.length < 10) {
+    if (inscricaoLimpa.length < 2) {
       return {
         type: "text",
         text: `❌ Inscrição muito curta!
 
-A inscrição imobiliária deve ter pelo menos 10 dígitos.
+A inscrição imobiliária deve ter pelo menos 2 dígitos.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 000000000010813
+Exemplo: 000000000012345
 
 Ou *0* para voltar ao menu principal.`,
       };
@@ -164,7 +165,10 @@ Ou *0* para voltar ao menu principal.`,
   async executarConsulta(sender, inscricao) {
     const sessao = this.getSessao(sender);
 
-    console.log("[BciService] Executando consulta BCI com inscrição:", inscricao);
+    console.log(
+      "[BciService] Executando consulta BCI com inscrição:",
+      inscricao
+    );
 
     try {
       // Montar parâmetros da API
@@ -177,24 +181,24 @@ Ou *0* para voltar ao menu principal.`,
         SSENossoNumero: "",
         SSECPFCNPJ: "",
         SSEOperacao: "3", // 3 = BCI
-        SSEIdentificador: ""
+        SSEIdentificador: "",
       };
 
       console.log("[BciService] Parâmetros da API:", parametros);
 
       const response = await axios.get(this.apiUrl, {
         headers: {
-          'DadosAPIDocumento': JSON.stringify(parametros),
-          'Content-Type': 'application/json'
+          DadosAPIDocumento: JSON.stringify(parametros),
+          "Content-Type": "application/json",
         },
-        timeout: 30000 // 30 segundos
+        timeout: 30000, // 30 segundos
       });
 
       const resultado = response.data;
 
       console.log("[BciService] Resultado da consulta:", {
         codigo: resultado.SSACodigo,
-        mensagem: resultado.SSAMensagem
+        mensagem: resultado.SSAMensagem,
       });
 
       if (resultado.SSACodigo === 0 && resultado.SSALinkDocumento) {
@@ -299,8 +303,8 @@ Digite *menu* para voltar ao menu principal.`;
 ${nome}, o imóvel foi localizado no sistema, mas o documento BCI não está disponível para download no momento.
 
 📋 *Dados encontrados:*
-• Inscrição: ${resultado.SSAInscricao || 'Não informado'}
-• Proprietário: ${resultado.SSANomeRazao || 'Não informado'}
+• Inscrição: ${resultado.SSAInscricao || "Não informado"}
+• Proprietário: ${resultado.SSANomeRazao || "Não informado"}
 
 💡 *O que fazer:*
 • Entre em contato conosco para obter o BCI
@@ -343,6 +347,10 @@ Ou digite *menu* para voltar ao menu principal.`,
    * Verifica se uma mensagem indica intenção de consultar BCI
    */
   detectarIntencaoBCI(message) {
+    if (!message || typeof message !== "string") {
+      return false;
+    }
+
     const msgLimpa = message
       .toLowerCase()
       .normalize("NFD")
@@ -356,7 +364,7 @@ Ou digite *menu* para voltar ao menu principal.`,
       "informacoes do imovel",
       "dados do imovel",
       "cadastro predial",
-      "ficha do imovel"
+      "ficha do imovel",
     ];
 
     return palavrasChave.some((palavra) => msgLimpa.includes(palavra));

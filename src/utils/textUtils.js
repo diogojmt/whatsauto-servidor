@@ -8,6 +8,10 @@
  * @returns {string} Texto normalizado
  */
 function normalizarTexto(texto) {
+  if (!texto || typeof texto !== 'string') {
+    return '';
+  }
+  
   return texto
     .toLowerCase()
     .normalize("NFD")
@@ -20,6 +24,9 @@ function normalizarTexto(texto) {
  * @returns {string} Apenas os números
  */
 function extrairNumeros(texto) {
+  if (!texto || typeof texto !== 'string') {
+    return '';
+  }
   return texto.replace(/[^0-9]/g, "");
 }
 
@@ -29,6 +36,9 @@ function extrairNumeros(texto) {
  * @returns {boolean} True se contém letras
  */
 function contemLetras(texto) {
+  if (!texto || typeof texto !== 'string') {
+    return false;
+  }
   return /[a-zA-Z]/.test(texto);
 }
 
