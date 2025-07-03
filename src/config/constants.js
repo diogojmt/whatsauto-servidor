@@ -70,6 +70,8 @@ const ESTADOS = {
   DEBITOS_EXERCICIO: "debitos_exercicio",
   // Estados para consulta de BCI
   BCI_ATIVO: "bci_ativo",
+  // Estados para agendamento
+  AGENDAMENTO_ATIVO: "agendamento_ativo",
 };
 
 // Emojis - TODOS DEFINIDOS para evitar undefined
@@ -238,13 +240,14 @@ Escolha uma das opções abaixo digitando o número:
 *4* - ${EMOJIS.SUBSTITUTOS} Lista de Substitutos Tributários
 *5* - ${EMOJIS.TFLF} Taxa de Localização e Funcionamento
 *6* - ${EMOJIS.BCI} Consulta de BCI (Boletim de Cadastro Imobiliário)
+*8* - ${EMOJIS.CALENDARIO} Agendamento de Atendimento
 *0* - ${EMOJIS.ENCERRAR} Encerrar Atendimento
 
 Digite o número da opção desejada ou descreva sua dúvida.`,
 
   OPCAO_INVALIDA: `${EMOJIS.ERRO} Opção inválida! 
 
-Por favor, digite um número de 0 a 6 ou descreva sua dúvida.`,
+Por favor, digite um número de 0 a 8 ou descreva sua dúvida.`,
 
   SESSAO_EXPIRADA: `${EMOJIS.RELOGIO} Sua sessão expirou por inatividade.
 
@@ -307,6 +310,7 @@ ${EMOJIS.ROBÔ} *Para continuar, você pode:*
 • Digite *4* para Lista de Substitutos Tributários
 • Digite *5* para Taxa de Localização e Funcionamento
 • Digite *6* para Consulta de BCI
+• Digite *8* para Agendamento de Atendimento
 • Digite *0* para encerrar o atendimento
 
 🏛️ *Ou compareça pessoalmente:*

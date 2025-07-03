@@ -15,6 +15,7 @@ const {
 } = require("../services/searchService");
 const { DebitosService } = require("../services/debitosService");
 const { BciService } = require("../services/bciService");
+const { AgendamentoFluxoService } = require("../services/agendamentoFluxoService");
 
 const {
   ESTADOS,
@@ -70,6 +71,7 @@ const {
 // Instanciar serviços
 const debitosService = new DebitosService();
 const bciService = new BciService();
+const agendamentoFluxoService = new AgendamentoFluxoService();
 
 /**
  * Verifica se a mensagem contém palavras de agradecimento
@@ -263,6 +265,11 @@ async function processarMensagem(
     return resultado;
   }
 
+  // Verificar se está no fluxo de agendamento
+  if (agendamentoFluxoService.estaNoFluxoAgendamento(sender)) {
+    return await agendamentoFluxoService.processarMensagem(sender, message, nome);
+  }
+
   // Verificar mensagens de agradecimento
   if (ehMensagemAgradecimento(msgLimpa)) {
     return gerarRespostaAgradecimento(nome);
@@ -419,6 +426,12 @@ async function processarMensagem(
     return resultado;
   }
 
+  // Opção 8 - Agendamento
+  if (opcao === "8" || msgLimpa.includes("opcao 8")) {
+    definirEstadoUsuario(sender, ESTADOS.AGENDAMENTO_ATIVO);
+    return await agendamentoFluxoService.iniciarFluxoAgendamento(sender, nome);
+  }
+
   // Opção 0 - Encerrar
   if (
     opcao === "0" ||
@@ -468,6 +481,14 @@ async function processarMensagem(
     msgLimpa.includes("cadastro imobiliario")
   ) {
     return `${nome}, digite *6* para consultar o Boletim de Cadastro Imobiliário (BCI) do seu imóvel.`;
+  }
+  if (
+    msgLimpa.includes("agendamento") ||
+    msgLimpa.includes("agendar") ||
+    msgLimpa.includes("atendimento presencial") ||
+    msgLimpa.includes("horario")
+  ) {
+    return `${nome}, digite *8* para acessar o sistema de agendamento de atendimentos.`;
   }
 
   // Resposta padrão
