@@ -252,7 +252,7 @@ Ou *0* para voltar ao menu principal.`,
         type: "text",
         text: `❌ Ano inválido!
 
-Digite um ano entre 2020 e ${anoAtual + 1}.
+Digite um ano entre 2020 e ${anoAtual}.
 
 Exemplo: *${anoAtual}*
 
@@ -339,7 +339,7 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
         type: "text",
         text: `❌ Ano inválido!
 
-Digite um ano entre 2020 e ${anoAtual + 1}.
+Digite um ano entre 2020 e ${anoAtual}.
 
 💡 *Sugestões:*
 • *${anoAtual}* (ano atual)
@@ -484,7 +484,7 @@ Digite um ano válido ou *menu* para voltar ao menu principal.`,
 ${sessao.nome}, ocorreu um erro inesperado durante a consulta.
 
 🔄 *Tentar outro ano?*
-📅 Digite um ano entre 2020 e ${new Date().getFullYear() + 1}
+📅 Digite um ano entre 2020 e ${new Date().getFullYear()}
 
 🔄 *Tentar novamente?*
 Digite *repetir*
@@ -562,7 +562,7 @@ ${nome}, foram encontrados *${debitos.length}* débito(s) em aberto para sua ins
 
 🔄 *Consultar outro ano?*
 
-📅 Digite um ano entre 2020 e ${anoAtual + 1} para consultar outros débitos:
+📅 Digite um ano entre 2020 e ${anoAtual} para consultar outros débitos:
 
 Exemplo: *${exercicioAtual != anoAtual ? anoAtual : anoAtual - 1}*
 
@@ -607,7 +607,7 @@ ${sessaoComParams.nome}, não foram localizados débitos em aberto para:
 
 🔄 *Deseja consultar outro ano?*
 
-📅 Digite um ano entre 2020 e ${anoAtual + 1}:
+📅 Digite um ano entre 2020 e ${anoAtual}:
 
 Exemplo: *${anoAtual}* ou *${anoAtual - 1}*
 
@@ -649,7 +649,7 @@ ${sessaoComParams.nome}, não foi possível consultar os débitos no momento.
 💡 *Opções:*
 
 🔄 *Tentar outro ano?*
-📅 Digite um ano entre 2020 e ${anoAtual + 1}
+📅 Digite um ano entre 2020 e ${anoAtual}
 
 🔄 *Tentar o mesmo ano novamente?*
 Digite *repetir*
@@ -686,10 +686,10 @@ Digite *menu* para voltar ao menu principal.`,
    * Verifica se uma mensagem indica intenção de consultar débitos
    */
   detectarIntencaoConsultaDebitos(message) {
-    if (!message || typeof message !== 'string') {
+    if (!message || typeof message !== "string") {
       return false;
     }
-    
+
     const msgLimpa = message
       .toLowerCase()
       .normalize("NFD")
