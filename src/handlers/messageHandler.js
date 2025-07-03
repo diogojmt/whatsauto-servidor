@@ -267,7 +267,13 @@ async function processarMensagem(
 
   // Verificar se está no fluxo de agendamento
   if (agendamentoFluxoService.estaNoFluxoAgendamento(sender)) {
-    return await agendamentoFluxoService.processarMensagem(sender, message, nome);
+    const resultado = await agendamentoFluxoService.processarMensagem(sender, message, nome);
+    // Se retornou null, significa que o usuário quer sair do fluxo
+    if (resultado === null) {
+      // Continuar processamento normal (ex: comando menu)
+    } else {
+      return resultado;
+    }
   }
 
   // Verificar mensagens de agradecimento
@@ -453,7 +459,7 @@ async function processarMensagem(
   if (msgLimpa.includes("certidao") || msgLimpa.includes("negativa")) {
     // Verificar se é solicitação de emissão automática
     if (ehSolicitacaoCertidao(msgLimpa)) {
-      return iniciarFluxoCertidao(sender, nome);
+      return iniciarFluxoCertidao(sender, nome); 
     }
     return `${nome}, digite *2* para ver todas as opções sobre certidões. Digite *2.0* para emissão automática.`;
   }

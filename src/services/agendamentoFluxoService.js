@@ -215,6 +215,18 @@ class AgendamentoFluxoService {
    * Processa mensagem baseada no estado atual
    */
   async processarMensagem(sender, mensagem, nomeUsuario) {
+    const msgLimpa = mensagem.toLowerCase().trim();
+    
+    // Verificar se o usuário quer voltar ao menu principal
+    if (msgLimpa === 'menu' || msgLimpa === 'inicio') {
+      // Limpar dados temporários
+      dadosUsuarios.delete(sender);
+      definirEstadoUsuario(sender, 'menu_principal');
+      
+      // Retornar null para que o messageHandler processe o comando menu
+      return null;
+    }
+    
     const estado = obterEstadoUsuario(sender);
 
     switch (estado) {
