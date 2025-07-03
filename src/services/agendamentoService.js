@@ -13,9 +13,17 @@ const AGENDA_CONFIG = {
   DIAS_UTEIS: [1, 2, 3, 4, 5] // Segunda a sexta
 };
 
-// Caminhos dos arquivos
-const CREDENTIALS_PATH = path.join(process.cwd(), 'client_secret_223567033178-kcji8j786j0t8odqtc7f5lqu5s8b11mr.apps.googleusercontent.com.json');
-const TOKEN_PATH = path.join(process.cwd(), 'token.json');
+// Caminhos dos arquivos - Priorizar diretório seguro do Replit
+const REPLIT_WORKSPACE = '/home/runner/workspace';
+const CREDENTIALS_FILENAME = 'client_secret_223567033178-kcji8j786j0t8odqtc7f5lqu5s8b11mr.apps.googleusercontent.com.json';
+
+const CREDENTIALS_PATH = fs.existsSync(path.join(REPLIT_WORKSPACE, CREDENTIALS_FILENAME)) 
+  ? path.join(REPLIT_WORKSPACE, CREDENTIALS_FILENAME)
+  : path.join(process.cwd(), CREDENTIALS_FILENAME);
+
+const TOKEN_PATH = fs.existsSync(REPLIT_WORKSPACE) 
+  ? path.join(REPLIT_WORKSPACE, 'token.json')
+  : path.join(process.cwd(), 'token.json');
 
 class AgendamentoService {
   constructor() {

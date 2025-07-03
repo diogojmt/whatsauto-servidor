@@ -8,9 +8,17 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 
-// Caminhos dos arquivos
-const CREDENTIALS_PATH = './client_secret_223567033178-kcji8j786j0t8odqtc7f5lqu5s8b11mr.apps.googleusercontent.com.json';
-const TOKEN_PATH = './token.json';
+// Caminhos dos arquivos - Priorizar diretório seguro do Replit
+const REPLIT_WORKSPACE = '/home/runner/workspace';
+const CREDENTIALS_FILENAME = 'client_secret_223567033178-kcji8j786j0t8odqtc7f5lqu5s8b11mr.apps.googleusercontent.com.json';
+
+const CREDENTIALS_PATH = fs.existsSync(path.join(REPLIT_WORKSPACE, CREDENTIALS_FILENAME)) 
+  ? path.join(REPLIT_WORKSPACE, CREDENTIALS_FILENAME)
+  : `./${CREDENTIALS_FILENAME}`;
+
+const TOKEN_PATH = fs.existsSync(REPLIT_WORKSPACE) 
+  ? path.join(REPLIT_WORKSPACE, 'token.json')
+  : './token.json';
 
 /**
  * Carrega as credenciais do cliente

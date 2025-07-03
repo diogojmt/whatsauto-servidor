@@ -90,9 +90,11 @@ projeto/
 ├── src/services/
 │   ├── agendamentoService.js          # Core do Google Calendar
 │   └── agendamentoFluxoService.js     # Fluxo do chatbot
-├── client_secret_[...].json           # Credenciais OAuth2
-├── token.json                         # Token de acesso (gerado automaticamente)
 └── setup-google-auth.js               # Script de configuração
+
+/home/runner/workspace/ (Replit - Diretório Seguro)
+├── client_secret_[...].json           # Credenciais OAuth2 (LOCAL SEGURO)
+└── token.json                         # Token de acesso (gerado automaticamente)
 ```
 
 ### Configurações Principais
