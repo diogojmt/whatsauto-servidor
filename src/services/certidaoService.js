@@ -304,7 +304,7 @@ ${EMOJIS.DOCUMENTO} *Agora preciso do seu CPF ou CNPJ:*
 
 ${EMOJIS.INFO} *Dicas importantes:*
 • Digite *apenas os números* (sem pontos, traços ou barras)
-• Exemplo: 1234
+
 
 ${EMOJIS.SETA} *Digite seu CPF ou CNPJ:*`;
 }
@@ -399,7 +399,7 @@ Digite novamente apenas os números:*`;
 
   if (tipoContribuinte === TIPOS_CONTRIBUINTE.GERAL) {
     mensagemInscricao = "Agora preciso do número do *Cadastro Geral*:";
-    exemploInscricao = "• Exemplo: 123456 ou 1234567890";
+    exemploInscricao = "• Exemplo: 12345";
     dicasInscricao = `${EMOJIS.INFO} *Onde encontrar seu Cadastro Geral:*
 • Certidões anteriores
 • Cadastro na Prefeitura
@@ -882,7 +882,7 @@ ${
 ${EMOJIS.EXEMPLO} *Formato:*
 • Apenas números
 • Sem pontos, traços ou letras
-• Exemplo: 123456 ou 1234567890
+• Exemplo: 12345
 
 ${EMOJIS.SETA} Digite o número da ${tipoInscricao.toLowerCase()}
 ${EMOJIS.CANCELAR} Digite *cancelar* para sair`;

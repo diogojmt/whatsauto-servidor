@@ -175,7 +175,7 @@ Por favor, digite apenas números.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 12345678901
+Exemplo: 12345
 
 Ou *0* para voltar ao menu principal.`,
       };
@@ -190,7 +190,7 @@ O documento deve ter pelo menos 1 dígitos.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 1234
+Exemplo: 12345
 
 Ou *0* para voltar ao menu principal.`,
       };
