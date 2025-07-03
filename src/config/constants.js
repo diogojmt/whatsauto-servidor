@@ -55,6 +55,7 @@ const ESTADOS = {
   OPCAO_3_NFSE: "opcao_3_nfse",
   OPCAO_4_SUBSTITUTOS: "opcao_4_substitutos",
   OPCAO_5_TFLF: "opcao_5_tflf",
+  OPCAO_6_BCI: "opcao_6_bci",
   CONSULTA_ISS: "consulta_iss",
   CONSULTA_CNAE: "consulta_cnae",
   EMISSAO_CERTIDAO: "emissao_certidao",
@@ -114,6 +115,7 @@ const EMOJIS = {
   NFSE: "🧾",
   SUBSTITUTOS: "📋",
   TFLF: "💰",
+  BCI: "🏠",
   ENCERRAR: "👋",
 
   // Novos emojis para melhor UX
@@ -230,19 +232,19 @@ const MENSAGENS = {
 
 Escolha uma das opções abaixo digitando o número:
 
-1 - ${EMOJIS.DAM} Segunda via de DAM's
-2 - ${EMOJIS.CERTIDAO} Certidões de Regularidade Fiscal  
-3 - ${EMOJIS.NFSE} NFSe e ISSQN
-4 - ${EMOJIS.SUBSTITUTOS} Lista de Substitutos Tributários
-5 - ${EMOJIS.TFLF} TFLF 2025
-
-0 - ${EMOJIS.ENCERRAR} Encerrar Atendimento
+*1* - ${EMOJIS.DAM} Segunda via de DAM's
+*2* - ${EMOJIS.CERTIDAO} Certidões de Regularidade Fiscal
+*3* - ${EMOJIS.NFSE} NFSe e ISSQN
+*4* - ${EMOJIS.SUBSTITUTOS} Lista de Substitutos Tributários
+*5* - ${EMOJIS.TFLF} TFLF 2025
+*6* - ${EMOJIS.BCI} Consulta de BCI (Boletim de Cadastro Imobiliário)
+*0* - ${EMOJIS.ENCERRAR} Encerrar Atendimento
 
 Digite o número da opção desejada ou descreva sua dúvida.`,
 
   OPCAO_INVALIDA: `${EMOJIS.ERRO} Opção inválida! 
 
-Por favor, digite um número de 0 a 5 ou descreva sua dúvida.`,
+Por favor, digite um número de 0 a 6 ou descreva sua dúvida.`,
 
   SESSAO_EXPIRADA: `${EMOJIS.RELOGIO} Sua sessão expirou por inatividade.
 
@@ -254,17 +256,65 @@ Tente novamente em alguns minutos ou entre em contato:
 ${EMOJIS.EMAIL} smfaz@arapiraca.al.gov.br
 ${EMOJIS.TELEFONE} (82) 3539-6000`,
 
-  AGRADECIMENTO: `${EMOJIS.FELIZ} De nada! Fico feliz em ajudar!
+  AGRADECIMENTO: `${EMOJIS.FELIZ} *Atendimento Finalizado*
 
-${EMOJIS.AVALIACAO} Se precisar de mais alguma coisa, é só chamar!
+De nada! Foi um prazer ajudá-lo(a) hoje! 
 
-Digite *menu* para ver outras opções.`,
+${EMOJIS.SUCESSO} Sua consulta foi atendida com sucesso.
 
-  DESPEDIDA: `${EMOJIS.SAUDACAO} Até logo! Foi um prazer atendê-lo!
+Caso precise de mais informações sobre tributos municipais, estarei sempre aqui para ajudar.
 
-${EMOJIS.INFO} Lembre-se: estou sempre aqui para ajudar!
+${EMOJIS.INFO} *Lembre-se:*
+• Portal do Contribuinte: ${URLS.PORTAL_CONTRIBUINTE}
+• NFSe: ${URLS.NFSE_PORTAL}
+
+Tenha um excelente dia! ${EMOJIS.SAUDACAO}
+
+*Atendimento encerrado automaticamente*`,
+
+  DESPEDIDA: `${EMOJIS.SAUDACAO} *Encerrando Atendimento*
+
+Agradecemos por utilizar nossos serviços digitais!
+
+🏛️ *Prefeitura de Arapiraca - Secretaria da Fazenda*
+
+Para um novo atendimento, digite *menu* ou inicie uma nova conversa.
 
 Tenha um ótimo dia! ${EMOJIS.FELIZ}`,
+
+  ATENDENTE_HUMANO: `👨‍💼 *Solicitação de Atendimento Humano*
+
+Para falar com um atendente, procure diretamente:
+
+${EMOJIS.ENDERECO} *Secretaria da Fazenda Municipal*
+${CONTATOS.ENDERECO}
+🗺️ ${URLS.GOOGLE_MAPS}
+
+${EMOJIS.RELOGIO} *Horário de atendimento:*
+${CONTATOS.HORARIO}
+${EMOJIS.EMAIL} ${CONTATOS.EMAIL_FAZENDA}
+
+Digite *menu* para voltar ao menu principal ou *0* para encerrar.`,
+
+  RESPOSTA_PADRAO: (nome) => `${nome}, não consegui entender sua mensagem. 
+
+${EMOJIS.ROBÔ} *Para continuar, você pode:*
+
+• Digite *menu* para ver todas as opções disponíveis
+• Digite *1* para Segunda via de DAM's
+• Digite *2* para Certidões de Regularidade Fiscal
+• Digite *3* para NFSe
+• Digite *4* para Lista de Substitutos Tributários
+• Digite *5* para TFLF 2025
+• Digite *6* para Consulta de BCI
+• Digite *0* para encerrar o atendimento
+
+🏛️ *Ou compareça pessoalmente:*
+Secretaria da Fazenda Municipal
+${EMOJIS.ENDERECO} ${CONTATOS.ENDERECO}
+🗺️ ${URLS.GOOGLE_MAPS}
+${EMOJIS.EMAIL} ${CONTATOS.EMAIL_FAZENDA}
+${CONTATOS.HORARIO}`,
 
   RATE_LIMIT: `${EMOJIS.ALERTA} Muitas tentativas em pouco tempo!
 
