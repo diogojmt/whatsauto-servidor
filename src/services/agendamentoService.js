@@ -14,8 +14,8 @@ const AGENDA_CONFIG = {
 };
 
 // Caminhos dos arquivos
-const CREDENTIALS_PATH = path.join(__dirname, '../../client_secret_223567033178-kcji8j786j0t8odqtc7f5lqu5s8b11mr.apps.googleusercontent.com.json');
-const TOKEN_PATH = path.join(__dirname, '../../token.json');
+const CREDENTIALS_PATH = path.join(process.cwd(), 'client_secret_223567033178-kcji8j786j0t8odqtc7f5lqu5s8b11mr.apps.googleusercontent.com.json');
+const TOKEN_PATH = path.join(process.cwd(), 'token.json');
 
 class AgendamentoService {
   constructor() {
@@ -28,6 +28,12 @@ class AgendamentoService {
    */
   async configurarAuth() {
     try {
+      // Verificar se arquivo de credenciais existe
+      if (!fs.existsSync(CREDENTIALS_PATH)) {
+        console.error('Arquivo de credenciais não encontrado:', CREDENTIALS_PATH);
+        return false;
+      }
+
       // Carregar credenciais
       const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
       const { client_secret, client_id, redirect_uris } = credentials.installed;

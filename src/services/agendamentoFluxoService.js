@@ -52,6 +52,11 @@ class AgendamentoFluxoService {
       return resposta;
     } catch (error) {
       console.error('Erro ao iniciar fluxo de agendamento:', error);
+      
+      if (error.code === 'ENOENT') {
+        return `${nomeUsuario}, o sistema de agendamento não está configurado. Entre em contato com o administrador para ativar esta funcionalidade.`;
+      }
+      
       return `${nomeUsuario}, ocorreu um erro ao carregar os horários disponíveis. Tente novamente mais tarde.`;
     }
   }
