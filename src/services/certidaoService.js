@@ -282,6 +282,50 @@ Por favor, escolha uma das opções disponíveis:
 ${EMOJIS.SETA} *Digite apenas o número 1 ou 2:*`;
   }
 
+  const tipoSelecionado = TIPOS_CONTRIBUINTE_LABELS[opcaoLimpa];
+  const emojiTipo =
+    opcaoLimpa === TIPOS_CONTRIBUINTE.GERAL ? EMOJIS.PESSOA : EMOJIS.CASA;
+
+  // Para imóveis, pular a etapa de CPF/CNPJ e ir direto para matrícula
+  if (opcaoLimpa === TIPOS_CONTRIBUINTE.IMOVEL) {
+    // Salvar tipo escolhido
+    definirDadosTemporarios(sender, {
+      tipoContribuinte: opcaoLimpa,
+      cpfCnpj: null, // CPF/CNPJ não é necessário para imóveis
+      tipoDocumento: null,
+    });
+    definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
+
+    logger.info(
+      "Tipo de contribuinte selecionado - Imóvel (pulando CPF/CNPJ)",
+      {
+        sender,
+        tipoContribuinte: opcaoLimpa,
+        timestamp: new Date().toISOString(),
+      }
+    );
+
+    return `${EMOJIS.SUCESSO} *Perfeito!* ${emojiTipo}
+
+Você selecionou: *${tipoSelecionado}*
+
+${EMOJIS.DOCUMENTO} *Agora preciso do número da Matrícula do Imóvel:*
+
+${EMOJIS.INFO} *Onde encontrar a Matrícula do Imóvel:*
+• Carnê do IPTU
+• Escritura do imóvel
+• Certidões anteriores do imóvel
+• Portal do Contribuinte
+
+${EMOJIS.EXEMPLO} *Formato:*
+• Digite *apenas os números*
+• Exemplo: 987654 ou 9876543210
+• Sem pontos, traços ou letras
+
+${EMOJIS.SETA} *Digite o número da matrícula do imóvel:*`;
+  }
+
+  // Para pessoa física/jurídica, manter o fluxo original
   // Salvar tipo escolhido
   definirDadosTemporarios(sender, { tipoContribuinte: opcaoLimpa });
   definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_CPF_CNPJ);
@@ -292,10 +336,6 @@ ${EMOJIS.SETA} *Digite apenas o número 1 ou 2:*`;
     timestamp: new Date().toISOString(),
   });
 
-  const tipoSelecionado = TIPOS_CONTRIBUINTE_LABELS[opcaoLimpa];
-  const emojiTipo =
-    opcaoLimpa === TIPOS_CONTRIBUINTE.GERAL ? EMOJIS.PESSOA : EMOJIS.CASA;
-
   return `${EMOJIS.SUCESSO} *Perfeito!* ${emojiTipo}
 
 Você selecionou: *${tipoSelecionado}*
@@ -304,7 +344,6 @@ ${EMOJIS.DOCUMENTO} *Agora preciso do seu CPF ou CNPJ:*
 
 ${EMOJIS.INFO} *Dicas importantes:*
 • Digite *apenas os números* (sem pontos, traços ou barras)
-
 
 ${EMOJIS.SETA} *Digite seu CPF ou CNPJ:*`;
 }
@@ -364,8 +403,7 @@ ${EMOJIS.INFO} *Verifique se digitou corretamente:*
 
     mensagemErro += `
 
-${EMOJIS.SETA} *
-Digite novamente apenas os números:*`;
+${EMOJIS.SETA} *Digite novamente apenas os números:*`;
 
     return mensagemErro;
   }
@@ -435,7 +473,7 @@ ${EMOJIS.EXEMPLO} *Formato:*
 ${exemploInscricao}
 • Sem pontos, traços ou letras
 
-${EMOJIS.SETA} *Digite o número da inscrição ou do cad. geral::*`;
+${EMOJIS.SETA} *Digite o número da inscrição ou do cad. geral:*`;
 }
 
 /**
@@ -497,14 +535,19 @@ ${EMOJIS.SETA} *Digite novamente a ${
     }:*`;
   }
 
-  // Verificar cache primeiro
-  const chaveCache = `${dadosTemp.cpfCnpj}_${inscricaoLimpa}_${dadosTemp.tipoContribuinte}`;
+  // Verificar cache primeiro - para imóveis, usar apenas a inscrição na chave do cache
+  const chaveCache = dadosTemp.cpfCnpj
+    ? `${dadosTemp.cpfCnpj}_${inscricaoLimpa}_${dadosTemp.tipoContribuinte}`
+    : `${inscricaoLimpa}_${dadosTemp.tipoContribuinte}`;
+
   const dadosCache = cacheContribuintes.get(chaveCache);
 
   if (dadosCache && Date.now() - dadosCache.timestamp < CACHE_TTL) {
     logger.info("Dados obtidos do cache", {
       sender,
-      chaveCache: chaveCache.replace(dadosTemp.cpfCnpj, "***"),
+      chaveCache: dadosTemp.cpfCnpj
+        ? chaveCache.replace(dadosTemp.cpfCnpj, "***")
+        : chaveCache,
       timestamp: new Date().toISOString(),
     });
   }
@@ -519,6 +562,7 @@ ${EMOJIS.SETA} *Digite novamente a ${
       sender,
       tipoContribuinte: dadosTemp.tipoContribuinte,
       inscricao: inscricaoLimpa,
+      temCpfCnpj: !!dadosTemp.cpfCnpj,
       timestamp: new Date().toISOString(),
     });
 
@@ -528,7 +572,7 @@ ${EMOJIS.SETA} *Digite novamente a ${
         const resultado = await emitirCertidao({
           tipoContribuinte: dadosTemp.tipoContribuinte,
           inscricao: inscricaoLimpa,
-          cpfCnpj: dadosTemp.cpfCnpj,
+          cpfCnpj: dadosTemp.cpfCnpj, // Pode ser null para imóveis
           operacao: "2", // Certidão
         });
         return resultado;
@@ -582,12 +626,17 @@ ${EMOJIS.SETA} *Digite novamente a ${
 
       const nomeContribuinte = resultado.SSANomeRazao || "Não informado";
       const inscricaoFinal = resultado.SSAInscricao || inscricaoLimpa;
-      const documentoFormatado = formatarDocumento(dadosTemp.cpfCnpj);
-      const tipoDoc = dadosTemp.tipoDocumento;
       const tipoInscricao =
         dadosTemp.tipoContribuinte === TIPOS_CONTRIBUINTE.IMOVEL
           ? "Matrícula"
           : "Inscrição";
+
+      // Construir informações do documento apenas se existir
+      let infoDocumento = "";
+      if (dadosTemp.cpfCnpj && dadosTemp.tipoDocumento) {
+        const documentoFormatado = formatarDocumento(dadosTemp.cpfCnpj);
+        infoDocumento = `📄 *${dadosTemp.tipoDocumento}:* ${documentoFormatado}\n`;
+      }
 
       return `${EMOJIS.SUCESSO} *Certidão emitida com sucesso!* ${EMOJIS.FESTA}
 
@@ -596,8 +645,7 @@ ${resultado.SSALinkDocumento}
 
 ${EMOJIS.INFO} *Dados da Certidão:*
 👤 *Nome/Razão:* ${nomeContribuinte}
-📄 *${tipoDoc}:* ${documentoFormatado}
-🏷️ *${tipoInscricao}:* ${inscricaoFinal}
+${infoDocumento}🏷️ *${tipoInscricao}:* ${inscricaoFinal}
 ⏱️ *Processado em:* ${Math.round(tempoProcessamento / 1000)}s
 
 ${EMOJIS.ALERTA} *IMPORTANTE:*
@@ -610,7 +658,7 @@ Digite *certidao* ou *menu* para voltar.
 
 ${
   EMOJIS.AVALIACAO
-} *Espero que tenha gostado do atendimento* Tenha um bom dia!`;
+} *Espero que tenha gostado do atendimento!* Tenha um bom dia!`;
     } else {
       metrics.erros++;
 
@@ -624,14 +672,16 @@ ${
       const mensagemErro =
         resultado.SSAMensagem || "Erro não especificado pelo sistema";
 
-      return `${EMOJIS.ERRO} *Não foi possível emitir a certidão* ${EMOJIS.TRISTE}
+      return `${EMOJIS.ERRO} *Não foi possível emitir a certidão* ${
+        EMOJIS.TRISTE
+      }
 
 ${EMOJIS.INFO} *Motivo:* ${mensagemErro}
 
 ${EMOJIS.SOLUCAO} *O que você pode fazer:*
 
 1️⃣ *Verificar os dados:*
-   • CPF/CNPJ está correto?
+   ${dadosTemp.cpfCnpj ? "• CPF/CNPJ está correto?" : ""}
    • Inscrição está correta?
    • Consulte seu carnê ou documento
 
@@ -655,6 +705,7 @@ ${EMOJIS.AJUDA} Digite *menu* para ver outras opções.`;
       dadosTemp: {
         tipoContribuinte: dadosTemp.tipoContribuinte,
         inscricao: inscricaoLimpa,
+        temCpfCnpj: !!dadosTemp.cpfCnpj,
       },
       timestamp: new Date().toISOString(),
     });
@@ -838,6 +889,7 @@ Você precisa escolher entre:
 *2* ${EMOJIS.CASA} *Imóvel/Propriedade*  
    • Para propriedades/terrenos
    • Certidão de imóvel
+   • Não precisa de CPF/CNPJ
 
 ${EMOJIS.SETA} Digite *1* ou *2*
 ${EMOJIS.CANCELAR} Digite *cancelar* para sair`;
@@ -882,7 +934,11 @@ ${
 ${EMOJIS.EXEMPLO} *Formato:*
 • Apenas números
 • Sem pontos, traços ou letras
-• Exemplo: 12345
+• Exemplo: ${
+        dadosTemp?.tipoContribuinte === TIPOS_CONTRIBUINTE.IMOVEL
+          ? "987654 ou 9876543210"
+          : "12345"
+      }
 
 ${EMOJIS.SETA} Digite o número da ${tipoInscricao.toLowerCase()}
 ${EMOJIS.CANCELAR} Digite *cancelar* para sair`;
