@@ -25,7 +25,7 @@ Digite *menu* para voltar ao menu principal ou *0* para encerrar.`;
  * @returns {string} Menu TFLF
  */
 function gerarMenuTFLF(nome) {
-  return `${EMOJIS.DINHEIRO} *TFLF 2025*
+  return `${EMOJIS.DINHEIRO} *Taxa de Localização e Funcionamento*
 
 ${nome}, escolha uma das opções abaixo digitando o número:
 
@@ -86,5 +86,5 @@ module.exports = {
   gerarRespostaSubstitutos,
   gerarMenuTFLF,
   gerarMenuConsultaCNAE,
-  gerarRespostaPlanilhaTFLF
+  gerarRespostaPlanilhaTFLF,
 };
