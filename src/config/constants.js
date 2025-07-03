@@ -236,7 +236,7 @@ Escolha uma das opções abaixo digitando o número:
 *2* - ${EMOJIS.CERTIDAO} Certidões de Regularidade Fiscal
 *3* - ${EMOJIS.NFSE} NFSe e ISSQN
 *4* - ${EMOJIS.SUBSTITUTOS} Lista de Substitutos Tributários
-*5* - ${EMOJIS.TFLF} TFLF 2025
+*5* - ${EMOJIS.TFLF} Taxa de Localização e Funcionamento
 *6* - ${EMOJIS.BCI} Consulta de BCI (Boletim de Cadastro Imobiliário)
 *0* - ${EMOJIS.ENCERRAR} Encerrar Atendimento
 
@@ -305,7 +305,7 @@ ${EMOJIS.ROBÔ} *Para continuar, você pode:*
 • Digite *2* para Certidões de Regularidade Fiscal
 • Digite *3* para NFSe
 • Digite *4* para Lista de Substitutos Tributários
-• Digite *5* para TFLF 2025
+• Digite *5* para Taxa de Localização e Funcionamento
 • Digite *6* para Consulta de BCI
 • Digite *0* para encerrar o atendimento
 
