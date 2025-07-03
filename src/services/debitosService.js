@@ -214,7 +214,7 @@ ${sessao.nome}, para qual ano deseja consultar os débitos?
 
 💡 O "exercício" é o ano de referência do débito.
 
-📅 *Anos disponíveis:* 2020 a ${anoAtual + 1}
+📅 *Anos disponíveis:* 2020 a ${anoAtual}
 
 Digite o ano desejado:
 

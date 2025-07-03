@@ -142,7 +142,7 @@ João, foram encontrados 2 débito(s) em aberto para sua inscrição:
 ### Validações Implementadas
 
 - Tipo de contribuinte (1, 2 ou 3)
-- Inscrição municipal (mínimo 6 dígitos)
+- Inscrição municipal (mínimo 2 dígitos)
 - Exercício (entre 2020 e ano atual + 1)
 
 ### Cenários de Erro

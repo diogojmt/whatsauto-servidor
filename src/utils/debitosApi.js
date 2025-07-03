@@ -118,8 +118,8 @@ class DebitosApi {
         // Remover validação restritiva de CPF/CNPJ para permitir códigos de contribuinte
       } else if (tipoStr === "2" || tipoStr === "3") {
         // Imóvel ou Empresa - validar inscrição municipal
-        if (apenasNumeros.length < 6) {
-          erros.push("Inscrição municipal deve ter pelo menos 6 dígitos");
+        if (apenasNumeros.length < 2) {
+          erros.push("Inscrição municipal deve ter pelo menos 2 dígitos");
         }
       }
     }
@@ -299,12 +299,12 @@ class DebitosApi {
     } else {
       // Imóvel ou Empresa - inscrição municipal
       return {
-        valido: apenasNumeros.length >= 6,
+        valido: apenasNumeros.length >= 2,
         tipo: "Inscrição Municipal",
         documento: apenasNumeros,
         erro:
-          apenasNumeros.length < 6
-            ? "Inscrição municipal deve ter pelo menos 6 dígitos"
+          apenasNumeros.length < 2
+            ? "Inscrição municipal deve ter pelo menos 2 dígitos"
             : null,
       };
     }
