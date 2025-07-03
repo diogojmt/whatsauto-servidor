@@ -316,7 +316,7 @@ process.on("SIGTERM", () => {
 process.on("SIGINT", () => {
   console.log("🛑 Recebido SIGINT, fazendo shutdown graceful...");
   server.close(() => {
-    console.log("✅ Servidor encerrado com sucesso");
+    console.log("✅  Servidor encerrado com sucesso");
     process.exit(0);
   });
 });
