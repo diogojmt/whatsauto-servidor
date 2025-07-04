@@ -25,6 +25,9 @@ const TIPOS_CONTRIBUINTE_LABELS = {
   [TIPOS_CONTRIBUINTE.EMPRESA]: "Empresa",
 };
 
+// CPF fake para contornar validação da API em certidões de imóvel
+const CPF_FAKE_IMOVEL = "11111111111";
+
 // Métricas de monitoramento
 const metrics = {
   tentativasEmissao: 0,
@@ -291,7 +294,7 @@ ${EMOJIS.SETA} *Digite apenas o número 1 ou 2:*`;
     // Salvar tipo escolhido
     definirDadosTemporarios(sender, {
       tipoContribuinte: opcaoLimpa,
-      cpfCnpj: null, // CPF/CNPJ não é necessário para imóveis
+      cpfCnpj: null, // CPF/CNPJ não é solicitado do usuário para imóveis
       tipoDocumento: null,
     });
     definirEstadoUsuario(sender, ESTADOS.AGUARDANDO_INSCRICAO);
@@ -535,6 +538,12 @@ ${EMOJIS.SETA} *Digite novamente a ${
     }:*`;
   }
 
+  // Para imóveis, usar CPF fake para contornar validação da API
+  const cpfCnpjParaAPI =
+    dadosTemp.tipoContribuinte === TIPOS_CONTRIBUINTE.IMOVEL
+      ? CPF_FAKE_IMOVEL
+      : dadosTemp.cpfCnpj;
+
   // Verificar cache primeiro - para imóveis, usar apenas a inscrição na chave do cache
   const chaveCache = dadosTemp.cpfCnpj
     ? `${dadosTemp.cpfCnpj}_${inscricaoLimpa}_${dadosTemp.tipoContribuinte}`
@@ -563,6 +572,7 @@ ${EMOJIS.SETA} *Digite novamente a ${
       tipoContribuinte: dadosTemp.tipoContribuinte,
       inscricao: inscricaoLimpa,
       temCpfCnpj: !!dadosTemp.cpfCnpj,
+      usandoCpfFake: dadosTemp.tipoContribuinte === TIPOS_CONTRIBUINTE.IMOVEL,
       timestamp: new Date().toISOString(),
     });
 
@@ -572,7 +582,7 @@ ${EMOJIS.SETA} *Digite novamente a ${
         const resultado = await emitirCertidao({
           tipoContribuinte: dadosTemp.tipoContribuinte,
           inscricao: inscricaoLimpa,
-          cpfCnpj: dadosTemp.cpfCnpj, // Pode ser null para imóveis
+          cpfCnpj: cpfCnpjParaAPI, // Usar CPF fake para imóveis, CPF real para outros tipos
           operacao: "2", // Certidão
         });
         return resultado;
@@ -620,6 +630,8 @@ ${EMOJIS.SETA} *Digite novamente a ${
         sender,
         nomeContribuinte: resultado.SSANomeRazao,
         inscricao: resultado.SSAInscricao || inscricaoLimpa,
+        tipoContribuinte: dadosTemp.tipoContribuinte,
+        usouCpfFake: dadosTemp.tipoContribuinte === TIPOS_CONTRIBUINTE.IMOVEL,
         tempoProcessamento,
         timestamp: new Date().toISOString(),
       });
@@ -631,9 +643,13 @@ ${EMOJIS.SETA} *Digite novamente a ${
           ? "Matrícula"
           : "Inscrição";
 
-      // Construir informações do documento apenas se existir
+      // Construir informações do documento apenas se existir E não for CPF fake
       let infoDocumento = "";
-      if (dadosTemp.cpfCnpj && dadosTemp.tipoDocumento) {
+      if (
+        dadosTemp.cpfCnpj &&
+        dadosTemp.tipoDocumento &&
+        dadosTemp.tipoContribuinte !== TIPOS_CONTRIBUINTE.IMOVEL
+      ) {
         const documentoFormatado = formatarDocumento(dadosTemp.cpfCnpj);
         infoDocumento = `📄 *${dadosTemp.tipoDocumento}:* ${documentoFormatado}\n`;
       }
@@ -666,6 +682,8 @@ ${
         sender,
         codigoErro: resultado.SSACodigo,
         mensagemErro: resultado.SSAMensagem,
+        tipoContribuinte: dadosTemp.tipoContribuinte,
+        usouCpfFake: dadosTemp.tipoContribuinte === TIPOS_CONTRIBUINTE.IMOVEL,
         timestamp: new Date().toISOString(),
       });
 
@@ -706,6 +724,7 @@ ${EMOJIS.AJUDA} Digite *menu* para ver outras opções.`;
         tipoContribuinte: dadosTemp.tipoContribuinte,
         inscricao: inscricaoLimpa,
         temCpfCnpj: !!dadosTemp.cpfCnpj,
+        usouCpfFake: dadosTemp.tipoContribuinte === TIPOS_CONTRIBUINTE.IMOVEL,
       },
       timestamp: new Date().toISOString(),
     });
@@ -889,7 +908,7 @@ Você precisa escolher entre:
 *2* ${EMOJIS.CASA} *Imóvel/Propriedade*  
    • Para propriedades/terrenos
    • Certidão de imóvel
-   • Não precisa de CPF/CNPJ
+   • Não precisa informar CPF/CNPJ
 
 ${EMOJIS.SETA} Digite *1* ou *2*
 ${EMOJIS.CANCELAR} Digite *cancelar* para sair`;
