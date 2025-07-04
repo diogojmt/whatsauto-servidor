@@ -15,6 +15,7 @@ const {
 } = require("../services/searchService");
 const { DebitosService } = require("../services/debitosService");
 const { BciService } = require("../services/bciService");
+const { DemonstrativoFinanceiroService } = require("../services/demonstrativoFinanceiroService");
 const { AgendamentoFluxoService } = require("../services/agendamentoFluxoService");
 
 const {
@@ -71,6 +72,7 @@ const {
 // Instanciar serviços
 const debitosService = new DebitosService();
 const bciService = new BciService();
+const demonstrativoFinanceiroService = new DemonstrativoFinanceiroService();
 const agendamentoFluxoService = new AgendamentoFluxoService();
 
 /**
@@ -265,6 +267,24 @@ async function processarMensagem(
     return resultado;
   }
 
+  // Verificar se está no fluxo de Demonstrativo Financeiro
+  if (estadoAtual === ESTADOS.OPCAO_7_DEMONSTRATIVO) {
+    const resultado = await demonstrativoFinanceiroService.processarEtapa(sender, message);
+
+    // Se for redirecionamento, processar conforme a ação
+    if (resultado.type === "redirect") {
+      if (resultado.action === "menu_principal") {
+        definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+        return gerarMenuPrincipal(nome);
+      }
+    }
+
+    if (resultado.type === "text") {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
   // Verificar se está no fluxo de agendamento
   if (agendamentoFluxoService.estaNoFluxoAgendamento(sender)) {
     const resultado = await agendamentoFluxoService.processarMensagem(sender, message, nome);
@@ -307,6 +327,16 @@ async function processarMensagem(
   if (bciService.detectarIntencaoBCI(message)) {
     definirEstadoUsuario(sender, ESTADOS.BCI_ATIVO);
     const resultado = bciService.iniciarConsultaBCI(sender, nome);
+    if (resultado.type === "text") {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
+  // Detecção de intenção para Demonstrativo Financeiro
+  if (demonstrativoFinanceiroService.detectarIntencaoDemonstrativo(message)) {
+    definirEstadoUsuario(sender, ESTADOS.OPCAO_7_DEMONSTRATIVO);
+    const resultado = demonstrativoFinanceiroService.iniciarConsultaDemonstrativo(sender, nome);
     if (resultado.type === "text") {
       return resultado.text;
     }
@@ -426,6 +456,16 @@ async function processarMensagem(
   if (opcao === "6" || msgLimpa.includes("opcao 6")) {
     definirEstadoUsuario(sender, ESTADOS.BCI_ATIVO);
     const resultado = bciService.iniciarConsultaBCI(sender, nome);
+    if (resultado.type === "text") {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
+  // Opção 7 - Demonstrativo Financeiro
+  if (opcao === "7" || msgLimpa.includes("opcao 7")) {
+    definirEstadoUsuario(sender, ESTADOS.OPCAO_7_DEMONSTRATIVO);
+    const resultado = demonstrativoFinanceiroService.iniciarConsultaDemonstrativo(sender, nome);
     if (resultado.type === "text") {
       return resultado.text;
     }

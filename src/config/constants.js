@@ -56,6 +56,7 @@ const ESTADOS = {
   OPCAO_4_SUBSTITUTOS: "opcao_4_substitutos",
   OPCAO_5_TFLF: "opcao_5_tflf",
   OPCAO_6_BCI: "opcao_6_bci",
+  OPCAO_7_DEMONSTRATIVO: "opcao_7_demonstrativo",
   CONSULTA_ISS: "consulta_iss",
   CONSULTA_CNAE: "consulta_cnae",
   EMISSAO_CERTIDAO: "emissao_certidao",
@@ -118,6 +119,7 @@ const EMOJIS = {
   SUBSTITUTOS: "📋",
   TFLF: "💰",
   BCI: "🏠",
+  DEMONSTRATIVO: "📊",
   ENCERRAR: "👋",
 
   // Novos emojis para melhor UX
@@ -240,6 +242,7 @@ Escolha uma das opções abaixo digitando o número:
 *4* - ${EMOJIS.SUBSTITUTOS} Lista de Substitutos Tributários
 *5* - ${EMOJIS.TFLF} Taxa de Localização e Funcionamento
 *6* - ${EMOJIS.BCI} Consulta de BCI (Boletim de Cadastro Imobiliário)
+*7* - ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro
 *8* - ${EMOJIS.CALENDARIO} Agendamento de Atendimento
 *0* - ${EMOJIS.ENCERRAR} Encerrar Atendimento
 
@@ -310,6 +313,7 @@ ${EMOJIS.ROBÔ} *Para continuar, você pode:*
 • Digite *4* para Lista de Substitutos Tributários
 • Digite *5* para Taxa de Localização e Funcionamento
 • Digite *6* para Consulta de BCI
+• Digite *7* para Demonstrativo Financeiro
 • Digite *8* para Agendamento de Atendimento
 • Digite *0* para encerrar o atendimento
 
