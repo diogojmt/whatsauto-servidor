@@ -8,6 +8,19 @@ class BciService {
     this.sessoes = new Map(); // Armazena dados das sessões por usuário
     this.apiUrl =
       "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidocumento";
+
+    // CPF fake para contornar validação da API (a API não utiliza na prática)
+    this.cpfFakeBci = "11111111111";
+
+    // Métricas de monitoramento
+    this.metrics = {
+      tentativasConsulta: 0,
+      sucessos: 0,
+      erros: 0,
+      sessoesCriadas: 0,
+      sessoesCanceladas: 0,
+      tempoMedioProcessamento: [],
+    };
   }
 
   /**
@@ -19,12 +32,13 @@ class BciService {
   iniciarConsultaBCI(sender, nome) {
     this.limparSessao(sender);
     this.setSessao(sender, { etapa: "inscricao_imobiliaria", nome });
+    this.metrics.sessoesCriadas++;
 
     return {
       type: "text",
       text: `🏠 *Consulta de BCI - Boletim de Cadastro Imobiliário*
 
-${nome}, vou ajudá-lo a consultar e emitir o Boletim de Cadastro Imobiliário (BCI) do seu imóvel.
+${nome}, vou ajudá-lo a consultar e emitir o Boletim de Cadastro Imobiliário (BCI) do seu imóvel de forma *rápida e automática*!
 
 📋 *O que é o BCI?*
 O Boletim de Cadastro Imobiliário é um documento emitido pela prefeitura que contém informações detalhadas sobre um imóvel, como:
@@ -33,16 +47,17 @@ O Boletim de Cadastro Imobiliário é um documento emitido pela prefeitura que c
 • Valor venal
 • Identificação do proprietário
 
-💡 *Para continuar, preciso da Inscrição Imobiliária:*
+💡 *Para continuar, preciso apenas da Inscrição Imobiliária:*
 
-Este número pode ser encontrado:
+📍 *Este número pode ser encontrado:*
 • No carnê do IPTU
 • Em documentos do imóvel
 • Na escritura do imóvel
+• Portal do Contribuinte
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 000000000012345
+Exemplo: 000000000012345 ou 12345
 
 Ou digite *0* para voltar ao menu principal.`,
     };
@@ -89,6 +104,7 @@ Ou digite *0* para voltar ao menu principal.`,
    * Processa a inscrição imobiliária e executa a consulta
    */
   async processarInscricaoImobiliaria(sender, msg) {
+    const inicioProcessamento = Date.now();
     const sessao = this.getSessao(sender);
 
     // Remove caracteres não numéricos
@@ -97,19 +113,20 @@ Ou digite *0* para voltar ao menu principal.`,
     console.log("[BciService] Processando inscrição imobiliária:", {
       inscricaoOriginal: msg,
       inscricaoLimpa: inscricaoLimpa,
+      usandoCpfFake: true,
     });
 
     // Validação
     if (inscricaoLimpa.length === 0) {
       return {
         type: "text",
-        text: `❌ Inscrição inválida!
+        text: `❌ *Inscrição inválida!*
 
 Por favor, digite apenas números.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 000000000012345
+Exemplo: 000000000012345 ou 12345
 
 Ou *0* para voltar ao menu principal.`,
       };
@@ -118,13 +135,13 @@ Ou *0* para voltar ao menu principal.`,
     if (inscricaoLimpa.length < 2) {
       return {
         type: "text",
-        text: `❌ Inscrição muito curta!
+        text: `❌ *Inscrição muito curta!*
 
 A inscrição imobiliária deve ter pelo menos 2 dígitos.
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
-Exemplo: 000000000012345
+Exemplo: 000000000012345 ou 12345
 
 Ou *0* para voltar ao menu principal.`,
       };
@@ -135,28 +152,21 @@ Ou *0* para voltar ao menu principal.`,
       inscricaoImobiliaria: inscricaoLimpa,
     });
 
-    // Exibir mensagem de consulta
-    await this.enviarMensagemConsultando(sender, inscricaoLimpa);
+    // Executar a consulta diretamente
+    this.metrics.tentativasConsulta++;
 
-    // Executar a consulta
-    return await this.executarConsulta(sender, inscricaoLimpa);
-  }
+    const resultado = await this.executarConsulta(sender, inscricaoLimpa);
 
-  /**
-   * Envia mensagem informando que está consultando
-   */
-  async enviarMensagemConsultando(sender, inscricao) {
-    const sessao = this.getSessao(sender);
+    // Calcular tempo de processamento
+    const tempoProcessamento = Date.now() - inicioProcessamento;
+    this.metrics.tempoMedioProcessamento.push(tempoProcessamento);
 
-    return {
-      type: "text",
-      text: `🔍 *Consultando BCI...*
+    // Manter apenas os últimos 100 tempos para cálculo da média
+    if (this.metrics.tempoMedioProcessamento.length > 100) {
+      this.metrics.tempoMedioProcessamento.shift();
+    }
 
-📋 *Dados informados:*
-• Inscrição Imobiliária: ${inscricao}
-
-⏳ Aguarde, estou consultando o Boletim de Cadastro Imobiliário...`,
-    };
+    return resultado;
   }
 
   /**
@@ -167,7 +177,9 @@ Ou *0* para voltar ao menu principal.`,
 
     console.log(
       "[BciService] Executando consulta BCI com inscrição:",
-      inscricao
+      inscricao,
+      "usando CPF fake:",
+      this.cpfFakeBci
     );
 
     try {
@@ -179,12 +191,15 @@ Ou *0* para voltar ao menu principal.`,
         SSEExercicioDebito: "",
         SSETipoConsumo: "",
         SSENossoNumero: "",
-        SSECPFCNPJ: "",
+        SSECPFCNPJ: this.cpfFakeBci, // Usar CPF fake
         SSEOperacao: "3", // 3 = BCI
         SSEIdentificador: "",
       };
 
-      console.log("[BciService] Parâmetros da API:", parametros);
+      console.log("[BciService] Parâmetros da API:", {
+        ...parametros,
+        SSECPFCNPJ: "***FAKE***", // Mascarar nos logs
+      });
 
       const response = await axios.get(this.apiUrl, {
         headers: {
@@ -199,24 +214,30 @@ Ou *0* para voltar ao menu principal.`,
       console.log("[BciService] Resultado da consulta:", {
         codigo: resultado.SSACodigo,
         mensagem: resultado.SSAMensagem,
+        temLink: !!resultado.SSALinkDocumento,
+        usouCpfFake: true,
       });
 
       if (resultado.SSACodigo === 0 && resultado.SSALinkDocumento) {
         // Sucesso - BCI encontrado
+        this.metrics.sucessos++;
         this.limparSessao(sender);
         return this.formatarSucesso(resultado, sessao.nome);
       } else if (resultado.SSACodigo === 0) {
         // Sucesso mas sem link do documento
+        this.metrics.erros++;
         this.limparSessao(sender);
         return this.formatarSemDocumento(resultado, sessao.nome);
       } else {
         // Erro na consulta
+        this.metrics.erros++;
         this.limparSessao(sender);
         return this.formatarErroConsulta(resultado, sessao.nome);
       }
     } catch (error) {
       console.error("[BciService] Erro na execução da consulta:", error);
 
+      this.metrics.erros++;
       this.limparSessao(sender);
       return {
         type: "text",
@@ -240,7 +261,7 @@ Ou digite *menu* para voltar ao menu principal.`,
   formatarSucesso(resultado, nome) {
     let resposta = `✅ *BCI encontrado com sucesso!*
 
-${nome}, o Boletim de Cadastro Imobiliário foi localizado.
+${nome}, o Boletim de Cadastro Imobiliário foi localizado e está pronto para download!
 
 📋 *Informações do Imóvel:*
 `;
@@ -252,7 +273,7 @@ ${nome}, o Boletim de Cadastro Imobiliário foi localizado.
     if (resultado.SSANomeRazao) {
       resposta += `• **Proprietário:** ${resultado.SSANomeRazao}\n`;
     }
-    if (resultado.SSACPFCNPJ) {
+    if (resultado.SSACPFCNPJ && resultado.SSACPFCNPJ !== this.cpfFakeBci) {
       resposta += `• **CPF/CNPJ:** ${resultado.SSACPFCNPJ}\n`;
     }
     if (resultado.SSALogradouro) {
@@ -280,10 +301,18 @@ ${nome}, o Boletim de Cadastro Imobiliário foi localizado.
     resposta += `\n📄 *Documento BCI:*
 🔗 [Clique aqui para baixar o BCI](${resultado.SSALinkDocumento})
 
-💡 *Importante:*
-• O BCI contém todas as informações cadastrais do imóvel
+⚠️ *IMPORTANTE:*
+• Link temporário - baixe/imprima *AGORA*!
+• Válido por tempo limitado
+• Salve o arquivo no seu celular
+
+💡 *Sobre o BCI:*
+• Contém todas as informações cadastrais do imóvel
 • É utilizado para cálculo do IPTU e outros tributos
-• Guarde o documento em local seguro
+• Documento oficial da Prefeitura
+
+🔄 *Precisa de outro BCI?*
+Digite *6* para nova consulta
 
 📞 *Dúvidas:* smfaz@arapiraca.al.gov.br
 
@@ -309,9 +338,14 @@ ${nome}, o imóvel foi localizado no sistema, mas o documento BCI não está dis
 💡 *O que fazer:*
 • Entre em contato conosco para obter o BCI
 • Compareça pessoalmente à Secretaria da Fazenda
+• Tente novamente mais tarde
+
+🔄 *Tentar novamente?*
+Digite *6* para nova consulta de BCI
 
 📧 *Contato:* smfaz@arapiraca.al.gov.br
 🏛️ *Endereço:* Secretaria da Fazenda Municipal
+📞 *Telefone:* (82) 3539-6000
 
 Digite *menu* para voltar ao menu principal.`,
     };
@@ -333,11 +367,18 @@ ${nome}, não foi possível consultar o BCI no momento.
 • Inscrição imobiliária não encontrada
 • Imóvel não cadastrado no sistema
 • Sistema temporariamente indisponível
+• Dados incorretos
+
+✅ *Dicas para resolver:*
+• Verifique a inscrição no carnê do IPTU
+• Confirme se digitou apenas números
+• Tente sem zeros à esquerda
 
 🔄 *Tentar novamente?*
 Digite *6* para nova consulta de BCI
 
 📧 *Contato:* smfaz@arapiraca.al.gov.br
+📞 *Telefone:* (82) 3539-6000
 
 Ou digite *menu* para voltar ao menu principal.`,
     };
@@ -365,9 +406,161 @@ Ou digite *menu* para voltar ao menu principal.`,
       "dados do imovel",
       "cadastro predial",
       "ficha do imovel",
+      "boletim cadastral",
+      "consulta imovel",
+      "documento imovel",
     ];
 
     return palavrasChave.some((palavra) => msgLimpa.includes(palavra));
+  }
+
+  /**
+   * Obtém métricas do serviço
+   * @returns {object} Métricas atuais
+   */
+  obterMetricas() {
+    const tempoMedio =
+      this.metrics.tempoMedioProcessamento.length > 0
+        ? this.metrics.tempoMedioProcessamento.reduce((a, b) => a + b, 0) /
+          this.metrics.tempoMedioProcessamento.length
+        : 0;
+
+    return {
+      ...this.metrics,
+      tempoMedioProcessamento: Math.round(tempoMedio),
+      taxaSucesso:
+        this.metrics.tentativasConsulta > 0
+          ? Math.round(
+              (this.metrics.sucessos / this.metrics.tentativasConsulta) * 100
+            )
+          : 0,
+      sessoesAtivas: this.sessoes.size,
+    };
+  }
+
+  /**
+   * Reseta métricas (executar periodicamente)
+   */
+  resetarMetricas() {
+    this.metrics.tentativasConsulta = 0;
+    this.metrics.sucessos = 0;
+    this.metrics.erros = 0;
+    this.metrics.sessoesCriadas = 0;
+    this.metrics.sessoesCanceladas = 0;
+    this.metrics.tempoMedioProcessamento = [];
+
+    console.log("[BciService] Métricas resetadas", {
+      timestamp: new Date().toISOString(),
+    });
+  }
+
+  /**
+   * Cancela sessão do usuário
+   * @param {string} sender - ID do usuário
+   * @returns {Object} Mensagem de cancelamento
+   */
+  cancelarSessao(sender) {
+    const sessao = this.getSessao(sender);
+
+    if (sessao) {
+      this.limparSessao(sender);
+      this.metrics.sessoesCanceladas++;
+
+      console.log("[BciService] Sessão cancelada pelo usuário", {
+        sender,
+        sessaoAnterior: sessao,
+        timestamp: new Date().toISOString(),
+      });
+
+      return {
+        type: "text",
+        text: `✅ *Sessão de BCI cancelada!*
+
+Você voltou ao menu principal.
+
+🏠 *Para consultar BCI novamente:*
+Digite *6* ou *bci*
+
+📋 *Outras opções:*
+• Digite *menu* para ver todas as opções
+• Digite *ajuda* para obter suporte`,
+      };
+    }
+
+    return {
+      type: "text",
+      text: `ℹ️ Você não tem nenhuma sessão de BCI ativa no momento.
+
+Digite *menu* para ver as opções disponíveis.`,
+    };
+  }
+
+  /**
+   * Obtém ajuda contextual para BCI
+   * @param {string} sender - ID do usuário
+   * @returns {Object} Mensagem de ajuda
+   */
+  obterAjudaContextual(sender) {
+    const sessao = this.getSessao(sender);
+
+    if (sessao && sessao.etapa === "inscricao_imobiliaria") {
+      return {
+        type: "text",
+        text: `🆘 *Ajuda - Consulta de BCI*
+
+🏠 *Boletim de Cadastro Imobiliário (BCI)*
+
+📍 *Onde encontrar a Inscrição Imobiliária:*
+• Carnê do IPTU
+• Escritura do imóvel
+• Certidões anteriores do imóvel
+• Portal do Contribuinte
+• Documentos da Prefeitura
+
+📝 *Formato correto:*
+• Digite *apenas números*
+• Sem pontos, traços ou espaços
+• Exemplo: 000000000012345 ou 12345
+• Pode ter zeros à esquerda ou não
+
+❌ *Problemas comuns:*
+• Não digite letras ou símbolos
+• Verifique se a inscrição está correta
+• Confirme no carnê do IPTU
+
+🔄 *Para recomeçar:*
+Digite *6* para nova consulta
+
+📞 *Contato:* smfaz@arapiraca.al.gov.br
+
+Digite *0* para voltar ao menu principal.`,
+      };
+    }
+
+    return {
+      type: "text",
+      text: `🆘 *Ajuda - BCI (Boletim de Cadastro Imobiliário)*
+
+🏠 *O que é o BCI?*
+Documento oficial com informações detalhadas do imóvel:
+• Localização e características
+• Área construída e do terreno
+• Valor venal para IPTU
+• Dados do proprietário
+
+🚀 *Para consultar BCI:*
+Digite *6* ou *bci*
+
+📞 *Outros canais:*
+🌐 Portal: https://arapiraca.abaco.com.br/eagata/portal/
+📧 Email: smfaz@arapiraca.al.gov.br
+📞 Telefone: (82) 3539-6000
+
+⏰ *Horário de atendimento:*
+Segunda a Sexta: 7h às 13h
+
+📋 Digite *menu* para ver todas as opções`,
+    };
   }
 
   /**
@@ -418,8 +611,37 @@ Ou digite *menu* para voltar ao menu principal.`,
     return {
       sessoesAtivas: this.sessoes.size,
       usuarios: Array.from(this.sessoes.keys()),
+      metricas: this.obterMetricas(),
     };
   }
+
+  /**
+   * Limpa sessões expiradas (executar periodicamente)
+   */
+  limparSessoesExpiradas() {
+    const agora = Date.now();
+    const TEMPO_EXPIRACAO = 10 * 60 * 1000; // 10 minutos
+
+    for (const [sender, sessao] of this.sessoes.entries()) {
+      if (sessao.timestamp && agora - sessao.timestamp > TEMPO_EXPIRACAO) {
+        console.log("[BciService] Removendo sessão expirada:", sender);
+        this.sessoes.delete(sender);
+        this.metrics.sessoesCanceladas++;
+      }
+    }
+  }
 }
+
+// Configurar limpeza automática de sessões expiradas
+const bciServiceInstance = new BciService();
+
+setInterval(() => {
+  bciServiceInstance.limparSessoesExpiradas();
+}, 5 * 60 * 1000); // A cada 5 minutos
+
+// Configurar reset de métricas diário
+setInterval(() => {
+  bciServiceInstance.resetarMetricas();
+}, 24 * 60 * 60 * 1000); // A cada 24 horas
 
 module.exports = { BciService };
