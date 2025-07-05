@@ -345,7 +345,36 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
   }
 
   /**
-   * Processa a resposta SOAP XML - PARSER APRIMORADO
+   * Processa a resposta SOAP XML - PARSER APRIMORADO COM PADRÕES ÁBACO
+   * 
+   * =================== ATUALIZAÇÃO PARA WEBSERVICE ÁBACO ===================
+   * 
+   * Esta versão foi atualizada para incluir padrões específicos identificados
+   * nos XMLs reais retornados pelo webservice da Ábaco, incluindo:
+   * 
+   * TAGS ÁBACO SUPORTADAS:
+   * - SRPNomeContribuinte: Nome do contribuinte
+   * - SRPCPFCNPJContribuinte: CPF/CNPJ do contribuinte  
+   * - SRPCodigoContribuinte: Código do contribuinte
+   * - SRPInscricaoImovel: Inscrição do imóvel
+   * - SRPEnderecoImovel: Endereço do imóvel
+   * - SRPTipoImovel: Tipo do imóvel (Predial, Terreno, etc.)
+   * - SRPTipoProprietario: Tipo de proprietário (Principal, Co-proprietário, etc.)
+   * - SRPPossuiDebitoImovel: Status de débito (Sim/Não)
+   * - SRPDebitoSuspensoImovel: Débito suspenso (Sim/Não)
+   * 
+   * COMPATIBILIDADE:
+   * - Mantém total retrocompatibilidade com padrões genéricos
+   * - Prioriza padrões específicos da Ábaco quando disponíveis
+   * - Continua funcionando com outros sistemas ou versões futuras
+   * 
+   * COMO ADICIONAR NOVOS PADRÕES:
+   * 1. Identificar a nova tag no XML salvo em /logs/
+   * 2. Adicionar padrão regex na seção "PADRÕES ESPECÍFICOS WEBSERVICE ÁBACO"
+   * 3. Atualizar lógica em extrairDadosCompletos() se necessário
+   * 4. Testar com XML real para validar extração
+   * 
+   * =================== FIM DOCUMENTAÇÃO ATUALIZAÇÃO ===================
    */
   processarRespostaSoap(xmlData) {
     console.log(`[CadastroGeralService] Processando resposta SOAP`);
@@ -483,18 +512,34 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
 
     // PADRÕES PARA EXTRAIR INFORMAÇÕES BÁSICAS DO CONTRIBUINTE
     const padroesDadosBasicos = [
-      // Nome do contribuinte
+      // =================== PADRÕES ESPECÍFICOS WEBSERVICE ÁBACO ===================
+      // Estes padrões foram identificados nos XMLs reais retornados pelo webservice da Ábaco
+      // e têm PRIORIDADE na extração de dados
+      
+      // Nome do contribuinte - Padrão Ábaco
+      /<SRPNomeContribuinte[^>]*>([^<]+)<\/SRPNomeContribuinte>/gi,
+      
+      // CPF/CNPJ - Padrão Ábaco
+      /<SRPCPFCNPJContribuinte[^>]*>([^<]+)<\/SRPCPFCNPJContribuinte>/gi,
+      
+      // Código do contribuinte - Padrão Ábaco
+      /<SRPCodigoContribuinte[^>]*>([^<]+)<\/SRPCodigoContribuinte>/gi,
+      
+      // =================== PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE) ===================
+      // Mantidos para compatibilidade com outros sistemas ou versões futuras
+      
+      // Nome do contribuinte - Padrões genéricos
       /<nome[^>]*>([^<]+)<\/nome>/gi,
       /<nome_contribuinte[^>]*>([^<]+)<\/nome_contribuinte>/gi,
       /<razao_social[^>]*>([^<]+)<\/razao_social>/gi,
       /<denominacao[^>]*>([^<]+)<\/denominacao>/gi,
 
-      // CPF/CNPJ
+      // CPF/CNPJ - Padrões genéricos
       /<cpf[^>]*>([^<]+)<\/cpf>/gi,
       /<cnpj[^>]*>([^<]+)<\/cnpj>/gi,
       /<documento[^>]*>([^<]+)<\/documento>/gi,
 
-      // Código do contribuinte
+      // Código do contribuinte - Padrões genéricos
       /<codigo[^>]*>([^<]+)<\/codigo>/gi,
       /<codigo_contribuinte[^>]*>([^<]+)<\/codigo_contribuinte>/gi,
       /<cod_contribuinte[^>]*>([^<]+)<\/cod_contribuinte>/gi,
@@ -510,7 +555,25 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
         if (valor && valor.length > 0) {
           const source = padrao.source.toLowerCase();
 
-          if (
+          // PRIORIZAR PADRÕES ESPECÍFICOS DO WEBSERVICE ÁBACO
+          if (source.includes("srpnomecontribuinte")) {
+            if (!contribuinte.nome) {
+              contribuinte.nome = valor;
+              encontrado = true;
+            }
+          } else if (source.includes("srpcpfcnpjcontribuinte")) {
+            if (!contribuinte.cpfCnpj && /^\d+$/.test(valor)) {
+              contribuinte.cpfCnpj = valor;
+              encontrado = true;
+            }
+          } else if (source.includes("srpcodigocontribuinte")) {
+            if (!contribuinte.codigo && /^\d+$/.test(valor)) {
+              contribuinte.codigo = valor;
+              encontrado = true;
+            }
+          }
+          // PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE)
+          else if (
             source.includes("nome") ||
             source.includes("razao") ||
             source.includes("denominacao")
@@ -544,14 +607,24 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
 
     // PADRÕES PARA EXTRAIR INFORMAÇÕES DOS IMÓVEIS
     const padroesImoveis = [
-      // Inscrições imobiliárias
+      // =================== PADRÕES ESPECÍFICOS WEBSERVICE ÁBACO ===================
+      // Estes padrões foram identificados nos XMLs reais retornados pelo webservice da Ábaco
+      // e têm PRIORIDADE na extração de dados dos imóveis
+      
+      // Inscrição do imóvel - Padrão Ábaco
+      /<SRPInscricaoImovel[^>]*>([^<]+)<\/SRPInscricaoImovel>/gi,
+      
+      // =================== PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE) ===================
+      // Mantidos para compatibilidade com outros sistemas ou versões futuras
+      
+      // Inscrições imobiliárias - Padrões genéricos
       /<inscricao[^>]*>([^<]+)<\/inscricao>/gi,
       /<inscricao_municipal[^>]*>([^<]+)<\/inscricao_municipal>/gi,
       /<inscricao_imobiliaria[^>]*>([^<]+)<\/inscricao_imobiliaria>/gi,
       /<municipal[^>]*>([^<]+)<\/municipal>/gi,
       /<imobiliaria[^>]*>([^<]+)<\/imobiliaria>/gi,
 
-      // Variações de inscrições
+      // Variações de inscrições - Padrões genéricos
       /<[^>]*inscr[^>]*>([^<]+)<\/[^>]*>/gi,
       /<[^>]*munic[^>]*>([^<]+)<\/[^>]*>/gi,
       /<[^>]*imob[^>]*>([^<]+)<\/[^>]*>/gi,
@@ -589,8 +662,13 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
 
           // Determinar tipo baseado no padrão encontrado
           let tipo = "Municipal"; // Padrão
-
-          if (padrao.source.includes("imob")) {
+          
+          // PRIORIZAR PADRÕES ESPECÍFICOS DO WEBSERVICE ÁBACO
+          if (padrao.source.includes("SRPInscricaoImovel")) {
+            tipo = "Imobiliária"; // Tag específica da Ábaco para imóveis
+          }
+          // PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE)
+          else if (padrao.source.includes("imob")) {
             tipo = "Imobiliária";
           }
 
@@ -629,7 +707,27 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     try {
       // PADRÕES PARA EXTRAIR INFORMAÇÕES DETALHADAS
       const padroesDetalhados = [
-        // Endereços
+        // =================== PADRÕES ESPECÍFICOS WEBSERVICE ÁBACO ===================
+        // Estes padrões foram identificados nos XMLs reais retornados pelo webservice da Ábaco
+        // e têm PRIORIDADE na extração de informações detalhadas dos imóveis
+        
+        // Endereço do imóvel - Padrão Ábaco
+        /<SRPEnderecoImovel[^>]*>([^<]+)<\/SRPEnderecoImovel>/gi,
+        
+        // Tipo do imóvel - Padrão Ábaco
+        /<SRPTipoImovel[^>]*>([^<]+)<\/SRPTipoImovel>/gi,
+        
+        // Tipo de proprietário - Padrão Ábaco
+        /<SRPTipoProprietario[^>]*>([^<]+)<\/SRPTipoProprietario>/gi,
+        
+        // Status de débitos - Padrões Ábaco
+        /<SRPPossuiDebitoImovel[^>]*>([^<]+)<\/SRPPossuiDebitoImovel>/gi,
+        /<SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/SRPDebitoSuspensoImovel>/gi,
+        
+        // =================== PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE) ===================
+        // Mantidos para compatibilidade com outros sistemas ou versões futuras
+        
+        // Endereços - Padrões genéricos
         /<endereco[^>]*>([^<]+)<\/endereco>/gi,
         /<logradouro[^>]*>([^<]+)<\/logradouro>/gi,
         /<rua[^>]*>([^<]+)<\/rua>/gi,
@@ -638,19 +736,19 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
         /<cidade[^>]*>([^<]+)<\/cidade>/gi,
         /<cep[^>]*>([^<]+)<\/cep>/gi,
 
-        // Tipos de imóvel
+        // Tipos de imóvel - Padrões genéricos
         /<tipo_imovel[^>]*>([^<]+)<\/tipo_imovel>/gi,
         /<categoria[^>]*>([^<]+)<\/categoria>/gi,
         /<predial[^>]*>([^<]+)<\/predial>/gi,
         /<terreno[^>]*>([^<]+)<\/terreno>/gi,
 
-        // Tipos de proprietário
+        // Tipos de proprietário - Padrões genéricos
         /<tipo_proprietario[^>]*>([^<]+)<\/tipo_proprietario>/gi,
         /<proprietario[^>]*>([^<]+)<\/proprietario>/gi,
         /<principal[^>]*>([^<]+)<\/principal>/gi,
         /<coproprietario[^>]*>([^<]+)<\/coproprietario>/gi,
 
-        // Débitos
+        // Débitos - Padrões genéricos
         /<debito[^>]*>([^<]+)<\/debito>/gi,
         /<possui_debito[^>]*>([^<]+)<\/possui_debito>/gi,
         /<tem_debito[^>]*>([^<]+)<\/tem_debito>/gi,
@@ -757,8 +855,39 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
    */
   aplicarInformacaoAoImovel(imovel, source, valor) {
     try {
-      // Classificar tipo de informação baseado no padrão
-      if (
+      // PRIORIZAR PADRÕES ESPECÍFICOS DO WEBSERVICE ÁBACO
+      
+      if (source.includes("srpenderecoimovel")) {
+        // Endereço do imóvel - Padrão Ábaco
+        if (!imovel.endereco) {
+          imovel.endereco = valor;
+        } else if (valor !== imovel.endereco) {
+          imovel.endereco = `${imovel.endereco}, ${valor}`;
+        }
+      } else if (source.includes("srptipoimovel")) {
+        // Tipo do imóvel - Padrão Ábaco
+        if (!imovel.tipoImovel) {
+          imovel.tipoImovel = valor;
+        }
+      } else if (source.includes("srptipoproprietario")) {
+        // Tipo de proprietário - Padrão Ábaco
+        if (!imovel.tipoProprietario) {
+          imovel.tipoProprietario = valor;
+        }
+      } else if (source.includes("srppossuidebitoimovel")) {
+        // Status de débito - Padrão Ábaco
+        if (!imovel.possuiDebito) {
+          imovel.possuiDebito = valor;
+        }
+      } else if (source.includes("srpdebitosuspensoimovel")) {
+        // Débito suspenso - Padrão Ábaco
+        if (!imovel.statusDebito) {
+          imovel.statusDebito = valor;
+        }
+      }
+      
+      // PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE)
+      else if (
         source.includes("endereco") ||
         source.includes("logradouro") ||
         source.includes("rua") ||

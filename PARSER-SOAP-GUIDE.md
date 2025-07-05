@@ -1,8 +1,23 @@
-# Guia para Atualização do Parser SOAP - Cadastro Geral
+# Guia para Parser SOAP - Cadastro Geral (ATUALIZADO PARA ÁBACO)
 
 ## 📋 Visão Geral
 
-Este guia explica como atualizar o parser SOAP da funcionalidade "Consulta de Cadastro Geral" (Opção 9) quando recebermos exemplos reais de XML do webservice da Ábaco.
+Este guia explica o parser SOAP da funcionalidade "Consulta de Cadastro Geral" (Opção 9) que foi **ATUALIZADO** para suportar os padrões específicos do webservice da Ábaco.
+
+## 🚀 ATUALIZAÇÃO REALIZADA - PADRÕES ÁBACO
+
+O parser foi atualizado para incluir **padrões específicos** identificados nos XMLs reais da Ábaco:
+
+### ✅ Tags Ábaco Suportadas:
+- `SRPNomeContribuinte` - Nome do contribuinte
+- `SRPCPFCNPJContribuinte` - CPF/CNPJ do contribuinte  
+- `SRPCodigoContribuinte` - Código do contribuinte
+- `SRPInscricaoImovel` - Inscrição do imóvel
+- `SRPEnderecoImovel` - Endereço do imóvel
+- `SRPTipoImovel` - Tipo do imóvel (Predial, Terreno, etc.)
+- `SRPTipoProprietario` - Tipo de proprietário (Principal, Co-proprietário, etc.)
+- `SRPPossuiDebitoImovel` - Status de débito (Sim/Não)
+- `SRPDebitoSuspensoImovel` - Débito suspenso (Sim/Não)
 
 ## 🔍 Logs Detalhados Implementados
 
@@ -22,51 +37,77 @@ Este guia explica como atualizar o parser SOAP da funcionalidade "Consulta de Ca
   - Indicadores de sucesso (success, ok, true, válido)
   - Tipos de resposta (return, response, result, body)
 
-## 🛠️ Como Atualizar o Parser
+## ✅ PADRÕES IMPLEMENTADOS
 
-### Passo 1: Localizar XML Real
+### Padrões Específicos da Ábaco (PRIORIDADE)
+```javascript
+// =================== PADRÕES ESPECÍFICOS WEBSERVICE ÁBACO ===================
+// Estes padrões foram identificados nos XMLs reais retornados pelo webservice da Ábaco
+// e têm PRIORIDADE na extração de dados
+
+// Dados do contribuinte
+/<SRPNomeContribuinte[^>]*>([^<]+)<\/SRPNomeContribuinte>/gi,
+/<SRPCPFCNPJContribuinte[^>]*>([^<]+)<\/SRPCPFCNPJContribuinte>/gi,
+/<SRPCodigoContribuinte[^>]*>([^<]+)<\/SRPCodigoContribuinte>/gi,
+
+// Dados dos imóveis
+/<SRPInscricaoImovel[^>]*>([^<]+)<\/SRPInscricaoImovel>/gi,
+/<SRPEnderecoImovel[^>]*>([^<]+)<\/SRPEnderecoImovel>/gi,
+/<SRPTipoImovel[^>]*>([^<]+)<\/SRPTipoImovel>/gi,
+/<SRPTipoProprietario[^>]*>([^<]+)<\/SRPTipoProprietario>/gi,
+/<SRPPossuiDebitoImovel[^>]*>([^<]+)<\/SRPPossuiDebitoImovel>/gi,
+/<SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/SRPDebitoSuspensoImovel>/gi
+```
+
+### Padrões Genéricos (RETROCOMPATIBILIDADE)
+```javascript
+// =================== PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE) ===================
+// Mantidos para compatibilidade com outros sistemas ou versões futuras
+
+// Dados básicos
+/<nome[^>]*>([^<]+)<\/nome>/gi,
+/<cpf[^>]*>([^<]+)<\/cpf>/gi,
+/<codigo[^>]*>([^<]+)<\/codigo>/gi,
+
+// Inscrições genéricas
+/<inscricao[^>]*>([^<]+)<\/inscricao>/gi,
+/<endereco[^>]*>([^<]+)<\/endereco>/gi,
+/<tipo_imovel[^>]*>([^<]+)<\/tipo_imovel>/gi
+```
+
+## 🛠️ Como Adicionar Novos Padrões da Ábaco
+
+### Passo 1: Identificar Nova Tag no XML
 ```bash
 # Verificar arquivos XML salvos
-ls -la logs/soap_response_*.xml
+dir logs\soap_response_*.xml
 
 # Ver índice de arquivos
-cat logs/soap_responses_index.txt
+type logs\soap_responses_index.txt
 ```
 
-### Passo 2: Analisar Estrutura do XML
-1. Abrir o arquivo XML salvo
-2. Identificar tags que contêm as inscrições
-3. Observar a estrutura: `<tag>valor</tag>`
-
-### Passo 3: Atualizar Padrões no Parser
-Localizar a array `padroesPossveis` na função `processarRespostaSoap` (linha ~308):
+### Passo 2: Adicionar Padrão Específico da Ábaco
+Localizar a seção `PADRÕES ESPECÍFICOS WEBSERVICE ÁBACO` em `extrairDadosCompletos()`:
 
 ```javascript
-const padroesPossveis = [
-  // ADICIONAR NOVOS PADRÕES AQUI
-  // Exemplo: se o XML tem <inscricao_municipal>12345</inscricao_municipal>
-  /<inscricao_municipal[^>]*>([^<]+)<\/inscricao_municipal>/gi,
-  
-  // Exemplo: se o XML tem <numero_inscricao tipo="municipal">12345</numero_inscricao>
-  /<numero_inscricao[^>]*tipo="municipal"[^>]*>([^<]+)<\/numero_inscricao>/gi,
-  
-  // Padrões existentes...
-];
+// =================== PADRÕES ESPECÍFICOS WEBSERVICE ÁBACO ===================
+// ADICIONAR NOVO PADRÃO AQUI
+/<SRPNovoCampo[^>]*>([^<]+)<\/SRPNovoCampo>/gi,
+
+// Padrões existentes...
 ```
 
-### Passo 4: Ajustar Determinação de Tipo
-Se necessário, atualizar a lógica de determinação do tipo de inscrição (linha ~340):
+### Passo 3: Atualizar Lógica de Extração
+Adicionar condição específica para o novo campo:
 
 ```javascript
-// Determinar tipo baseado no padrão encontrado
-let tipo = 'Municipal'; // Padrão
-
-if (padrao.source.includes('imob')) {
-  tipo = 'Imobiliária';
-} else if (padrao.source.includes('munic')) {
-  tipo = 'Municipal';
+// PRIORIZAR PADRÕES ESPECÍFICOS DO WEBSERVICE ÁBACO
+if (source.includes("srpnovocampo")) {
+  if (!contribuinte.novoCampo) {
+    contribuinte.novoCampo = valor;
+    encontrado = true;
+  }
 }
-// ADICIONAR NOVAS CONDIÇÕES AQUI
 ```
 
 ## 📝 Exemplos de Padrões Comuns
