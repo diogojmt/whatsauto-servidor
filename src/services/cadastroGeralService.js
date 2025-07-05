@@ -1233,9 +1233,12 @@ Digite *menu* para voltar ao menu principal.`,
         
         // Mensagem de orientação para casos com muitos imóveis
         textoResposta += `${EMOJIS.ALERTA} *Consulta de Cadastro Geral*\n\n`;
-        textoResposta += `Encontramos mais de ${LIMITE_IMOVEIS} imóveis vinculados a este contribuinte.\n\n`;
+        textoResposta += `Encontramos *${dados.imoveis.length} imóveis* vinculados a este contribuinte.\n\n`;
         textoResposta += `Por questões de segurança e para evitar excesso de informações neste canal, a relação completa de imóveis só pode ser consultada presencialmente na Secretaria Municipal da Fazenda.\n\n`;
-        textoResposta += `Por favor, dirija-se à Secretaria ou utilize os canais oficiais de atendimento para obter a lista completa de imóveis vinculados ao seu CPF/CNPJ.\n\n`;
+        textoResposta += `*📅 Recomendações:*\n`;
+        textoResposta += `• Digite *8* para agendar atendimento presencial\n`;
+        textoResposta += `• Envie email para: smfaz@arapiraca.al.gov.br\n`;
+        textoResposta += `• Compareça presencialmente na Secretaria\n\n`;
         textoResposta += `Digite *menu* para voltar ao menu principal.`;
         
         return {
