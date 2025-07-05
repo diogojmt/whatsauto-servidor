@@ -1224,6 +1224,26 @@ Digite *menu* para voltar ao menu principal.`,
 
     // INFORMAÇÕES DOS IMÓVEIS - APRESENTAÇÃO INDIVIDUAL
     if (dados.imoveis && dados.imoveis.length > 0) {
+      // Limite de exibição de imóveis (medida de proteção e performance)
+      const LIMITE_IMOVEIS = 5;
+      
+      if (dados.imoveis.length > LIMITE_IMOVEIS) {
+        // Log para auditoria
+        console.log(`[CADASTRO GERAL] Consulta bloqueada: ${dados.imoveis.length} imóveis vinculados (limite: ${LIMITE_IMOVEIS})`);
+        
+        // Mensagem de orientação para casos com muitos imóveis
+        textoResposta += `${EMOJIS.ALERTA} *Consulta de Cadastro Geral*\n\n`;
+        textoResposta += `Encontramos mais de ${LIMITE_IMOVEIS} imóveis vinculados a este contribuinte.\n\n`;
+        textoResposta += `Por questões de segurança e para evitar excesso de informações neste canal, a relação completa de imóveis só pode ser consultada presencialmente na Secretaria Municipal da Fazenda.\n\n`;
+        textoResposta += `Por favor, dirija-se à Secretaria ou utilize os canais oficiais de atendimento para obter a lista completa de imóveis vinculados ao seu CPF/CNPJ.\n\n`;
+        textoResposta += `Digite *menu* para voltar ao menu principal.`;
+        
+        return {
+          type: "text",
+          content: textoResposta,
+        };
+      }
+      
       textoResposta += `${EMOJIS.CASA} *Imóveis vinculados:*\n`;
 
       dados.imoveis.forEach((imovel, index) => {
