@@ -114,13 +114,13 @@ const EMOJIS = {
 
   // Específicos do sistema
   DAM: "📄",
-  CERTIDAO: "📜",
-  NFSE: "🧾",
-  SUBSTITUTOS: "📋",
-  TFLF: "💰",
+  CERTIDAO: "📝",
+  NFSE: "💸",
+  SUBSTITUTOS: "👥",
+  TFLF: "🏷️",
   BCI: "🏠",
   DEMONSTRATIVO: "📊",
-  ENCERRAR: "👋",
+  ENCERRAR: "❌",
 
   // Novos emojis para melhor UX
   LOADING: "⏳",
@@ -230,33 +230,36 @@ const LIMITES = {
 
 // Mensagens padrão do sistema
 const MENSAGENS = {
-  MENU_PRINCIPAL: (
-    nome
-  ) => `${EMOJIS.SAUDACAO} *Olá ${nome}!*
+  MENU_PRINCIPAL: (nome) => `${EMOJIS.SAUDACAO} *Olá ${nome}!*
 
 🏛️ *Prefeitura de Arapiraca*
-${EMOJIS.ROBÔ} *Atendimento Virtual da Secretaria da Fazenda*
 
-${EMOJIS.MENU} *MENU PRINCIPAL*
+🤖 *Atendimento Virtual – SMFAZ Atende*
 
-*📋 SERVIÇOS TRIBUTÁRIOS*
+*MENU PRINCIPAL*
 
-*1* ${EMOJIS.DAM} Segunda via de DAM's
-*2* ${EMOJIS.CERTIDAO} Certidões de Regularidade  
-*3* ${EMOJIS.NFSE} NFSe e ISSQN
-*4* ${EMOJIS.SUBSTITUTOS} Lista de Substitutos Tributários
-*5* ${EMOJIS.TFLF} Taxa de Localização e Funcionamento
+*SERVIÇOS TRIBUTÁRIOS*
+*1* ${EMOJIS.DAM} 2ª Via de Boletos/DAM
 
-*🔍 CONSULTAS E OUTROS SERVIÇOS*
+*2* ${EMOJIS.CERTIDAO} Certidões Negativas/Positivas
 
-*6* ${EMOJIS.BCI} Consulta de BCI 
+*3* ${EMOJIS.NFSE} Notas Fiscais (NFSe) e ISSQN
+
+*4* ${EMOJIS.SUBSTITUTOS} Consulta de Substitutos Tributários
+
+*5* ${EMOJIS.TFLF} Taxa de Localização/Funcionamento
+
+*CONSULTAS E OUTROS SERVIÇOS*
+*6* ${EMOJIS.BCI} Consulta de Cadastro Imobiliário (BCI)
+
 *7* ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro
-*8* ${EMOJIS.CALENDARIO} Agendamento de Atendimento
+
+*8* ${EMOJIS.CALENDARIO} Agendar Atendimento
 
 *0* ${EMOJIS.ENCERRAR} Encerrar Atendimento
 
-${EMOJIS.SETA} *Digite o número da opção desejada*
-${EMOJIS.AJUDA} *Ou descreva sua dúvida que posso ajudar!*`,
+🟡 *Digite o número da opção desejada*
+*ou escreva sua dúvida que posso ajudar!*`,
 
   OPCAO_INVALIDA: `${EMOJIS.ERRO} Opção inválida! 
 
