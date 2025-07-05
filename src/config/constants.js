@@ -232,21 +232,43 @@ const LIMITES = {
 const MENSAGENS = {
   MENU_PRINCIPAL: (
     nome
-  ) => `Olá ${nome}! ${EMOJIS.SAUDACAO} Seja bem-vindo ao meu atendimento virtual!
+  ) => `${EMOJIS.SAUDACAO} *Olá ${nome}!*
 
-Escolha uma das opções abaixo digitando o número:
+🏛️ *Prefeitura de Arapiraca - Secretaria da Fazenda*
+${EMOJIS.ROBÔ} *Atendimento Virtual 24h*
 
-*1* - ${EMOJIS.DAM} Segunda via de DAM's
-*2* - ${EMOJIS.CERTIDAO} Certidões de Regularidade Fiscal
-*3* - ${EMOJIS.NFSE} NFSe e ISSQN
-*4* - ${EMOJIS.SUBSTITUTOS} Lista de Substitutos Tributários
-*5* - ${EMOJIS.TFLF} Taxa de Localização e Funcionamento
-*6* - ${EMOJIS.BCI} Consulta de BCI (Boletim de Cadastro Imobiliário)
-*7* - ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro
-*8* - ${EMOJIS.CALENDARIO} Agendamento de Atendimento
-*0* - ${EMOJIS.ENCERRAR} Encerrar Atendimento
+═══════════════════════════
 
-Digite o número da opção desejada ou descreva sua dúvida.`,
+${EMOJIS.MENU} *MENU PRINCIPAL*
+
+*Escolha uma das opções abaixo:*
+
+┌─────────────────────────────────────────┐
+│ *SERVIÇOS TRIBUTÁRIOS*                  │
+├─────────────────────────────────────────┤
+│ *1* ${EMOJIS.DAM} Segunda via de DAM's         │
+│ *2* ${EMOJIS.CERTIDAO} Certidões de Regularidade    │
+│ *3* ${EMOJIS.NFSE} NFSe e ISSQN                 │
+│ *4* ${EMOJIS.SUBSTITUTOS} Lista de Substitutos        │
+│ *5* ${EMOJIS.TFLF} Taxa de Localização           │
+└─────────────────────────────────────────┘
+
+┌─────────────────────────────────────────┐
+│ *CONSULTAS E SERVIÇOS*                  │
+├─────────────────────────────────────────┤
+│ *6* ${EMOJIS.BCI} Consulta de BCI               │
+│ *7* ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro  │
+│ *8* ${EMOJIS.CALENDARIO} Agendamento de Atendimento │
+└─────────────────────────────────────────┘
+
+═══════════════════════════
+
+${EMOJIS.SETA} *Digite o número da opção desejada*
+${EMOJIS.AJUDA} *Ou descreva sua dúvida*
+
+*0* ${EMOJIS.ENCERRAR} Encerrar Atendimento
+
+${EMOJIS.INFO} *Dica:* Posso ajudar com consultas rápidas sobre tributos!`,
 
   OPCAO_INVALIDA: `${EMOJIS.ERRO} Opção inválida! 
 
