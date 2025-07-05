@@ -49,9 +49,9 @@ O Demonstrativo Financeiro é um documento que contém informações detalhadas 
 
 💡 *Para continuar, preciso que você escolha o tipo de contribuinte:*
 
-1️⃣ *Pessoa Física/Jurídica* (Código do Contribuinte Geral)
-2️⃣ *Imóvel* (Inscrição Imobiliária)
-3️⃣ *Empresa* (Inscrição Municipal)
+1️1 - *Pessoa Física/Jurídica* (Código do Contribuinte Geral)
+2️2 - *Imóvel* (Inscrição Imobiliária)
+3️3 - *Empresa* (Inscrição Municipal)
 
 📝 *Digite o número da opção desejada:*
 
@@ -94,7 +94,10 @@ Ou digite *0* para voltar ao menu principal.`,
       case "codigo_contribuinte":
         return await this.processarCodigoContribuinte(sender, msgLimpa);
       default:
-        return this.iniciarConsultaDemonstrativo(sender, sessao.nome || "usuário");
+        return this.iniciarConsultaDemonstrativo(
+          sender,
+          sessao.nome || "usuário"
+        );
     }
   }
 
@@ -103,7 +106,7 @@ Ou digite *0* para voltar ao menu principal.`,
    */
   processarTipoContribuinte(sender, msg) {
     const sessao = this.getSessao(sender);
-    
+
     if (!["1", "2", "3"].includes(msg)) {
       return {
         type: "text",
@@ -123,7 +126,7 @@ Ou digite *0* para voltar ao menu principal.`,
 
     let tipoTexto = "";
     let campoTexto = "";
-    
+
     switch (msg) {
       case "1":
         tipoTexto = "Pessoa Física/Jurídica";
@@ -154,9 +157,13 @@ Ou digite *0* para voltar ao menu principal.`,
 ${sessao.nome}, agora preciso do ${campoTexto}.
 
 📍 *Onde encontrar:*
-${msg === "1" ? "• Documentos da Prefeitura\n• Carnês de tributos\n• Certidões anteriores" : 
-  msg === "2" ? "• Carnê do IPTU\n• Escritura do imóvel\n• Documentos do imóvel\n• Portal do Contribuinte" :
-  "• Alvará de funcionamento\n• Documentos da empresa\n• Certidões municipais"}
+${
+  msg === "1"
+    ? "• Documentos da Prefeitura\n• Carnês de tributos\n• Certidões anteriores"
+    : msg === "2"
+    ? "• Carnê do IPTU\n• Escritura do imóvel\n• Documentos do imóvel\n• Portal do Contribuinte"
+    : "• Alvará de funcionamento\n• Documentos da empresa\n• Certidões municipais"
+}
 
 📝 *Digite apenas os números* (sem pontos, traços ou espaços):
 
@@ -304,7 +311,10 @@ Ou *0* para voltar ao menu principal.`,
         return this.formatarErroConsulta(resultado, sessao);
       }
     } catch (error) {
-      console.error("[DemonstrativoFinanceiroService] Erro na execução da consulta:", error);
+      console.error(
+        "[DemonstrativoFinanceiroService] Erro na execução da consulta:",
+        error
+      );
 
       this.metrics.erros++;
       this.limparSessao(sender);
@@ -387,7 +397,9 @@ Digite *menu* para voltar ao menu principal.`;
       type: "text",
       text: `⚠️ *Contribuinte encontrado, mas documento indisponível*
 
-${sessao.nome}, o ${sessao.tipoTexto} foi localizado no sistema, mas o Demonstrativo Financeiro não está disponível para download no momento.
+${sessao.nome}, o ${
+        sessao.tipoTexto
+      } foi localizado no sistema, mas o Demonstrativo Financeiro não está disponível para download no momento.
 
 📋 *Dados encontrados:*
 • ${sessao.campoTexto}: ${resultado.SSAInscricao || "Não informado"}
@@ -417,7 +429,9 @@ Digite *menu* para voltar ao menu principal.`,
       type: "text",
       text: `❌ *Erro na consulta*
 
-${sessao.nome}, não foi possível consultar o Demonstrativo Financeiro no momento.
+${
+  sessao.nome
+}, não foi possível consultar o Demonstrativo Financeiro no momento.
 
 🔍 *Detalhes:* ${resultado.SSAMensagem || "Erro desconhecido"}
 
@@ -523,11 +537,14 @@ Ou digite *menu* para voltar ao menu principal.`,
       this.limparSessao(sender);
       this.metrics.sessoesCanceladas++;
 
-      console.log("[DemonstrativoFinanceiroService] Sessão cancelada pelo usuário", {
-        sender,
-        sessaoAnterior: sessao,
-        timestamp: new Date().toISOString(),
-      });
+      console.log(
+        "[DemonstrativoFinanceiroService] Sessão cancelada pelo usuário",
+        {
+          sender,
+          sessaoAnterior: sessao,
+          timestamp: new Date().toISOString(),
+        }
+      );
 
       return {
         type: "text",
@@ -592,9 +609,13 @@ Digite *0* para voltar ao menu principal.`,
           text: `🆘 *Ajuda - ${sessao.campoTexto}*
 
 📍 *Onde encontrar o ${sessao.campoTexto}:*
-${sessao.tipoContribuinte === "1" ? "• Documentos da Prefeitura\n• Carnês de tributos\n• Certidões anteriores" : 
-  sessao.tipoContribuinte === "2" ? "• Carnê do IPTU\n• Escritura do imóvel\n• Documentos do imóvel\n• Portal do Contribuinte" :
-  "• Alvará de funcionamento\n• Documentos da empresa\n• Certidões municipais"}
+${
+  sessao.tipoContribuinte === "1"
+    ? "• Documentos da Prefeitura\n• Carnês de tributos\n• Certidões anteriores"
+    : sessao.tipoContribuinte === "2"
+    ? "• Carnê do IPTU\n• Escritura do imóvel\n• Documentos do imóvel\n• Portal do Contribuinte"
+    : "• Alvará de funcionamento\n• Documentos da empresa\n• Certidões municipais"
+}
 
 📝 *Formato correto:*
 • Digite *apenas números*
@@ -649,13 +670,20 @@ Segunda a Sexta: 7h às 13h
 
   setSessao(sender, dados) {
     dados.timestamp = Date.now(); // Adicionar timestamp para expiração
-    console.log("[DemonstrativoFinanceiroService] Definindo sessão:", { sender, dados });
+    console.log("[DemonstrativoFinanceiroService] Definindo sessão:", {
+      sender,
+      dados,
+    });
     this.sessoes.set(sender, dados);
   }
 
   updateSessao(sender, novosDados) {
     const sessaoAtual = this.getSessao(sender) || {};
-    const sessaoAtualizada = { ...sessaoAtual, ...novosDados, timestamp: Date.now() };
+    const sessaoAtualizada = {
+      ...sessaoAtual,
+      ...novosDados,
+      timestamp: Date.now(),
+    };
 
     console.log("[DemonstrativoFinanceiroService] Atualizando sessão:", {
       sender,
@@ -702,7 +730,10 @@ Segunda a Sexta: 7h às 13h
 
     for (const [sender, sessao] of this.sessoes.entries()) {
       if (sessao.timestamp && agora - sessao.timestamp > TEMPO_EXPIRACAO) {
-        console.log("[DemonstrativoFinanceiroService] Removendo sessão expirada:", sender);
+        console.log(
+          "[DemonstrativoFinanceiroService] Removendo sessão expirada:",
+          sender
+        );
         this.sessoes.delete(sender);
         this.metrics.sessoesCanceladas++;
       }
@@ -711,7 +742,8 @@ Segunda a Sexta: 7h às 13h
 }
 
 // Configurar limpeza automática de sessões expiradas
-const demonstrativoFinanceiroServiceInstance = new DemonstrativoFinanceiroService();
+const demonstrativoFinanceiroServiceInstance =
+  new DemonstrativoFinanceiroService();
 
 setInterval(() => {
   demonstrativoFinanceiroServiceInstance.limparSessoesExpiradas();
