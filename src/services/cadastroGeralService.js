@@ -1,16 +1,60 @@
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 const { EMOJIS, ESTADOS } = require('../config/constants');
 const { definirEstadoUsuario, obterEstadoUsuario } = require('./stateService');
 const { validarCPF, validarCNPJ } = require('../utils/validationUtils');
 
 /**
  * Serviço para consulta de Cadastro Geral via WebService SOAP da Ábaco
+ * 
+ * =================== GUIA PARA ATUALIZAÇÃO DO PARSER ===================
+ * 
+ * Como atualizar o parser quando receber exemplos reais de XML:
+ * 
+ * 1. LOCALIZAR ARQUIVOS XML SALVOS:
+ *    - Os XMLs são salvos em: /logs/soap_response_[documento]_[timestamp].xml
+ *    - Índice dos arquivos: /logs/soap_responses_index.txt
+ * 
+ * 2. ANALISAR ESTRUTURA DO XML REAL:
+ *    - Abrir o arquivo XML salvo
+ *    - Identificar as tags que contêm as inscrições
+ *    - Observar a estrutura: <tag>valor</tag>
+ * 
+ * 3. ATUALIZAR OS PADRÕES NO PARSER:
+ *    - Localizar a array 'padroesPossveis' na função 'processarRespostaSoap'
+ *    - Adicionar novos padrões regex baseados na estrutura real
+ *    - Exemplo: se o XML tem <inscricao_municipal>12345</inscricao_municipal>
+ *      Adicionar: /<inscricao_municipal[^>]*>([^<]+)<\/inscricao_municipal>/gi
+ * 
+ * 4. TESTAR E VALIDAR:
+ *    - Fazer uma consulta de teste
+ *    - Verificar se o novo padrão captura os dados corretamente
+ *    - Ajustar o tipo de inscrição na lógica de determinação de tipo
+ * 
+ * 5. PADRÕES COMUNS PARA ADICIONAR:
+ *    - Tags específicas: /<nome_tag[^>]*>([^<]+)<\/nome_tag>/gi
+ *    - Tags com atributos: /<nome_tag[^>]*tipo="municipal"[^>]*>([^<]+)<\/nome_tag>/gi
+ *    - Valores em atributos: /nome_tag="([^"]+)"/gi
+ * 
+ * LOGS DETALHADOS:
+ * - Todos os XMLs são automaticamente salvos em arquivos
+ * - Logs completos são exibidos no console
+ * - Indicadores de erro/sucesso são analisados automaticamente
+ * 
+ * =================== FIM GUIA PARA ATUALIZAÇÃO ===================
  */
 class CadastroGeralService {
   constructor() {
     this.wsdlUrl = "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apwsretornopertences?wsdl";
     this.cache = new Map();
     this.cacheTTL = 5 * 60 * 1000; // 5 minutos
+    
+    // Garantir que a pasta de logs existe
+    this.logsDir = path.join(__dirname, '../../logs');
+    if (!fs.existsSync(this.logsDir)) {
+      fs.mkdirSync(this.logsDir, { recursive: true });
+    }
   }
 
   /**
@@ -240,8 +284,44 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
     
     console.log(`[CadastroGeralService] Resposta recebida - Status: ${response.status}`);
     
+    // LOGS DETALHADOS - Salvar XML completo ANTES de qualquer processamento
+    this.salvarXmlParaAnalise(response.data, documento);
+    
     // Processar resposta XML
     return this.processarRespostaSoap(response.data);
+  }
+
+  /**
+   * Função utilitária para salvar XML completo para análise
+   */
+  salvarXmlParaAnalise(xmlData, documento) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `soap_response_${documento}_${timestamp}.xml`;
+    const filePath = path.join(this.logsDir, fileName);
+    
+    try {
+      // Salvar arquivo XML completo
+      fs.writeFileSync(filePath, xmlData, 'utf8');
+      
+      // Log detalhado no console
+      console.log(`[CadastroGeralService] =================== INÍCIO XML COMPLETO ===================`);
+      console.log(`[CadastroGeralService] Documento: ${documento}`);
+      console.log(`[CadastroGeralService] Timestamp: ${new Date().toISOString()}`);
+      console.log(`[CadastroGeralService] Arquivo salvo: ${fileName}`);
+      console.log(`[CadastroGeralService] Tamanho do XML: ${xmlData.length} caracteres`);
+      console.log(`[CadastroGeralService] ----- XML COMPLETO -----`);
+      console.log(xmlData);
+      console.log(`[CadastroGeralService] ----- FIM XML COMPLETO -----`);
+      console.log(`[CadastroGeralService] =================== FIM XML COMPLETO ===================`);
+      
+      // Arquivo de índice para facilitar localização
+      const indexPath = path.join(this.logsDir, 'soap_responses_index.txt');
+      const indexEntry = `${new Date().toISOString()} - ${documento} - ${fileName}\n`;
+      fs.appendFileSync(indexPath, indexEntry, 'utf8');
+      
+    } catch (error) {
+      console.error(`[CadastroGeralService] Erro ao salvar XML para análise:`, error);
+    }
   }
 
   /**
@@ -250,9 +330,10 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
   processarRespostaSoap(xmlData) {
     console.log(`[CadastroGeralService] Processando resposta SOAP`);
     
-    // Log da resposta para debug (apenas as primeiras linhas para não poluir o log)
-    const xmlDebug = xmlData.substring(0, 500);
-    console.log(`[CadastroGeralService] XML recebido (primeiros 500 chars):`, xmlDebug);
+    // Log da resposta para debug - AGORA MOSTRA XML COMPLETO
+    console.log(`[CadastroGeralService] =================== PROCESSAMENTO XML ===================`);
+    console.log(`[CadastroGeralService] XML completo recebido:`, xmlData);
+    console.log(`[CadastroGeralService] =================== FIM PROCESSAMENTO XML ===================`);
     
     const inscricoes = [];
     
@@ -260,20 +341,33 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
       // Normalizar XML removendo quebras de linha e espaços extras
       const xmlLimpo = xmlData.replace(/\s+/g, ' ').trim();
       
-      // Buscar por diferentes padrões possíveis na resposta XML
+      // PARSER FLEXÍVEL - Buscar por diferentes padrões possíveis na resposta XML
+      // Este parser é adaptativo e pode ser facilmente modificado quando recebermos exemplos reais
       const padroesPossveis = [
-        // Padrões mais específicos
+        // Padrões mais específicos (baseados em nomes conhecidos)
         /<inscricao[^>]*>([^<]+)<\/inscricao>/gi,
         /<inscricao_municipal[^>]*>([^<]+)<\/inscricao_municipal>/gi,
         /<inscricao_imobiliaria[^>]*>([^<]+)<\/inscricao_imobiliaria>/gi,
         /<municipal[^>]*>([^<]+)<\/municipal>/gi,
         /<imobiliaria[^>]*>([^<]+)<\/imobiliaria>/gi,
-        // Padrões mais genéricos
+        
+        // Padrões mais genéricos (capturam variações)
         /<[^>]*inscr[^>]*>([^<]+)<\/[^>]*>/gi,
         /<[^>]*munic[^>]*>([^<]+)<\/[^>]*>/gi,
         /<[^>]*imob[^>]*>([^<]+)<\/[^>]*>/gi,
+        
+        // Padrões para capturar códigos/números em tags genéricas
+        /<codigo[^>]*>([^<]+)<\/codigo>/gi,
+        /<numero[^>]*>([^<]+)<\/numero>/gi,
+        /<id[^>]*>([^<]+)<\/id>/gi,
+        
         // Buscar qualquer número que pareça uma inscrição (6+ dígitos)
-        />(\d{6,})</g
+        />(\d{6,})</g,
+        
+        // Padrões para diferentes formatos de resposta que podem vir
+        /<return[^>]*>([^<]+)<\/return>/gi,
+        /<result[^>]*>([^<]+)<\/result>/gi,
+        /<response[^>]*>([^<]+)<\/response>/gi
       ];
       
       for (const padrao of padroesPossveis) {
@@ -302,17 +396,33 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
         }
       }
       
-      // Verificar se há indicação de erro ou "não encontrado" na resposta
-      const temErro = xmlLimpo.toLowerCase().includes('erro') || 
-                     xmlLimpo.toLowerCase().includes('error') ||
-                     xmlLimpo.toLowerCase().includes('falha') ||
-                     xmlLimpo.toLowerCase().includes('nao encontrado') ||
-                     xmlLimpo.toLowerCase().includes('não encontrado');
+      // ANÁLISE CONTEXTUAL DA RESPOSTA - Verificar diferentes tipos de resposta
+      const xmlLimpoLower = xmlLimpo.toLowerCase();
+      
+      // Verificar se há indicação de erro na resposta
+      const temErro = xmlLimpoLower.includes('erro') || 
+                     xmlLimpoLower.includes('error') ||
+                     xmlLimpoLower.includes('falha') ||
+                     xmlLimpoLower.includes('fault') ||
+                     xmlLimpoLower.includes('exception') ||
+                     xmlLimpoLower.includes('nao encontrado') ||
+                     xmlLimpoLower.includes('não encontrado') ||
+                     xmlLimpoLower.includes('invalid') ||
+                     xmlLimpoLower.includes('inválido');
       
       // Verificar se há indicação de sucesso mas sem dados
-      const temSucesso = xmlLimpo.toLowerCase().includes('sucesso') || 
-                        xmlLimpo.toLowerCase().includes('success') ||
-                        xmlLimpo.toLowerCase().includes('ok');
+      const temSucesso = xmlLimpoLower.includes('sucesso') || 
+                        xmlLimpoLower.includes('success') ||
+                        xmlLimpoLower.includes('ok') ||
+                        xmlLimpoLower.includes('true') ||
+                        xmlLimpoLower.includes('válido') ||
+                        xmlLimpoLower.includes('valido');
+      
+      // Verificar se é uma resposta vazia/nula
+      const temResposta = xmlLimpoLower.includes('return') ||
+                         xmlLimpoLower.includes('response') ||
+                         xmlLimpoLower.includes('result') ||
+                         xmlLimpoLower.includes('body');
       
       if (inscricoes.length === 0) {
         if (temErro) {
@@ -332,14 +442,27 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
             xmlOriginal: xmlData
           };
         } else {
-          console.log(`[CadastroGeralService] Estrutura XML não reconhecida`);
-          console.log(`[CadastroGeralService] XML completo para análise:`, xmlData);
+          console.log(`[CadastroGeralService] =================== ESTRUTURA XML NÃO RECONHECIDA ===================`);
+          console.log(`[CadastroGeralService] Não foi possível extrair dados com os padrões atuais`);
+          console.log(`[CadastroGeralService] Indicadores encontrados:`);
+          console.log(`[CadastroGeralService] - Tem erro: ${temErro}`);
+          console.log(`[CadastroGeralService] - Tem sucesso: ${temSucesso}`);
+          console.log(`[CadastroGeralService] - Tem resposta: ${temResposta}`);
+          console.log(`[CadastroGeralService] - Tamanho XML: ${xmlData.length} caracteres`);
+          console.log(`[CadastroGeralService] XML já foi salvo em arquivo para análise detalhada`);
+          console.log(`[CadastroGeralService] =================== FIM ANÁLISE ESTRUTURA ===================`);
           
           return {
             inscricoes: [],
             encontrado: false,
             estruturaNaoReconhecida: true,
-            xmlOriginal: xmlData
+            xmlOriginal: xmlData,
+            indicadores: {
+              temErro,
+              temSucesso,
+              temResposta,
+              tamanhoXml: xmlData.length
+            }
           };
         }
       }
