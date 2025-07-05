@@ -495,6 +495,17 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
 
   /**
    * Extrai dados completos do XML de resposta
+   *
+   * AJUSTE PARA ELIMINAR DUPLICIDADE DE IMÓVEIS:
+   * - Prioriza extração de imóveis apenas do bloco SDTRetornoPertencesImovel
+   * - Evita incluir códigos de contribuinte como inscrições de imóveis
+   * - Filtra dados para exibir apenas imóveis realmente vinculados
+   *
+   * MOTIVAÇÃO:
+   * O código do contribuinte (SRPCodigoContribuinte) representa o ID único
+   * do contribuinte no sistema, não devendo ser apresentado como se fosse
+   * uma inscrição imobiliária ou municipal. Apenas os imóveis listados
+   * no bloco específico SDTRetornoPertencesImovel devem ser considerados.
    */
   extrairDadosCompletos(xmlLimpo) {
     const contribuinte = {
@@ -610,6 +621,10 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       // Inscrição do imóvel - Padrão Ábaco
       /<SRPInscricaoImovel[^>]*>([^<]+)<\/SRPInscricaoImovel>/gi,
 
+      // Bloco específico de imóveis retornados - Padrão Ábaco
+      /<SDTRetornoPertencesImovelItem[^>]*>([^<]+)<\/SDTRetornoPertencesImovelItem>/gi,
+      /<SDTRetornoPertencesImovel[^>]*>([^<]+)<\/SDTRetornoPertencesImovel>/gi,
+
       // =================== PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE) ===================
       // Mantidos para compatibilidade com outros sistemas ou versões futuras
 
@@ -638,49 +653,129 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       />(\d{6,})</g,
     ];
 
-    // Extrair informações dos imóveis
-    for (const padrao of padroesImoveis) {
-      let match;
-      while ((match = padrao.exec(xmlLimpo)) !== null) {
-        const valor = match[1].trim();
+    // PRIORIZAR EXTRAÇÃO DE IMÓVEIS DO BLOCO ESPECÍFICO
+    // Primeiro, tentar extrair apenas imóveis do bloco SDTRetornoPertencesImovel
+    let imoveisEncontradosNoBlocoEspecifico = false;
 
-        // Filtrar valores válidos
-        if (
-          valor &&
-          valor.length >= 3 &&
-          valor.length <= 20 &&
-          /^\d+$/.test(valor)
-        ) {
-          // Evitar duplicar o próprio CPF/CNPJ como inscrição
-          if (contribuinte.cpfCnpj && valor === contribuinte.cpfCnpj) {
-            continue;
+    // Verificar se existe o bloco específico de imóveis
+    const blocoImoveis =
+      /<SDTRetornoPertencesImovel[^>]*>(.*?)<\/SDTRetornoPertencesImovel>/gi;
+    let matchBloco;
+
+    while ((matchBloco = blocoImoveis.exec(xmlLimpo)) !== null) {
+      const conteudoBlocoImoveis = matchBloco[1];
+
+      // Extrair imóveis apenas deste bloco específico
+      const padraoImovelItem =
+        /<SDTRetornoPertencesImovelItem[^>]*>(.*?)<\/SDTRetornoPertencesImovelItem>/gi;
+      let matchItem;
+
+      while (
+        (matchItem = padraoImovelItem.exec(conteudoBlocoImoveis)) !== null
+      ) {
+        const conteudoItem = matchItem[1];
+
+        // Extrair inscrições dentro deste item específico
+        const padraoInscricao =
+          /<SRPInscricaoImovel[^>]*>([^<]+)<\/SRPInscricaoImovel>/gi;
+        let matchInscricao;
+
+        while ((matchInscricao = padraoInscricao.exec(conteudoItem)) !== null) {
+          const inscricao = matchInscricao[1].trim();
+
+          // Validar inscrição
+          if (
+            inscricao &&
+            inscricao.length >= 3 &&
+            inscricao.length <= 20 &&
+            /^\d+$/.test(inscricao)
+          ) {
+            // Evitar duplicar dados do contribuinte
+            if (
+              (contribuinte.cpfCnpj && inscricao === contribuinte.cpfCnpj) ||
+              (contribuinte.codigo && inscricao === contribuinte.codigo)
+            ) {
+              continue;
+            }
+
+            // Evitar duplicatas
+            const jaExiste = imoveis.some(
+              (imovel) => imovel.inscricao === inscricao
+            );
+            if (!jaExiste) {
+              imoveis.push({
+                inscricao: inscricao,
+                tipo: "Imobiliária",
+                endereco: null,
+                tipoImovel: null,
+                tipoProprietario: null,
+                possuiDebito: null,
+                statusDebito: null,
+              });
+              encontrado = true;
+              imoveisEncontradosNoBlocoEspecifico = true;
+            }
           }
+        }
+      }
+    }
 
-          // Determinar tipo baseado no padrão encontrado
-          let tipo = "Municipal"; // Padrão
+    // Se não encontrou imóveis no bloco específico, usar extração genérica
+    if (!imoveisEncontradosNoBlocoEspecifico) {
+      // Extrair informações dos imóveis com padrões genéricos
+      for (const padrao of padroesImoveis) {
+        let match;
+        while ((match = padrao.exec(xmlLimpo)) !== null) {
+          const valor = match[1].trim();
 
-          // PRIORIZAR PADRÕES ESPECÍFICOS DO WEBSERVICE ÁBACO
-          if (padrao.source.includes("SRPInscricaoImovel")) {
-            tipo = "Imobiliária"; // Tag específica da Ábaco para imóveis
-          }
-          // PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE)
-          else if (padrao.source.includes("imob")) {
-            tipo = "Imobiliária";
-          }
+          // Filtrar valores válidos
+          if (
+            valor &&
+            valor.length >= 3 &&
+            valor.length <= 20 &&
+            /^\d+$/.test(valor)
+          ) {
+            // Evitar duplicar o próprio CPF/CNPJ como inscrição
+            if (contribuinte.cpfCnpj && valor === contribuinte.cpfCnpj) {
+              continue;
+            }
 
-          // Evitar duplicatas
-          const jaExiste = imoveis.some((imovel) => imovel.inscricao === valor);
-          if (!jaExiste) {
-            imoveis.push({
-              inscricao: valor,
-              tipo: tipo,
-              endereco: null,
-              tipoImovel: null,
-              tipoProprietario: null,
-              possuiDebito: null,
-              statusDebito: null,
-            });
-            encontrado = true;
+            // Evitar duplicar o próprio código do contribuinte como inscrição de imóvel
+            // O código do contribuinte não deve ser listado como inscrição imobiliária ou municipal
+            if (contribuinte.codigo && valor === contribuinte.codigo) {
+              continue;
+            }
+
+            // Determinar tipo baseado no padrão encontrado
+            let tipo = "Municipal"; // Padrão
+
+            // PRIORIZAR PADRÕES ESPECÍFICOS DO WEBSERVICE ÁBACO
+            if (padrao.source.includes("SRPInscricaoImovel")) {
+              tipo = "Imobiliária"; // Tag específica da Ábaco para imóveis
+            } else if (padrao.source.includes("SDTRetornoPertencesImovel")) {
+              tipo = "Imobiliária"; // Bloco específico de imóveis da Ábaco
+            }
+            // PADRÕES GENÉRICOS (RETROCOMPATIBILIDADE)
+            else if (padrao.source.includes("imob")) {
+              tipo = "Imobiliária";
+            }
+
+            // Evitar duplicatas
+            const jaExiste = imoveis.some(
+              (imovel) => imovel.inscricao === valor
+            );
+            if (!jaExiste) {
+              imoveis.push({
+                inscricao: valor,
+                tipo: tipo,
+                endereco: null,
+                tipoImovel: null,
+                tipoProprietario: null,
+                possuiDebito: null,
+                statusDebito: null,
+              });
+              encontrado = true;
+            }
           }
         }
       }
@@ -1056,7 +1151,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     const tipoDocumento = documento.length === 11 ? "CPF" : "CNPJ";
     const documentoFormatado = this.formatarDocumento(documento);
 
-    if (!dados.encontrado || (dados.imoveis && dados.imoveis.length === 0)) {
+    if (!dados.encontrado || (dados.imoveis && dados.imoveis.length === 0 && !dados.contribuinte?.nome)) {
       let mensagemEspecifica =
         "Nenhuma inscrição ativa encontrada para este documento.";
       let detalhesAdicionais = `${EMOJIS.DICA} *Isso pode significar:*
@@ -1127,13 +1222,13 @@ Digite *menu* para voltar ao menu principal.`,
       textoResposta += `\n`;
     }
 
-    // INFORMAÇÕES DOS IMÓVEIS
+    // INFORMAÇÕES DOS IMÓVEIS - APRESENTAÇÃO INDIVIDUAL
     if (dados.imoveis && dados.imoveis.length > 0) {
       textoResposta += `${EMOJIS.CASA} *Imóveis vinculados:*\n`;
 
       dados.imoveis.forEach((imovel, index) => {
         const numero = index + 1;
-        textoResposta += `\n*${numero}.* **Inscrição ${imovel.tipo}:** ${imovel.inscricao}\n`;
+        textoResposta += `\n*${numero}.* *Inscrição ${imovel.tipo}:* ${imovel.inscricao}\n`;
 
         if (imovel.endereco) {
           textoResposta += `   ${EMOJIS.LOCALIZACAO} *Endereço:* ${imovel.endereco}\n`;
@@ -1157,6 +1252,13 @@ Digite *menu* para voltar ao menu principal.`,
           textoResposta += `   ${iconeDebito} *Possui débitos:* ${textoDebito}\n`;
         }
       });
+    } else if (
+      dados.contribuinte &&
+      (dados.contribuinte.nome || dados.contribuinte.codigo)
+    ) {
+      // Caso especial: contribuinte encontrado mas sem imóveis vinculados
+      textoResposta += `${EMOJIS.INFO} *Imóveis vinculados:*\n`;
+      textoResposta += `Nenhum imóvel vinculado encontrado para este contribuinte.\n`;
     } else {
       // Fallback para formato antigo (compatibilidade)
       const inscricoesMunicipais = dados.inscricoes
@@ -1190,7 +1292,7 @@ Digite *menu* para voltar ao menu principal.`,
 ${EMOJIS.INTERNET} *Portal:*
 https://arapiraca.abaco.com.br/eagata/portal/
 
-${EMOJIS.DICA} *Obs.:* Use a inscrição imobiliária ou código do contribuinte para acessar outros serviços do sistema.
+${EMOJIS.DICA} *Obs.:* Use a inscrição imobiliária para acessar outros serviços. O código do contribuinte não deve ser usado como inscrição de imóvel.
 
 Digite *menu* para voltar ao menu principal.`;
 
