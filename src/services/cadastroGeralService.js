@@ -32,7 +32,16 @@ class CadastroGeralService {
       'inscricao municipal',
       'inscricao imobiliaria',
       'vinculos',
-      'consultar dados'
+      'consultar dados',
+      'quero consultar',
+      'consultar inscrição',
+      'consulta inscrição',
+      'meu cpf',
+      'meu cnpj',
+      'verificar cpf',
+      'verificar cnpj',
+      'dados do cpf',
+      'dados do cnpj'
     ];
 
     return palavrasChave.some(palavra => msgLimpa.includes(palavra));
@@ -241,45 +250,106 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
   processarRespostaSoap(xmlData) {
     console.log(`[CadastroGeralService] Processando resposta SOAP`);
     
-    // Converter XML para objeto JavaScript (implementação simplificada)
-    // Em produção, considere usar uma biblioteca como xml2js
+    // Log da resposta para debug (apenas as primeiras linhas para não poluir o log)
+    const xmlDebug = xmlData.substring(0, 500);
+    console.log(`[CadastroGeralService] XML recebido (primeiros 500 chars):`, xmlDebug);
+    
     const inscricoes = [];
     
     try {
-      // Buscar por padrões na resposta XML
-      const linhasXml = xmlData.split('\n');
+      // Normalizar XML removendo quebras de linha e espaços extras
+      const xmlLimpo = xmlData.replace(/\s+/g, ' ').trim();
       
-      for (const linha of linhasXml) {
-        // Buscar inscrições municipais
-        const matchInscricaoMunicipal = linha.match(/<inscricao[^>]*>([^<]+)<\/inscricao>/i);
-        if (matchInscricaoMunicipal) {
-          inscricoes.push({
-            tipo: 'Municipal',
-            numero: matchInscricaoMunicipal[1].trim()
-          });
-        }
-        
-        // Buscar inscrições imobiliárias
-        const matchInscricaoImobiliaria = linha.match(/<inscricao_imobiliaria[^>]*>([^<]+)<\/inscricao_imobiliaria>/i);
-        if (matchInscricaoImobiliaria) {
-          inscricoes.push({
-            tipo: 'Imobiliária',
-            numero: matchInscricaoImobiliaria[1].trim()
-          });
+      // Buscar por diferentes padrões possíveis na resposta XML
+      const padroesPossveis = [
+        // Padrões mais específicos
+        /<inscricao[^>]*>([^<]+)<\/inscricao>/gi,
+        /<inscricao_municipal[^>]*>([^<]+)<\/inscricao_municipal>/gi,
+        /<inscricao_imobiliaria[^>]*>([^<]+)<\/inscricao_imobiliaria>/gi,
+        /<municipal[^>]*>([^<]+)<\/municipal>/gi,
+        /<imobiliaria[^>]*>([^<]+)<\/imobiliaria>/gi,
+        // Padrões mais genéricos
+        /<[^>]*inscr[^>]*>([^<]+)<\/[^>]*>/gi,
+        /<[^>]*munic[^>]*>([^<]+)<\/[^>]*>/gi,
+        /<[^>]*imob[^>]*>([^<]+)<\/[^>]*>/gi,
+        // Buscar qualquer número que pareça uma inscrição (6+ dígitos)
+        />(\d{6,})</g
+      ];
+      
+      for (const padrao of padroesPossveis) {
+        let match;
+        while ((match = padrao.exec(xmlLimpo)) !== null) {
+          const valor = match[1].trim();
+          
+          // Filtrar valores válidos (evitar números muito pequenos ou muito grandes)
+          if (valor && valor.length >= 3 && valor.length <= 20 && /^\d+$/.test(valor)) {
+            // Determinar tipo baseado no padrão encontrado
+            let tipo = 'Municipal'; // Padrão
+            
+            if (padrao.source.includes('imob')) {
+              tipo = 'Imobiliária';
+            }
+            
+            // Evitar duplicatas
+            const jaExiste = inscricoes.some(insc => insc.numero === valor);
+            if (!jaExiste) {
+              inscricoes.push({
+                tipo: tipo,
+                numero: valor
+              });
+            }
+          }
         }
       }
       
-      // Se não encontrou padrões específicos, buscar por estrutura genérica
+      // Verificar se há indicação de erro ou "não encontrado" na resposta
+      const temErro = xmlLimpo.toLowerCase().includes('erro') || 
+                     xmlLimpo.toLowerCase().includes('error') ||
+                     xmlLimpo.toLowerCase().includes('falha') ||
+                     xmlLimpo.toLowerCase().includes('nao encontrado') ||
+                     xmlLimpo.toLowerCase().includes('não encontrado');
+      
+      // Verificar se há indicação de sucesso mas sem dados
+      const temSucesso = xmlLimpo.toLowerCase().includes('sucesso') || 
+                        xmlLimpo.toLowerCase().includes('success') ||
+                        xmlLimpo.toLowerCase().includes('ok');
+      
       if (inscricoes.length === 0) {
-        // Implementar parsing mais robusto baseado na estrutura real da resposta
-        // Por enquanto, simular dados para teste
-        console.log(`[CadastroGeralService] Estrutura XML não reconhecida, retornando dados vazios`);
+        if (temErro) {
+          console.log(`[CadastroGeralService] Resposta indica erro no webservice`);
+          return {
+            inscricoes: [],
+            encontrado: false,
+            erro: 'Erro reportado pelo webservice',
+            xmlOriginal: xmlData
+          };
+        } else if (temSucesso) {
+          console.log(`[CadastroGeralService] Resposta indica sucesso mas sem dados`);
+          return {
+            inscricoes: [],
+            encontrado: false,
+            semDados: true,
+            xmlOriginal: xmlData
+          };
+        } else {
+          console.log(`[CadastroGeralService] Estrutura XML não reconhecida`);
+          console.log(`[CadastroGeralService] XML completo para análise:`, xmlData);
+          
+          return {
+            inscricoes: [],
+            encontrado: false,
+            estruturaNaoReconhecida: true,
+            xmlOriginal: xmlData
+          };
+        }
       }
+      
+      console.log(`[CadastroGeralService] Encontradas ${inscricoes.length} inscrições:`, inscricoes);
       
       return {
         inscricoes: inscricoes,
         encontrado: inscricoes.length > 0,
-        xmlOriginal: xmlData // Para debug
+        xmlOriginal: xmlData
       };
       
     } catch (error) {
@@ -287,7 +357,8 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
       return {
         inscricoes: [],
         encontrado: false,
-        erro: error.message
+        erro: error.message,
+        xmlOriginal: xmlData
       };
     }
   }
@@ -300,6 +371,34 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
     const documentoFormatado = this.formatarDocumento(documento);
     
     if (!dados.encontrado || dados.inscricoes.length === 0) {
+      let mensagemEspecifica = "Nenhuma inscrição ativa encontrada para este documento.";
+      let detalhesAdicionais = `${EMOJIS.DICA} *Isso pode significar:*
+• O documento não possui inscrições no sistema
+• As inscrições estão inativas
+• O documento foi digitado incorretamente`;
+
+      // Personalizar mensagem baseada no tipo de resposta
+      if (dados.erro) {
+        mensagemEspecifica = "Erro ao consultar o sistema. Tente novamente em alguns minutos.";
+        detalhesAdicionais = `${EMOJIS.FERRAMENTA} *Detalhes técnicos:*
+• Sistema temporariamente indisponível
+• Verifique sua conexão com a internet`;
+      } else if (dados.estruturaNaoReconhecida) {
+        mensagemEspecifica = "Consulta realizada com sucesso, mas a resposta precisa ser analisada.";
+        detalhesAdicionais = `${EMOJIS.INFO} *O que aconteceu:*
+• A consulta foi enviada ao sistema da Ábaco
+• A resposta foi recebida mas está em formato diferente do esperado
+• Nossa equipe técnica analisará a estrutura da resposta
+
+${EMOJIS.TELEFONE} *Contate o suporte para análise:*
+smfaz@arapiraca.al.gov.br`;
+      } else if (dados.semDados) {
+        mensagemEspecifica = "Sistema consultado com sucesso - nenhuma inscrição vinculada.";
+        detalhesAdicionais = `${EMOJIS.SUCESSO} *Confirmação:*
+• Consulta realizada com sucesso
+• O documento não possui inscrições ativas no momento`;
+      }
+
       return {
         type: 'text',
         text: `${EMOJIS.BUSCA} *Consulta de Cadastro Geral*
@@ -307,12 +406,9 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`
 ${EMOJIS.DOCUMENTO} *${tipoDocumento}:* ${documentoFormatado}
 
 ${EMOJIS.INFO} *Resultado:*
-Nenhuma inscrição ativa encontrada para este documento.
+${mensagemEspecifica}
 
-${EMOJIS.DICA} *Isso pode significar:*
-• O documento não possui inscrições no sistema
-• As inscrições estão inativas
-• O documento foi digitado incorretamente
+${detalhesAdicionais}
 
 ${EMOJIS.INTERNET} *Portal do Contribuinte:*
 https://arapiraca.abaco.com.br/eagata/portal/
