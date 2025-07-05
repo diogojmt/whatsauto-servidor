@@ -17,6 +17,7 @@ const { DebitosService } = require("../services/debitosService");
 const { BciService } = require("../services/bciService");
 const { DemonstrativoFinanceiroService } = require("../services/demonstrativoFinanceiroService");
 const { AgendamentoFluxoService } = require("../services/agendamentoFluxoService");
+const { IntentionService } = require("../services/intentionService");
 
 const {
   ESTADOS,
@@ -74,6 +75,7 @@ const debitosService = new DebitosService();
 const bciService = new BciService();
 const demonstrativoFinanceiroService = new DemonstrativoFinanceiroService();
 const agendamentoFluxoService = new AgendamentoFluxoService();
+const intentionService = new IntentionService();
 
 /**
  * Verifica se a mensagem contém palavras de agradecimento
@@ -230,6 +232,70 @@ async function processarMensagem(
 
   const msgLimpa = normalizarTexto(message);
   const estadoAtual = obterEstadoUsuario(sender);
+
+  // ======= NOVO SISTEMA DE DETECÇÃO DE INTENÇÕES =======
+  // Detectar intenções globalmente, exceto em estados críticos
+  const estadosCriticos = [
+    ESTADOS.AGUARDANDO_CPF_CNPJ,
+    ESTADOS.AGUARDANDO_INSCRICAO,
+  ];
+
+  if (!estadosCriticos.includes(estadoAtual)) {
+    const detectionResult = intentionService.detectIntentions(message, sender, estadoAtual);
+    
+    // Log para debug
+    console.log("🎯 [IntentionService] Detecção:", {
+      sender,
+      confidence: detectionResult.confidence,
+      topIntentions: detectionResult.intentions.slice(0, 3).map(i => ({
+        id: i.id,
+        name: i.intention.name,
+        confidence: i.confidence
+      })),
+      context: detectionResult.context,
+    });
+
+    // Processar intenções se há confiança suficiente
+    if (detectionResult.confidence > 30) {
+      const intentionResponse = intentionService.processIntentions(detectionResult, sender, nome);
+      
+      if (intentionResponse) {
+        console.log("✅ [IntentionService] Processando intenção:", {
+          type: intentionResponse.type,
+          action: intentionResponse.action,
+          confidence: intentionResponse.confidence,
+        });
+
+        // Processar diferentes tipos de resposta de intenção
+        if (intentionResponse.type === "redirect") {
+          if (intentionResponse.action === "menu_principal") {
+            definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+            return gerarMenuPrincipal(nome);
+          }
+        }
+
+        // Processar ações específicas das intenções
+        if (intentionResponse.action) {
+          const actionResult = await processarAcaoIntencao(
+            intentionResponse.action,
+            sender,
+            nome,
+            intentionResponse.intention
+          );
+          
+          if (actionResult) {
+            return actionResult;
+          }
+        }
+
+        // Retornar resposta da intenção se não foi processada acima
+        if (intentionResponse.message) {
+          return intentionResponse.message;
+        }
+      }
+    }
+  }
+  // ======= FIM DO SISTEMA DE DETECÇÃO DE INTENÇÕES =======
 
   // Verificar se está no fluxo de consulta de débitos
   if (estadoAtual.startsWith("debitos_")) {
@@ -541,6 +607,70 @@ async function processarMensagem(
   return gerarRespostaPadrao(nome);
 }
 
+/**
+ * Processa ações específicas das intenções detectadas
+ * @param {string} action - Ação da intenção
+ * @param {string} sender - ID do usuário
+ * @param {string} nome - Nome do usuário
+ * @param {Object} intention - Dados da intenção
+ * @returns {Object|null} Resultado da ação ou null
+ */
+async function processarAcaoIntencao(action, sender, nome, intention) {
+  console.log("🔧 [MessageHandler] Processando ação de intenção:", {
+    action,
+    sender,
+    intentionId: intention?.id,
+  });
+
+  switch (action) {
+    case "initiate_debitos":
+      definirEstadoUsuario(sender, ESTADOS.DEBITOS_ATIVO);
+      const resultadoDebitos = debitosService.iniciarConsultaDebitos(sender, nome);
+      return resultadoDebitos.type === "text" ? resultadoDebitos.text : resultadoDebitos;
+
+    case "initiate_certidoes":
+      return iniciarFluxoCertidao(sender, nome);
+
+    case "initiate_nfse":
+      definirEstadoUsuario(sender, ESTADOS.OPCAO_3_NFSE);
+      return gerarMenuNFSe(nome);
+
+    case "initiate_bci":
+      definirEstadoUsuario(sender, ESTADOS.BCI_ATIVO);
+      const resultadoBci = bciService.iniciarConsultaBCI(sender, nome);
+      return resultadoBci.type === "text" ? resultadoBci.text : resultadoBci;
+
+    case "initiate_agendamento":
+      definirEstadoUsuario(sender, ESTADOS.AGENDAMENTO_ATIVO);
+      return await agendamentoFluxoService.iniciarFluxoAgendamento(sender, nome);
+
+    case "initiate_tflf":
+      definirEstadoUsuario(sender, ESTADOS.OPCAO_5_TFLF);
+      return gerarMenuTFLF(nome);
+
+    case "initiate_demonstrativo":
+      definirEstadoUsuario(sender, ESTADOS.OPCAO_7_DEMONSTRATIVO);
+      const resultadoDemonstrativo = demonstrativoFinanceiroService.iniciarConsultaDemonstrativo(sender, nome);
+      return resultadoDemonstrativo.type === "text" ? resultadoDemonstrativo.text : resultadoDemonstrativo;
+
+    case "initiate_substitutos":
+      return gerarRespostaSubstitutos(nome);
+
+    case "initiate_atendente":
+      return gerarRespostaAtendente(nome);
+
+    case "choose_intention":
+      // Ação especial para escolha entre múltiplas intenções
+      // Será processada pelo usuário digitando o número da opção
+      return null;
+
+    default:
+      console.warn("⚠️ [MessageHandler] Ação de intenção não reconhecida:", action);
+      return null;
+  }
+}
+
 module.exports = {
   processarMensagem,
+  processarAcaoIntencao,
 };

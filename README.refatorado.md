@@ -23,19 +23,29 @@ Sistema de atendimento virtual refatorado para a Prefeitura de Arapiraca.
 - Melhor tratamento de erros
 - Log mais estruturado
 
+### 🎯 **NOVO: Sistema Inteligente de Detecção de Intenções**
+- **Detecção global e contextual** de intenções em qualquer momento da conversa
+- **Processamento automático** de intenções com diferentes níveis de confiança
+- **Mudança de assunto** fluida e natural durante a conversa
+- **Sistema extensível** para fácil adição de novas intenções
+- **Configuração modular** baseada em palavras-chave e frases
+- **Análise de contexto** para melhor experiência conversacional
+
 ## 📁 Estrutura de Arquivos
 
 ```
 ├── src/
 │   ├── config/
-│   │   └── constants.js          # Constantes e configurações
+│   │   ├── constants.js          # Constantes e configurações
+│   │   └── intentions.js         # 🆕 Configuração de intenções
 │   ├── utils/
 │   │   ├── textUtils.js          # Utilitários de texto
 │   │   ├── dataLoader.js         # Carregamento de dados
 │   │   └── mediaUtils.js         # Utilitários de mídia
 │   ├── services/
 │   │   ├── searchService.js      # Serviços de busca
-│   │   └── stateService.js       # Gerenciamento de estado
+│   │   ├── stateService.js       # Gerenciamento de estado
+│   │   └── intentionService.js   # 🆕 Serviço de detecção de intenções
 │   ├── responses/
 │   │   ├── menuResponses.js      # Respostas de menus
 │   │   ├── damResponses.js       # Respostas de DAM
@@ -43,8 +53,10 @@ Sistema de atendimento virtual refatorado para a Prefeitura de Arapiraca.
 │   │   ├── nfseResponses.js      # Respostas de NFSe
 │   │   ├── tFLFResponses.js      # Respostas de TFLF
 │   │   └── searchResponses.js    # Respostas de busca
-│   └── handlers/
-│       └── messageHandler.js     # Handler principal de mensagens
+│   ├── handlers/
+│   │   └── messageHandler.js     # Handler principal de mensagens (🔄 atualizado)
+│   └── examples/                 # 🆕 Exemplos e documentação
+│       └── addNewIntention.js    # Como adicionar novas intenções
 ├── index.refatorado.js           # Servidor principal refatorado
 ├── index.js                      # Servidor original (mantido)
 └── README.refatorado.md          # Esta documentação
@@ -131,6 +143,53 @@ Se houver problemas com a versão refatorada:
 3. Verifique os logs do console para erros
 4. Use `GET /status` para verificar se os dados foram carregados
 
+## 🎯 Sistema de Detecção de Intenções
+
+### Como Funciona
+
+O novo sistema de detecção de intenções permite que o chatbot identifique automaticamente o que o usuário quer fazer, independentemente do ponto da conversa em que está.
+
+### Características Principais
+
+- **Global**: Funciona em qualquer momento da conversa
+- **Contextual**: Considera o estado atual do usuário
+- **Inteligente**: Calcula níveis de confiança
+- **Extensível**: Fácil adicionar novas intenções
+- **Não invasivo**: Não quebra fluxos existentes
+
+### Intenções Configuradas
+
+1. **DEBITOS** - Consulta de débitos e DAM
+2. **CERTIDOES** - Emissão de certidões
+3. **NFSE** - Nota Fiscal de Serviços
+4. **BCI** - Cadastro Imobiliário
+5. **AGENDAMENTO** - Agendamento de atendimentos
+6. **TFLF** - Taxa de Fiscalização
+7. **DEMONSTRATIVO** - Demonstrativo Financeiro
+8. **SUBSTITUTOS** - Substitutos Tributários
+9. **ATENDENTE** - Falar com atendente humano
+
+### Exemplos de Uso
+
+```
+Usuário: "Preciso pagar meu IPTU"
+Bot: "🎯 Detectei sua intenção - você quer consultar débitos? ..."
+
+Usuário: "Quero uma certidão negativa"
+Bot: "🎯 Detectei sua intenção - você quer emitir certidões? ..."
+
+Usuário: "Na verdade, prefiro agendar um atendimento"
+Bot: "🔄 Mudança de assunto detectada - você quer Agendamento? ..."
+```
+
+### Como Adicionar Novas Intenções
+
+1. **Configurar a intenção** em `src/config/intentions.js`
+2. **Implementar a ação** em `src/handlers/messageHandler.js`
+3. **Testar usando** `src/examples/addNewIntention.js`
+
+Veja exemplo completo em [`src/examples/addNewIntention.js`](src/examples/addNewIntention.js).
+
 ## 📝 Próximos Passos Sugeridos
 
 1. **Testes automatizados** para garantir qualidade
@@ -138,3 +197,4 @@ Se houver problemas com a versão refatorada:
 3. **Rate limiting** para proteção contra spam
 4. **Métricas de uso** para análise de comportamento
 5. **Interface administrativa** para gestão
+6. **Machine Learning** para melhorar detecção de intenções

@@ -1,0 +1,125 @@
+ESTRUTURA DE PASTAS E ARQUIVOS - WHATSAUTO CHATBOT
+=========================================================
+
+📁 whatsauto-servidor/
+├── 📁 .git/                                    # Controle de versão Git
+├── 📁 home/                                    # Diretório home
+├── 📁 imagens/                                 # Imagens do chatbot
+├── 📁 logs/                                    # Arquivos de log
+├── 📁 node_modules/                            # Dependências Node.js
+├── 📁 src/                                     # Código fonte principal
+│   ├── 📁 config/                              # Configurações
+│   │   └── constants.js                        # Constantes globais
+│   ├── 📁 handlers/                            # Manipuladores de mensagens
+│   │   └── messageHandler.js                   # Handler principal
+│   ├── 📁 responses/                           # Respostas do chatbot
+│   │   ├── certidaoResponses.js                # Respostas de certidões
+│   │   ├── damResponses.js                     # Respostas de DAM
+│   │   ├── menuResponses.js                    # Respostas de menus
+│   │   ├── nfseResponses.js                    # Respostas de NFSe
+│   │   ├── searchResponses.js                  # Respostas de busca
+│   │   └── tFLFResponses.js                    # Respostas de TFLF
+│   ├── 📁 services/                            # Serviços de negócio
+│   │   ├── agendamentoFluxoService.js          # Serviço de agendamento
+│   │   ├── agendamentoService.js               # Serviço de agendamento base
+│   │   ├── bciService.js                       # Serviço de BCI
+│   │   ├── certidaoService.js                  # Serviço de certidões
+│   │   ├── debitosService.js                   # Serviço de débitos
+│   │   ├── demonstrativoFinanceiroService.js   # Serviço financeiro
+│   │   ├── searchService.js                    # Serviço de busca
+│   │   └── stateService.js                     # Gerenciamento de estado
+│   └── 📁 utils/                               # Utilitários
+│       ├── certidaoApi.js                      # API de certidões
+│       ├── consultaApi.js                      # API de consultas
+│       ├── dataLoader.js                       # Carregador de dados
+│       ├── debitosApi.js                       # API de débitos
+│       ├── logger.js                           # Sistema de logs
+│       ├── mediaUtils.js                       # Utilitários de mídia
+│       └── textUtils.js                        # Utilitários de texto
+├── .gitignore                                  # Arquivos ignorados pelo Git
+├── .replit                                     # Configuração Replit
+├── AGENDAMENTO-SETUP.md                        # Setup do agendamento
+├── DEPLOY.md                                   # Documentação de deploy
+├── exemplo-agendamento.js                      # Exemplo de agendamento
+├── FUNCIONALIDADE-DEBITOS.md                   # Documentação de débitos
+├── generated-icon.png                          # Ícone gerado
+├── index.baileys.js                            # Servidor Baileys WhatsApp
+├── index.js                                    # Servidor principal Express
+├── ISS_Arapiraca.txt                          # Dados ISS Arapiraca
+├── package-lock.json                          # Lock de dependências
+├── package.json                               # Configuração do projeto
+├── README-NOVA-FUNCIONALIDADE.md               # Documentação nova funcionalidade
+├── README.refatorado.md                       # Documentação refatorada
+├── setup-google-auth.js                       # Setup autenticação Google
+├── TESTES.md                                  # Documentação de testes
+└── vlr_tlf_20_25.txt                          # Dados TFLF valores
+
+PRINCIPAIS ARQUIVOS POR FUNCIONALIDADE:
+======================================
+
+🎯 ENTRADA DE MENSAGENS:
+- index.js                    # Servidor Express principal
+- index.baileys.js            # Servidor WhatsApp Web
+- messageHandler.js           # Processamento de mensagens
+
+🔧 SERVIÇOS PRINCIPAIS:
+- debitosService.js           # Consulta de débitos/DAM
+- certidaoService.js          # Emissão de certidões
+- bciService.js               # Cadastro imobiliário
+- agendamentoFluxoService.js  # Agendamentos
+
+🌐 INTEGRAÇÕES API:
+- debitosApi.js               # API débitos Prefeitura
+- certidaoApi.js              # API certidões Ábaco
+- consultaApi.js              # API consultas gerais
+
+💬 RESPOSTAS:
+- menuResponses.js            # Menus principais
+- damResponses.js             # Respostas DAM
+- nfseResponses.js            # Respostas NFSe
+- certidaoResponses.js        # Respostas certidões
+
+⚙️ CONFIGURAÇÃO:
+- constants.js                # Configurações globais
+- package.json                # Dependências projeto
+
+📊 DADOS:
+- ISS_Arapiraca.txt          # Base dados ISS
+- vlr_tlf_20_25.txt          # Base dados TFLF
+
+DEPENDÊNCIAS PRINCIPAIS:
+========================
+- @whiskeysockets/baileys     # WhatsApp Web API
+- express                     # Servidor web
+- axios                       # Cliente HTTP
+- googleapis                  # Google APIs
+- qrcode-terminal            # QR Code terminal
+
+SCRIPTS DISPONÍVEIS:
+===================
+- npm start                   # Inicia servidor Express
+- npm run dev                 # Desenvolvimento com nodemon
+- npm run baileys             # Inicia servidor Baileys
+
+PORTAS E ENDPOINTS:
+==================
+- HTTP: 3000 (padrão)
+- POST /                      # Webhook principal
+- POST /mensagem              # Webhook alternativo
+- GET /                       # Health check
+- GET /status                 # Status do sistema
+- POST /reload                # Recarregar dados
+
+FUNCIONALIDADES IMPLEMENTADAS:
+==============================
+✅ Consulta de débitos/DAM
+✅ Emissão de certidões
+✅ Consulta NFSe/ISS
+✅ Cadastro imobiliário (BCI)
+✅ Agendamento de atendimentos
+✅ TFLF (Taxa de Fiscalização)
+✅ Demonstrativo financeiro
+✅ Captura automática de nome
+✅ Gerenciamento de estado
+✅ Prevenção de loops
+✅ Monitoramento e logs
