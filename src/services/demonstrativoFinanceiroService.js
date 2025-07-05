@@ -49,9 +49,9 @@ O Demonstrativo Financeiro é um documento que contém informações detalhadas 
 
 💡 *Para continuar, preciso que você escolha o tipo de contribuinte:*
 
-1️1 - *Pessoa Física/Jurídica* (Código do Contribuinte Geral)
-2️2 - *Imóvel* (Inscrição Imobiliária)
-3️3 - *Empresa* (Inscrição Municipal)
+1 - *Pessoa Física/Jurídica* (Código do Contribuinte Geral)
+2 - *Imóvel* (Inscrição Imobiliária)
+3 - *Empresa* (Inscrição Municipal)
 
 📝 *Digite o número da opção desejada:*
 
