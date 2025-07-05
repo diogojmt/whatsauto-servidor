@@ -18,6 +18,7 @@ const { BciService } = require("../services/bciService");
 const { DemonstrativoFinanceiroService } = require("../services/demonstrativoFinanceiroService");
 const { AgendamentoFluxoService } = require("../services/agendamentoFluxoService");
 const { IntentionService } = require("../services/intentionService");
+const { CadastroGeralService } = require("../services/cadastroGeralService");
 
 const {
   ESTADOS,
@@ -76,6 +77,7 @@ const bciService = new BciService();
 const demonstrativoFinanceiroService = new DemonstrativoFinanceiroService();
 const agendamentoFluxoService = new AgendamentoFluxoService();
 const intentionService = new IntentionService();
+const cadastroGeralService = new CadastroGeralService();
 
 /**
  * Verifica se a mensagem contém palavras de agradecimento
@@ -362,6 +364,24 @@ async function processarMensagem(
     }
   }
 
+  // Verificar se está no fluxo de Cadastro Geral
+  if (estadoAtual === ESTADOS.OPCAO_9_CADASTRO_GERAL) {
+    const resultado = await cadastroGeralService.processarEtapa(sender, message);
+
+    // Se for redirecionamento, processar conforme a ação
+    if (resultado.type === "redirect") {
+      if (resultado.action === "menu_principal") {
+        definirEstadoUsuario(sender, ESTADOS.MENU_PRINCIPAL);
+        return gerarMenuPrincipal(nome);
+      }
+    }
+
+    if (resultado.type === "text") {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
   // Verificar mensagens de agradecimento
   if (ehMensagemAgradecimento(msgLimpa)) {
     return gerarRespostaAgradecimento(nome);
@@ -403,6 +423,16 @@ async function processarMensagem(
   if (demonstrativoFinanceiroService.detectarIntencaoDemonstrativo(message)) {
     definirEstadoUsuario(sender, ESTADOS.OPCAO_7_DEMONSTRATIVO);
     const resultado = demonstrativoFinanceiroService.iniciarConsultaDemonstrativo(sender, nome);
+    if (resultado.type === "text") {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
+  // Detecção de intenção para Cadastro Geral
+  if (cadastroGeralService.detectarIntencaoCadastroGeral(message)) {
+    definirEstadoUsuario(sender, ESTADOS.OPCAO_9_CADASTRO_GERAL);
+    const resultado = cadastroGeralService.iniciarConsultaCadastroGeral(sender, nome);
     if (resultado.type === "text") {
       return resultado.text;
     }
@@ -544,6 +574,16 @@ async function processarMensagem(
     return await agendamentoFluxoService.iniciarFluxoAgendamento(sender, nome);
   }
 
+  // Opção 9 - Cadastro Geral
+  if (opcao === "9" || msgLimpa.includes("opcao 9")) {
+    definirEstadoUsuario(sender, ESTADOS.OPCAO_9_CADASTRO_GERAL);
+    const resultado = cadastroGeralService.iniciarConsultaCadastroGeral(sender, nome);
+    if (resultado.type === "text") {
+      return resultado.text;
+    }
+    return resultado;
+  }
+
   // Opção 0 - Encerrar
   if (
     opcao === "0" ||
@@ -655,6 +695,11 @@ async function processarAcaoIntencao(action, sender, nome, intention) {
 
     case "initiate_substitutos":
       return gerarRespostaSubstitutos(nome);
+
+    case "initiate_cadastro_geral":
+      definirEstadoUsuario(sender, ESTADOS.OPCAO_9_CADASTRO_GERAL);
+      const resultadoCadastro = cadastroGeralService.iniciarConsultaCadastroGeral(sender, nome);
+      return resultadoCadastro.type === "text" ? resultadoCadastro.text : resultadoCadastro;
 
     case "initiate_atendente":
       return gerarRespostaAtendente(nome);

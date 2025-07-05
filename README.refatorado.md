@@ -22,6 +22,7 @@ Sistema de atendimento virtual refatorado para a Prefeitura de Arapiraca.
 - Endpoint `/reload` para recarregar dados sem reiniciar
 - Melhor tratamento de erros
 - Log mais estruturado
+- **🆕 Consulta de Cadastro Geral** - Opção 9 no menu principal
 
 ### 🎯 **NOVO: Sistema Inteligente de Detecção de Intenções**
 - **Detecção global e contextual** de intenções em qualquer momento da conversa
@@ -41,11 +42,13 @@ Sistema de atendimento virtual refatorado para a Prefeitura de Arapiraca.
 │   ├── utils/
 │   │   ├── textUtils.js          # Utilitários de texto
 │   │   ├── dataLoader.js         # Carregamento de dados
-│   │   └── mediaUtils.js         # Utilitários de mídia
+│   │   ├── mediaUtils.js         # Utilitários de mídia
+│   │   └── validationUtils.js    # 🆕 Utilitários de validação (CPF/CNPJ)
 │   ├── services/
 │   │   ├── searchService.js      # Serviços de busca
 │   │   ├── stateService.js       # Gerenciamento de estado
-│   │   └── intentionService.js   # 🆕 Serviço de detecção de intenções
+│   │   ├── intentionService.js   # 🆕 Serviço de detecção de intenções
+│   │   └── cadastroGeralService.js # 🆕 Serviço de consulta de cadastro geral
 │   ├── responses/
 │   │   ├── menuResponses.js      # Respostas de menus
 │   │   ├── damResponses.js       # Respostas de DAM
@@ -167,7 +170,8 @@ O novo sistema de detecção de intenções permite que o chatbot identifique au
 6. **TFLF** - Taxa de Fiscalização
 7. **DEMONSTRATIVO** - Demonstrativo Financeiro
 8. **SUBSTITUTOS** - Substitutos Tributários
-9. **ATENDENTE** - Falar com atendente humano
+9. **CADASTRO_GERAL** - Consulta de Cadastro Geral (CPF/CNPJ)
+10. **ATENDENTE** - Falar com atendente humano
 
 ### Exemplos de Uso
 
@@ -189,6 +193,60 @@ Bot: "🔄 Mudança de assunto detectada - você quer Agendamento? ..."
 3. **Testar usando** `src/examples/addNewIntention.js`
 
 Veja exemplo completo em [`src/examples/addNewIntention.js`](src/examples/addNewIntention.js).
+
+## 🆕 Funcionalidade: Consulta de Cadastro Geral (Opção 9)
+
+### Descrição
+Nova funcionalidade que permite consultar rapidamente, a partir do CPF ou CNPJ, as informações de Cadastro Geral, Inscrição Municipal e Inscrição Imobiliária vinculadas ao documento informado.
+
+### Como Usar
+1. Digite `9` no menu principal
+2. Informe o CPF (11 dígitos) ou CNPJ (14 dígitos)
+3. Receba as inscrições vinculadas ao documento
+
+### Recursos Implementados
+- ✅ Validação de CPF/CNPJ com dígitos verificadores
+- ✅ Integração com WebService SOAP da Ábaco
+- ✅ Cache de consultas por 5 minutos
+- ✅ Tratamento de erros e timeouts
+- ✅ Formatação automática de documentos
+- ✅ Detecção automática por palavras-chave
+
+### Palavras-chave de Acesso
+A funcionalidade pode ser acessada digitando:
+- "consulta cadastro", "consultar cadastro"
+- "cadastro geral", "consultar inscrição"
+- "consultar cpf", "consultar cnpj"
+- "inscrição municipal", "inscrição imobiliária"
+
+### Configuração Técnica
+- **URL WSDL**: https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apwsretornopertences?wsdl
+- **Timeout**: 30 segundos
+- **Cache TTL**: 5 minutos
+- **Validação**: Algoritmo padrão CPF/CNPJ
+
+### Estrutura SOAP
+```xml
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:eag="eAgata_Arapiraca_Maceio_Ev3">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <eag:PWSRetornoPertences.Execute>
+         <eag:Flagtipopesquisa>C</eag:Flagtipopesquisa>
+         <eag:Ctgcpf>[CPF/CNPJ]</eag:Ctgcpf>
+         <eag:Ctiinscricao></eag:Ctiinscricao>
+      </eag:PWSRetornoPertences.Execute>
+   </soapenv:Body>
+</soapenv:Envelope>
+```
+
+### Logs e Monitoramento
+- Todas as consultas são logadas com timestamp
+- Erros são capturados e reportados
+- Cache é limpo automaticamente
+- Métricas disponíveis no endpoint `/status`
+
+### Produção
+Para usar em produção, altere a URL no arquivo `src/services/cadastroGeralService.js` conforme orientação técnica.
 
 ## 📝 Próximos Passos Sugeridos
 

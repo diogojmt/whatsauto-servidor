@@ -57,6 +57,7 @@ const ESTADOS = {
   OPCAO_5_TFLF: "opcao_5_tflf",
   OPCAO_6_BCI: "opcao_6_bci",
   OPCAO_7_DEMONSTRATIVO: "opcao_7_demonstrativo",
+  OPCAO_9_CADASTRO_GERAL: "opcao_9_cadastro_geral",
   CONSULTA_ISS: "consulta_iss",
   CONSULTA_CNAE: "consulta_cnae",
   EMISSAO_CERTIDAO: "emissao_certidao",
@@ -258,6 +259,8 @@ const MENSAGENS = {
 
   *8 -* ${EMOJIS.CALENDARIO} Agendar Atendimento Presencial
 
+  *9 -* ${EMOJIS.BUSCA} Consulta de Cadastro Geral (CPF/CNPJ)
+
   *0 -* ${EMOJIS.ENCERRAR} Encerrar Atendimento Virtual
 
 🟡 *Digite o número da opção desejada*
@@ -265,7 +268,7 @@ const MENSAGENS = {
 
   OPCAO_INVALIDA: `${EMOJIS.ERRO} Opção inválida! 
 
-Por favor, digite um número de 0 a 8 ou descreva sua dúvida.`,
+Por favor, digite um número de 0 a 9 ou descreva sua dúvida.`,
 
   SESSAO_EXPIRADA: `${EMOJIS.RELOGIO} Sua sessão expirou por inatividade.
 
@@ -330,6 +333,7 @@ ${EMOJIS.ROBÔ} *Para continuar, você pode:*
 • Digite *6* para Consulta de BCI
 • Digite *7* para Demonstrativo Financeiro
 • Digite *8* para Agendamento de Atendimento
+• Digite *9* para Consulta de Cadastro Geral (CPF/CNPJ)
 • Digite *0* para encerrar o atendimento
 
 🏛️ *Ou compareça pessoalmente:*
