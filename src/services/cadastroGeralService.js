@@ -1240,7 +1240,7 @@ Digite *menu* para voltar ao menu principal.`,
         
         return {
           type: "text",
-          content: textoResposta,
+          text: textoResposta,
         };
       }
       

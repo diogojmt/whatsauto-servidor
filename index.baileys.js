@@ -64,13 +64,29 @@ async function startBot() {
       );
 
       // Responde igual ao Express (texto ou mídia)
-      if (typeof resposta === "object" && resposta.type === "media") {
-        await sock.sendMessage(sender, {
-          image: { url: resposta.media },
-          caption: resposta.text,
-        });
-      } else {
-        await sock.sendMessage(sender, { text: resposta });
+      try {
+        if (typeof resposta === "object" && resposta.type === "media") {
+          await sock.sendMessage(sender, {
+            image: { url: resposta.media },
+            caption: resposta.text,
+          });
+        } else {
+          // Garantir que sempre temos uma string válida
+          const textoParaEnviar = typeof resposta === 'string' && resposta.trim() 
+            ? resposta 
+            : "⚠️ Ocorreu um erro ao processar sua solicitação. Digite *menu* para voltar ao menu principal.";
+          
+          await sock.sendMessage(sender, { text: textoParaEnviar });
+        }
+      } catch (error) {
+        console.error('[ERRO ENVIO MENSAGEM]', error);
+        try {
+          await sock.sendMessage(sender, { 
+            text: "⚠️ Ocorreu um erro ao processar sua solicitação. Digite *menu* para voltar ao menu principal." 
+          });
+        } catch (fallbackError) {
+          console.error('[ERRO ENVIO MENSAGEM FALLBACK]', fallbackError);
+        }
       }
     }
   });
