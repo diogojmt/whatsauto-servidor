@@ -1209,12 +1209,12 @@ Digite *menu* para voltar ao menu principal.`;
   }
 
   /**
-   * Interpreta o status de débito
+   * Interpreta o status de débito - CORRIGIDO PARA WEBSERVICE ÁBACO
    */
   interpretarStatusDebito(statusDebito) {
     if (!statusDebito) return false;
 
-    const status = statusDebito.toLowerCase();
+    const status = statusDebito.toLowerCase().trim();
 
     // Indicadores de que possui débito
     const possuiDebito = [
@@ -1222,6 +1222,7 @@ Digite *menu* para voltar ao menu principal.`;
       "yes",
       "true",
       "1",
+      "s",        // ✅ ADICIONADO: Padrão Ábaco "S" = Sim
       "ativo",
       "pendente",
       "possui",
@@ -1235,11 +1236,22 @@ Digite *menu* para voltar ao menu principal.`;
       "no",
       "false",
       "0",
+      "n",        // ✅ ADICIONADO: Padrão Ábaco "N" = Não
       "inativo",
       "quitado",
       "pago",
     ];
 
+    // Verificar correspondência EXATA primeiro (para evitar conflitos como "false" contendo "s")
+    if (naopossuiDebito.includes(status)) {
+      return false;
+    }
+    
+    if (possuiDebito.includes(status)) {
+      return true;
+    }
+    
+    // Verificar correspondência por CONTEÚDO (para casos mais complexos)
     if (possuiDebito.some((indicador) => status.includes(indicador))) {
       return true;
     }
