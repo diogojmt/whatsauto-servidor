@@ -239,6 +239,7 @@ const MENSAGENS = {
 *MENU PRINCIPAL*
 
 *SERVIÇOS TRIBUTÁRIOS*
+*________________________________________________________________*
 *1* ${EMOJIS.DAM} 2ª Via de Boletos/DAM
 
 *2* ${EMOJIS.CERTIDAO} Certidões Negativas/Positivas
@@ -250,6 +251,7 @@ const MENSAGENS = {
 *5* ${EMOJIS.TFLF} Taxa de Localização/Funcionamento
 
 *CONSULTAS E OUTROS SERVIÇOS*
+*________________________________________________________________*
 *6* ${EMOJIS.BCI} Consulta de Cadastro Imobiliário (BCI)
 
 *7* ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro
