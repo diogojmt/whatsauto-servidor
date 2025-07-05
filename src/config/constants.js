@@ -240,25 +240,25 @@ const MENSAGENS = {
 
 *SERVIÇOS TRIBUTÁRIOS*
 
-*   1* ${EMOJIS.DAM} 2ª Via de Boletos/DAM
+  *1* ${EMOJIS.DAM} 2ª Via de Boletos/DAM
 
-*   2* ${EMOJIS.CERTIDAO} Certidões Negativas/Positivas
+  *2* ${EMOJIS.CERTIDAO} Certidões Negativas/Positivas
 
-*   3* ${EMOJIS.NFSE} Notas Fiscais (NFSe) e ISSQN
+  *3* ${EMOJIS.NFSE} Notas Fiscais (NFSe) e ISSQN
 
-*   4* ${EMOJIS.SUBSTITUTOS} Consulta de Substitutos Tributários
+  *4* ${EMOJIS.SUBSTITUTOS} Consulta de Substitutos Tributários
 
-*   5* ${EMOJIS.TFLF} Taxa de Localização/Funcionamento
+  *5* ${EMOJIS.TFLF} Taxa de Localização/Funcionamento
 
 *CONSULTAS E OUTROS SERVIÇOS*
 
-*   6* ${EMOJIS.BCI} Consulta de Cadastro Imobiliário (BCI)
+  *6* ${EMOJIS.BCI} Consulta de Cadastro Imobiliário (BCI)
 
-*   7* ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro
+  *7* ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro
 
-*   8* ${EMOJIS.CALENDARIO} Agendar Atendimento
+  *8* ${EMOJIS.CALENDARIO} Agendar Atendimento Presencial
 
-*   0* ${EMOJIS.ENCERRAR} Encerrar Atendimento
+  *0* ${EMOJIS.ENCERRAR} Encerrar Atendimento Virtual
 
 🟡 *Digite o número da opção desejada*
 *ou escreva sua dúvida que posso ajudar!*`,
