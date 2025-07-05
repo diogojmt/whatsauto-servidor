@@ -234,41 +234,29 @@ const MENSAGENS = {
     nome
   ) => `${EMOJIS.SAUDACAO} *Olá ${nome}!*
 
-🏛️ *Prefeitura de Arapiraca - Secretaria da Fazenda*
-${EMOJIS.ROBÔ} *Atendimento Virtual 24h*
-
-═══════════════════════════
+🏛️ *Prefeitura de Arapiraca*
+${EMOJIS.ROBÔ} *Atendimento Virtual da Secretaria da Fazenda*
 
 ${EMOJIS.MENU} *MENU PRINCIPAL*
 
-*Escolha uma das opções abaixo:*
+*📋 SERVIÇOS TRIBUTÁRIOS*
 
-┌─────────────────────────────────────────┐
-│ *SERVIÇOS TRIBUTÁRIOS*                  │
-├─────────────────────────────────────────┤
-│ *1* ${EMOJIS.DAM} Segunda via de DAM's         │
-│ *2* ${EMOJIS.CERTIDAO} Certidões de Regularidade    │
-│ *3* ${EMOJIS.NFSE} NFSe e ISSQN                 │
-│ *4* ${EMOJIS.SUBSTITUTOS} Lista de Substitutos        │
-│ *5* ${EMOJIS.TFLF} Taxa de Localização           │
-└─────────────────────────────────────────┘
+*1* ${EMOJIS.DAM} Segunda via de DAM's
+*2* ${EMOJIS.CERTIDAO} Certidões de Regularidade  
+*3* ${EMOJIS.NFSE} NFSe e ISSQN
+*4* ${EMOJIS.SUBSTITUTOS} Lista de Substitutos Tributários
+*5* ${EMOJIS.TFLF} Taxa de Localização e Funcionamento
 
-┌─────────────────────────────────────────┐
-│ *CONSULTAS E SERVIÇOS*                  │
-├─────────────────────────────────────────┤
-│ *6* ${EMOJIS.BCI} Consulta de BCI               │
-│ *7* ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro  │
-│ *8* ${EMOJIS.CALENDARIO} Agendamento de Atendimento │
-└─────────────────────────────────────────┘
+*🔍 CONSULTAS E OUTROS SERVIÇOS*
 
-═══════════════════════════
-
-${EMOJIS.SETA} *Digite o número da opção desejada*
-${EMOJIS.AJUDA} *Ou descreva sua dúvida*
+*6* ${EMOJIS.BCI} Consulta de BCI 
+*7* ${EMOJIS.DEMONSTRATIVO} Demonstrativo Financeiro
+*8* ${EMOJIS.CALENDARIO} Agendamento de Atendimento
 
 *0* ${EMOJIS.ENCERRAR} Encerrar Atendimento
 
-${EMOJIS.INFO} *Dica:* Posso ajudar com consultas rápidas sobre tributos!`,
+${EMOJIS.SETA} *Digite o número da opção desejada*
+${EMOJIS.AJUDA} *Ou descreva sua dúvida que posso ajudar!*`,
 
   OPCAO_INVALIDA: `${EMOJIS.ERRO} Opção inválida! 
 
