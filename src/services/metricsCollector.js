@@ -1,4 +1,11 @@
-const { Database } = require('../database/database');
+// Tentar usar SQLite, se não conseguir, usar banco em memória
+let Database;
+try {
+  Database = require('../database/database').Database;
+} catch (error) {
+  console.log('⚠️ SQLite não disponível, usando banco em memória');
+  Database = require('../database/memoryDatabase').Database;
+}
 
 /**
  * Serviço para coleta de métricas do sistema

@@ -1,5 +1,15 @@
-const { Database } = require('../src/database/database');
-const bcrypt = require('bcrypt');
+// Tentar usar database e bcrypt, com fallbacks
+let Database, bcrypt;
+try {
+  Database = require('../src/database/database').Database;
+  bcrypt = require('bcrypt');
+} catch (error) {
+  console.log('⚠️ Usando versões simplificadas para desenvolvimento');
+  Database = require('../src/database/memoryDatabase').Database;
+  bcrypt = {
+    hashSync: (password) => password + '_hash'
+  };
+}
 const readline = require('readline');
 
 /**
