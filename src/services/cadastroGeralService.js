@@ -657,17 +657,22 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     // Primeiro, tentar extrair apenas imóveis do bloco SDTRetornoPertencesImovel
     let imoveisEncontradosNoBlocoEspecifico = false;
 
-    // Verificar se existe o bloco específico de imóveis
+    // Verificar se existe o bloco específico de imóveis (ignorando namespaces)
     const blocoImoveis =
-      /<SDTRetornoPertencesImovel[^>]*>(.*?)<\/SDTRetornoPertencesImovel>/gi;
+      /<[^:]*:?SDTRetornoPertencesImovel[^>]*>(.*?)<\/[^:]*:?SDTRetornoPertencesImovel>/gi;
     let matchBloco;
 
+    console.log(`[CadastroGeralService] Procurando bloco SDTRetornoPertencesImovel...`);
+    console.log(`[CadastroGeralService] XML limpo (primeiros 500 chars):`, xmlLimpo.substring(0, 500));
+    
     while ((matchBloco = blocoImoveis.exec(xmlLimpo)) !== null) {
+      console.log(`[CadastroGeralService] Bloco encontrado! Tamanho: ${matchBloco[1].length}`);
+      
       const conteudoBlocoImoveis = matchBloco[1];
 
-      // Extrair imóveis apenas deste bloco específico
+      // Extrair imóveis apenas deste bloco específico (ignorando namespaces)
       const padraoImovelItem =
-        /<SDTRetornoPertencesImovelItem[^>]*>(.*?)<\/SDTRetornoPertencesImovelItem>/gi;
+        /<[^:]*:?SDTRetornoPertencesImovelItem[^>]*>(.*?)<\/[^:]*:?SDTRetornoPertencesImovelItem>/gi;
       let matchItem;
 
       while (
@@ -703,7 +708,8 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
               (imovel) => imovel.inscricao === inscricao
             );
             if (!jaExiste) {
-              imoveis.push({
+              // Criar o imóvel com as informações específicas deste item
+              const novoImovel = {
                 inscricao: inscricao,
                 tipo: "Imobiliária",
                 endereco: null,
@@ -711,7 +717,14 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
                 tipoProprietario: null,
                 possuiDebito: null,
                 statusDebito: null,
-              });
+              };
+
+              // Extrair informações específicas deste item XML
+              console.log(`[CadastroGeralService] Extraindo informações para imóvel ${inscricao}`);
+              this.extrairInformacoesDoItem(conteudoItem, novoImovel);
+              console.log(`[CadastroGeralService] Imóvel após extração:`, novoImovel);
+
+              imoveis.push(novoImovel);
               encontrado = true;
               imoveisEncontradosNoBlocoEspecifico = true;
             }
@@ -781,14 +794,50 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       }
     }
 
-    // EXTRAIR INFORMAÇÕES ADICIONAIS DOS IMÓVEIS
-    this.extrairInformacoesDetalhadas(xmlLimpo, imoveis);
+    // EXTRAIR INFORMAÇÕES ADICIONAIS DOS IMÓVEIS (apenas se não usou extração específica)
+    if (!imoveisEncontradosNoBlocoEspecifico) {
+      this.extrairInformacoesDetalhadas(xmlLimpo, imoveis);
+    }
 
     return {
       encontrado,
       contribuinte,
       imoveis,
     };
+  }
+
+  /**
+   * Extrai informações específicas de um item de imóvel individual
+   */
+  extrairInformacoesDoItem(conteudoItem, imovel) {
+    try {
+      // Padrões específicos para cada campo do item
+      const padroes = {
+        endereco: /<SRPEnderecoImovel[^>]*>([^<]+)<\/SRPEnderecoImovel>/gi,
+        tipoImovel: /<SRPTipoImovel[^>]*>([^<]+)<\/SRPTipoImovel>/gi,
+        tipoProprietario: /<SRPTipoProprietario[^>]*>([^<]+)<\/SRPTipoProprietario>/gi,
+        possuiDebito: /<SRPPossuiDebitoImovel[^>]*>([^<]+)<\/SRPPossuiDebitoImovel>/gi,
+        statusDebito: /<SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/SRPDebitoSuspensoImovel>/gi,
+      };
+
+      // Extrair cada campo específico
+      for (const [campo, padrao] of Object.entries(padroes)) {
+        const match = padrao.exec(conteudoItem);
+        if (match) {
+          const valor = this.limparValor(match[1]);
+          if (valor) {
+            imovel[campo] = valor;
+          }
+        }
+        // Resetar regex para próxima busca
+        padrao.lastIndex = 0;
+      }
+    } catch (error) {
+      console.error(
+        `[CadastroGeralService] Erro ao extrair informações do item:`,
+        error
+      );
+    }
   }
 
   /**
