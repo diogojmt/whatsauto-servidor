@@ -2,7 +2,7 @@
 class DashboardApp {
     constructor() {
         this.token = localStorage.getItem('admin_token');
-        this.apiBase = '/api/dashboard';
+        this.apiBase = window.location.port === '3001' ? '/api/dashboard' : '/api/dashboard';
         this.charts = {};
         this.currentPage = 1;
         this.itemsPerPage = 50;
