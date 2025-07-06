@@ -291,7 +291,12 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
     }
 
     // Exibir dados coletados e iniciar consulta
-    await this.enviarMensagemConsultando(sender, parametros);
+    const mensagemConsultando = await this.enviarMensagemConsultando(sender, parametros);
+    
+    // Mostrar mensagem de aguardo no console
+    const WaitingMessage = require("../utils/waitingMessage");
+    const waitingMsg = WaitingMessage.getMessageForType("debitos");
+    console.log(`[DebitosService] 📋 ${waitingMsg}`);
 
     // Realizar a consulta diretamente
     return await this.executarConsulta(sender, parametros);
@@ -315,6 +320,11 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
 
       // Mostrar mensagem de repetição e executar consulta
       await this.enviarMensagemConsultando(sender, parametros);
+      
+      // Mostrar mensagem de aguardo no console
+      const WaitingMessage = require("../utils/waitingMessage");
+      const waitingMsg = WaitingMessage.getMessageForType("debitos");
+      console.log(`[DebitosService] 📋 ${waitingMsg}`);
       
       return await this.executarConsulta(sender, parametros);
     }
