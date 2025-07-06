@@ -659,20 +659,17 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
 
     // Verificar se existe o bloco específico de imóveis
     const blocoImoveis =
-      /<SDTRetornoPertencesImovel[^>]*>(.*?)<\/SDTRetornoPertencesImovel>/gi;
+      /<SDTRetornoPertencesImovel[^>]*>([\s\S]*?)<\/SDTRetornoPertencesImovel>/gi;
+    
     let matchBloco;
-
-    console.log(`[CadastroGeralService] Procurando bloco SDTRetornoPertencesImovel...`);
-    console.log(`[CadastroGeralService] XML limpo (primeiros 500 chars):`, xmlLimpo.substring(0, 500));
     
     while ((matchBloco = blocoImoveis.exec(xmlLimpo)) !== null) {
-      console.log(`[CadastroGeralService] Bloco encontrado! Tamanho: ${matchBloco[1].length}`);
       
       const conteudoBlocoImoveis = matchBloco[1];
 
       // Extrair imóveis apenas deste bloco específico
       const padraoImovelItem =
-        /<SDTRetornoPertencesImovelItem[^>]*>(.*?)<\/SDTRetornoPertencesImovelItem>/gi;
+        /<SDTRetornoPertencesImovelItem[^>]*>([\s\S]*?)<\/SDTRetornoPertencesImovelItem>/gi;
       let matchItem;
 
       while (
@@ -720,9 +717,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
               };
 
               // Extrair informações específicas deste item XML
-              console.log(`[CadastroGeralService] Extraindo informações para imóvel ${inscricao}`);
               this.extrairInformacoesDoItem(conteudoItem, novoImovel);
-              console.log(`[CadastroGeralService] Imóvel após extração:`, novoImovel);
 
               imoveis.push(novoImovel);
               encontrado = true;
