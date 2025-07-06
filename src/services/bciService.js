@@ -152,6 +152,11 @@ Ou *0* para voltar ao menu principal.`,
       inscricaoImobiliaria: inscricaoLimpa,
     });
 
+    // Preparar e enviar mensagem de aguardo
+    const WaitingMessage = require("../utils/waitingMessage");
+    const waitingMsg = WaitingMessage.getMessageForType("bci");
+    console.log(`[BciService] 📋 ${waitingMsg}`);
+
     // Executar a consulta diretamente
     this.metrics.tentativasConsulta++;
 
