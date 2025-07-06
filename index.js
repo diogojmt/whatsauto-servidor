@@ -11,19 +11,35 @@ const { processarMensagem } = require("./src/handlers/messageHandler");
 const { ehMensagemDoSistema } = require("./src/utils/mediaUtils");
 const { DebitosService } = require("./src/services/debitosService");
 
+// Importar dashboard
+const { MetricsCollector } = require("./src/services/metricsCollector");
+const dashboardRoutes = require("./src/routes/dashboardRoutes");
+
 const app = express();
 
 // Instanciar serviço de débitos
 const debitosService = new DebitosService();
 
+// Instanciar collector de métricas
+const metricsCollector = new MetricsCollector();
+
 // ---------- Carregar dados na inicialização ----------
 let dadosTFLF = [];
 let dadosISS = [];
 
-function inicializarDados() {
+async function inicializarDados() {
   console.log("🔄 Carregando dados...");
   dadosTFLF = carregarDadosTFLF();
   dadosISS = carregarDadosISS();
+  
+  // Inicializar collector de métricas
+  try {
+    await metricsCollector.init();
+    console.log("✅ Collector de métricas inicializado!");
+  } catch (error) {
+    console.error("❌ Erro ao inicializar metrics collector:", error);
+  }
+  
   console.log("✅ Dados carregados com sucesso!");
 }
 
@@ -32,6 +48,10 @@ inicializarDados();
 
 // ---------- Servir arquivos estáticos (imagens) ----------
 app.use("/imagens", express.static(path.join(__dirname)));
+
+// ---------- Servir dashboard administrativo ----------
+app.use("/admin", express.static(path.join(__dirname, "public/admin")));
+app.use("/api/dashboard", dashboardRoutes);
 
 // ---------- LOG bruto ----------
 app.use((req, res, next) => {
