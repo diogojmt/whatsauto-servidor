@@ -1,10 +1,10 @@
 // Tentar usar SQLite, se não conseguir, usar banco em memória
 let Database;
 try {
-  Database = require('../database/database').Database;
+  Database = require("../database/database").Database;
 } catch (error) {
-  console.log('⚠️ SQLite não disponível, usando banco em memória');
-  Database = require('../database/memoryDatabase').Database;
+  console.log("⚠️ SQLite não disponível, usando banco em memória");
+  Database = require("../database/memoryDatabase").Database;
 }
 
 /**
@@ -32,19 +32,29 @@ class MetricsCollector {
    */
   async iniciarAtendimento(usuarioId, tipoAtendimento, dadosConsulta = null) {
     await this.ensureInitialized();
-    
+
     const result = await this.db.run(
       `INSERT INTO atendimentos (usuario_id, tipo_atendimento, status, dados_consulta)
        VALUES (?, ?, ?, ?)`,
-      [usuarioId, tipoAtendimento, 'em_andamento', JSON.stringify(dadosConsulta)]
+      [
+        usuarioId,
+        tipoAtendimento,
+        "em_andamento",
+        JSON.stringify(dadosConsulta),
+      ]
     );
 
     // Atualizar cache de sessão
     const sessionId = this.getOrCreateSession(usuarioId);
-    await this.registrarEvento(usuarioId, 'inicio_atendimento', { 
-      tipo: tipoAtendimento, 
-      atendimento_id: result.id 
-    }, sessionId);
+    await this.registrarEvento(
+      usuarioId,
+      "inicio_atendimento",
+      {
+        tipo: tipoAtendimento,
+        atendimento_id: result.id,
+      },
+      sessionId
+    );
 
     return result.id;
   }
@@ -52,11 +62,15 @@ class MetricsCollector {
   /**
    * Finaliza um atendimento
    */
-  async finalizarAtendimento(atendimentoId, sucesso = true, erroDetalhes = null) {
+  async finalizarAtendimento(
+    atendimentoId,
+    sucesso = true,
+    erroDetalhes = null
+  ) {
     await this.ensureInitialized();
-    
+
     const inicio = await this.db.get(
-      'SELECT inicio_timestamp FROM atendimentos WHERE id = ?',
+      "SELECT inicio_timestamp FROM atendimentos WHERE id = ?",
       [atendimentoId]
     );
 
@@ -73,7 +87,13 @@ class MetricsCollector {
              erro_detalhes = ?,
              status = ?
          WHERE id = ?`,
-        [duracaoSegundos, sucesso ? 1 : 0, erroDetalhes, sucesso ? 'finalizado' : 'erro', atendimentoId]
+        [
+          duracaoSegundos,
+          sucesso ? 1 : 0,
+          erroDetalhes,
+          sucesso ? "finalizado" : "erro",
+          atendimentoId,
+        ]
       );
     }
   }
@@ -81,15 +101,29 @@ class MetricsCollector {
   /**
    * Registra evento de usuário
    */
-  async registrarEvento(usuarioId, tipoEvento, detalhes = null, sessionId = null, intencaoDetectada = null, confiancaIntencao = null) {
+  async registrarEvento(
+    usuarioId,
+    tipoEvento,
+    detalhes = null,
+    sessionId = null,
+    intencaoDetectada = null,
+    confiancaIntencao = null
+  ) {
     await this.ensureInitialized();
-    
+
     const sessaoId = sessionId || this.getOrCreateSession(usuarioId);
-    
+
     await this.db.run(
       `INSERT INTO eventos_usuario (usuario_id, tipo_evento, detalhes, sessao_id, intencao_detectada, confianca_intencao)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [usuarioId, tipoEvento, JSON.stringify(detalhes), sessaoId, intencaoDetectada, confiancaIntencao]
+      [
+        usuarioId,
+        tipoEvento,
+        JSON.stringify(detalhes),
+        sessaoId,
+        intencaoDetectada,
+        confiancaIntencao,
+      ]
     );
 
     // Atualizar contador de mensagens da sessão
@@ -101,7 +135,7 @@ class MetricsCollector {
    */
   async registrarMetricaSistema(servico, metrica, valor, detalhes = null) {
     await this.ensureInitialized();
-    
+
     await this.db.run(
       `INSERT INTO metricas_sistema (servico, metrica, valor, detalhes)
        VALUES (?, ?, ?, ?)`,
@@ -115,18 +149,20 @@ class MetricsCollector {
   getOrCreateSession(usuarioId) {
     const agora = new Date();
     const sessionKey = `${usuarioId}_${agora.toDateString()}`;
-    
+
     if (!this.sessionCache.has(sessionKey)) {
-      const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const sessionId = `sess_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
       this.sessionCache.set(sessionKey, sessionId);
-      
+
       // Criar sessão no banco
-      this.db.run(
-        `INSERT INTO sessoes (usuario_id, sessao_id) VALUES (?, ?)`,
-        [usuarioId, sessionId]
-      );
+      this.db.run(`INSERT INTO sessoes (usuario_id, sessao_id) VALUES (?, ?)`, [
+        usuarioId,
+        sessionId,
+      ]);
     }
-    
+
     return this.sessionCache.get(sessionKey);
   }
 
@@ -135,7 +171,7 @@ class MetricsCollector {
    */
   async atualizarSessao(usuarioId, sessionId) {
     await this.ensureInitialized();
-    
+
     await this.db.run(
       `UPDATE sessoes 
        SET total_mensagens = total_mensagens + 1 
@@ -149,20 +185,22 @@ class MetricsCollector {
    */
   async registrarUsoServico(usuarioId, nomeServico) {
     await this.ensureInitialized();
-    
+
     const sessionId = this.getOrCreateSession(usuarioId);
-    
+
     const sessao = await this.db.get(
-      'SELECT servicos_usados FROM sessoes WHERE sessao_id = ?',
+      "SELECT servicos_usados FROM sessoes WHERE sessao_id = ?",
       [sessionId]
     );
 
     if (sessao) {
-      const servicosUsados = sessao.servicos_usados ? JSON.parse(sessao.servicos_usados) : [];
-      
+      const servicosUsados = sessao.servicos_usados
+        ? JSON.parse(sessao.servicos_usados)
+        : [];
+
       if (!servicosUsados.includes(nomeServico)) {
         servicosUsados.push(nomeServico);
-        
+
         await this.db.run(
           `UPDATE sessoes 
            SET servicos_usados = ?, 
@@ -179,23 +217,25 @@ class MetricsCollector {
    */
   async obterEstatisticasGerais() {
     await this.ensureInitialized();
-    
-    const hoje = new Date().toISOString().split('T')[0];
-    const semanaAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    
+
+    const hoje = new Date().toISOString().split("T")[0];
+    const semanaAtras = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0];
+
     const stats = {
       // Atendimentos hoje
       atendimentosHoje: await this.db.get(
         `SELECT COUNT(*) as total FROM atendimentos 
          WHERE DATE(inicio_timestamp) = DATE('now')`
       ),
-      
+
       // Atendimentos na semana
       atendimentosSemana: await this.db.get(
         `SELECT COUNT(*) as total FROM atendimentos 
          WHERE DATE(inicio_timestamp) >= DATE('now', '-7 days')`
       ),
-      
+
       // Taxa de sucesso
       taxaSucesso: await this.db.get(
         `SELECT 
@@ -205,7 +245,7 @@ class MetricsCollector {
          FROM atendimentos 
          WHERE fim_timestamp IS NOT NULL`
       ),
-      
+
       // Tipos de atendimento mais populares
       tiposPopulares: await this.db.all(
         `SELECT tipo_atendimento, COUNT(*) as total
@@ -215,21 +255,21 @@ class MetricsCollector {
          ORDER BY total DESC 
          LIMIT 10`
       ),
-      
+
       // Usuários únicos
       usuariosUnicos: await this.db.get(
         `SELECT COUNT(DISTINCT usuario_id) as total 
          FROM atendimentos 
          WHERE DATE(inicio_timestamp) >= DATE('now', '-7 days')`
       ),
-      
+
       // Tempo médio de atendimento
       tempoMedio: await this.db.get(
         `SELECT AVG(duracao_segundos) as media_segundos
          FROM atendimentos 
          WHERE duracao_segundos IS NOT NULL 
          AND DATE(inicio_timestamp) >= DATE('now', '-7 days')`
-      )
+      ),
     };
 
     return stats;
@@ -240,7 +280,7 @@ class MetricsCollector {
    */
   async obterDadosGraficos() {
     await this.ensureInitialized();
-    
+
     return {
       // Atendimentos por dia (últimos 30 dias)
       atendimentosPorDia: await this.db.all(
@@ -253,7 +293,7 @@ class MetricsCollector {
          GROUP BY DATE(inicio_timestamp)
          ORDER BY data`
       ),
-      
+
       // Atendimentos por hora do dia
       atendimentosPorHora: await this.db.all(
         `SELECT 
@@ -264,7 +304,7 @@ class MetricsCollector {
          GROUP BY CAST(strftime('%H', inicio_timestamp) AS INTEGER)
          ORDER BY hora`
       ),
-      
+
       // Tipos de atendimento
       tiposAtendimento: await this.db.all(
         `SELECT 
@@ -277,7 +317,7 @@ class MetricsCollector {
          GROUP BY tipo_atendimento
          ORDER BY total DESC`
       ),
-      
+
       // Detecção de intenções
       intencoes: await this.db.all(
         `SELECT 
@@ -289,7 +329,7 @@ class MetricsCollector {
          AND DATE(timestamp) >= DATE('now', '-7 days')
          GROUP BY intencao_detectada
          ORDER BY total DESC`
-      )
+      ),
     };
   }
 
