@@ -7,12 +7,13 @@ const {
   carregarDadosTFLF,
   carregarDadosISS,
 } = require("./src/utils/dataLoader");
-const { processarMensagem } = require("./src/handlers/messageHandler");
+const { processarMensagemComMetricas } = require("./src/handlers/messageHandlerWithMetrics");
 const { ehMensagemDoSistema } = require("./src/utils/mediaUtils");
 const { DebitosService } = require("./src/services/debitosService");
 
 // Importar dashboard
 const { MetricsCollector } = require("./src/services/metricsCollector");
+const { globalMetrics } = require("./src/utils/globalMetrics");
 const dashboardRoutes = require("./src/routes/dashboardRoutes");
 
 const app = express();
@@ -35,6 +36,7 @@ async function inicializarDados() {
   // Inicializar collector de métricas
   try {
     await metricsCollector.init();
+    globalMetrics.setCollector(metricsCollector);
     console.log("✅ Collector de métricas inicializado!");
   } catch (error) {
     console.error("❌ Erro ao inicializar metrics collector:", error);
@@ -55,7 +57,12 @@ app.use("/imagens", express.static(path.join(__dirname)));
 
 // ---------- Servir dashboard administrativo ----------
 app.use("/admin", express.static(path.join(__dirname, "public/admin")));
-app.use("/api/dashboard", dashboardRoutes);
+
+// Passar o metricsCollector para as rotas do dashboard
+app.use("/api/dashboard", (req, res, next) => {
+  req.metricsCollector = metricsCollector;
+  next();
+}, dashboardRoutes);
 
 // ---------- LOG bruto ----------
 app.use((req, res, next) => {
@@ -136,13 +143,14 @@ async function processarResposta(
     return res.status(200).end();
   }
 
-  const resposta = await processarMensagem(
+  const resposta = await processarMensagemComMetricas(
     message,
     sender,
     dadosTFLF,
     dadosISS,
     req,
-    nomeUsuario
+    nomeUsuario,
+    metricsCollector
   );
   console.log("🎯 Resposta gerada:", resposta);
 

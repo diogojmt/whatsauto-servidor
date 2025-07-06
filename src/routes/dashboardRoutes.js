@@ -1,8 +1,8 @@
 const express = require('express');
-const { SimpleDashboardController } = require('../controllers/simpleDashboardController');
+const { RealDashboardController } = require('../controllers/realDashboardController');
 
 const router = express.Router();
-const dashboardController = new SimpleDashboardController();
+const dashboardController = new RealDashboardController();
 
 // Bind do contexto para os métodos
 const authenticate = dashboardController.authenticate.bind(dashboardController);
@@ -25,11 +25,8 @@ router.get('/charts', dashboardController.getChartData.bind(dashboardController)
 // Lista de atendimentos
 router.get('/atendimentos', dashboardController.getAtendimentos.bind(dashboardController));
 
-// Eventos de usuário específico (simplificado)
-// router.get('/eventos/:usuarioId', dashboardController.getEventosUsuario.bind(dashboardController));
-
-// Métricas de sistema (simplificado)
-// router.get('/metricas', dashboardController.getMetricasSistema.bind(dashboardController));
+// Eventos de usuário específico
+router.get('/eventos/:usuarioId', dashboardController.getEventosUsuario.bind(dashboardController));
 
 // Exportar relatórios
 router.get('/export', dashboardController.exportRelatorio.bind(dashboardController));
