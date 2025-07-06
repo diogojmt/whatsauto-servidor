@@ -258,7 +258,7 @@ ${EMOJIS.INFO} *Caso não consiga pelo WhatsApp:*
 
 ${EMOJIS.PERGUNTA} *Primeiro, me diga que tipo de certidão você precisa:*
 
-*1* ${EMOJIS.PESSOA} Pessoa Física ou Jurídica
+*1* ${EMOJIS.PESSOA} Contribuinte Geral
 *2* ${EMOJIS.CASA} Imóvel/Propriedade
 
 ${EMOJIS.SETA} *Digite apenas o número (1 ou 2):*`;
@@ -279,7 +279,7 @@ function processarTipoContribuinte(sender, opcao, nome) {
 
 Por favor, escolha uma das opções disponíveis:
 
-*1* ${EMOJIS.PESSOA} Pessoa Física ou Jurídica
+*1* ${EMOJIS.PESSOA} Contribuinte Geral
 *2* ${EMOJIS.CASA} Imóvel/Propriedade
 
 ${EMOJIS.SETA} *Digite apenas o número 1 ou 2:*`;
