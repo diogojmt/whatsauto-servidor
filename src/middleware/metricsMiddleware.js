@@ -109,8 +109,8 @@ class MetricsMiddleware {
     if (msg === "9" || msg.includes("cadastro geral")) {
       return "cadastro_geral";
     }
-    if (msg === "0" || msg.includes("atendente")) {
-      return "atendente_humano";
+    if (msg === "0" || msg.includes("ebcerramento")) {
+      return "encerramento_atendimento_virtual";
     }
 
     // Detecção por palavras-chave
