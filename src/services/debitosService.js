@@ -293,13 +293,7 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
     // Exibir dados coletados e iniciar consulta
     await this.enviarMensagemConsultando(sender, parametros);
 
-    // Enviar mensagem de aguardo e realizar a consulta
-    const WaitingMessage = require("../utils/waitingMessage");
-    const waitingMsg = WaitingMessage.getMessageForType("debitos");
-    
-    // Simular envio da mensagem de aguardo
-    console.log("[DebitosService] Enviando mensagem de aguardo:", waitingMsg);
-    
+    // Realizar a consulta diretamente
     return await this.executarConsulta(sender, parametros);
   }
 
@@ -321,11 +315,6 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
 
       // Mostrar mensagem de repetição e executar consulta
       await this.enviarMensagemConsultando(sender, parametros);
-      
-      // Enviar mensagem de aguardo
-      const WaitingMessage = require("../utils/waitingMessage");
-      const waitingMsg = WaitingMessage.getMessageForType("debitos");
-      console.log("[DebitosService] Enviando mensagem de aguardo:", waitingMsg);
       
       return await this.executarConsulta(sender, parametros);
     }
@@ -437,7 +426,8 @@ Digite um ano válido ou *menu* para voltar ao menu principal.`,
 • Documento: ${params.inscricao}
 • Exercício: ${params.exercicio}
 
-⏳ Aguarde, estou consultando todos os seus débitos disponíveis...`,
+⏳ Aguarde, estou consultando todos os seus débitos disponíveis...
+🌐 Esta consulta pode levar alguns segundos...`,
     };
   }
 
@@ -456,14 +446,7 @@ Digite um ano válido ou *menu* para voltar ao menu principal.`,
 
     console.log("[DebitosService] Executando consulta com parâmetros:", params);
 
-    // Preparar mensagem de aguardo
-    const WaitingMessage = require("../utils/waitingMessage");
-    const waitingMsg = WaitingMessage.getMessageForType("debitos");
-    
     try {
-      // Mostrar mensagem de aguardo
-      console.log(`[DebitosService] 📋 ${waitingMsg}`);
-      
       const resultado = await this.debitosApi.consultarDebitos(params);
 
       console.log("[DebitosService] Resultado da consulta:", {
@@ -477,33 +460,28 @@ Digite um ano válido ou *menu* para voltar ao menu principal.`,
         resultado.SDTSaidaAPIDebito.length > 0
       ) {
         // NÃO limpar sessão - manter para permitir consulta de outros anos
-        const resultadoFormatado = this.formatarListaDebitos(resultado, sessao.nome, {
+        return this.formatarListaDebitos(resultado, sessao.nome, {
           ...sessao,
           ...params,
           sender,
         });
-        return `${waitingMsg}\n\n${resultadoFormatado}`;
       } else if (resultado.SSACodigo === 0) {
         // NÃO limpar sessão - manter para permitir nova consulta
-        const resultadoFormatado = this.formatarNenhumDebito({ ...sessao, ...params, sender });
-        return `${waitingMsg}\n\n${resultadoFormatado}`;
+        return this.formatarNenhumDebito({ ...sessao, ...params, sender });
       } else {
         // NÃO limpar sessão - manter para permitir nova tentativa
-        const resultadoFormatado = this.formatarErroConsulta(resultado, {
+        return this.formatarErroConsulta(resultado, {
           ...sessao,
           ...params,
           sender,
         });
-        return `${waitingMsg}\n\n${resultadoFormatado}`;
       }
     } catch (error) {
       console.error("[DebitosService] Erro na execução da consulta:", error);
 
       return {
         type: "text",
-        text: `${waitingMsg}
-
-❌ *Erro interno*
+        text: `❌ *Erro interno*
 
 ${sessao.nome}, ocorreu um erro inesperado durante a consulta.
 
