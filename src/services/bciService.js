@@ -182,7 +182,13 @@ Ou *0* para voltar ao menu principal.`,
       this.cpfFakeBci
     );
 
+    // Preparar mensagem de aguardo
+    const WaitingMessage = require("../utils/waitingMessage");
+    const waitingMsg = WaitingMessage.getMessageForType("bci");
+
     try {
+      // Mostrar mensagem de aguardo
+      console.log(`[BciService] 📋 ${waitingMsg}`);
       // Montar parâmetros da API
       const parametros = {
         SSEChave: "@C0sS0_@P1",
@@ -222,17 +228,20 @@ Ou *0* para voltar ao menu principal.`,
         // Sucesso - BCI encontrado
         this.metrics.sucessos++;
         this.limparSessao(sender);
-        return this.formatarSucesso(resultado, sessao.nome);
+        const resultadoFormatado = this.formatarSucesso(resultado, sessao.nome);
+        return `${waitingMsg}\n\n${resultadoFormatado}`;
       } else if (resultado.SSACodigo === 0) {
         // Sucesso mas sem link do documento
         this.metrics.erros++;
         this.limparSessao(sender);
-        return this.formatarSemDocumento(resultado, sessao.nome);
+        const resultadoFormatado = this.formatarSemDocumento(resultado, sessao.nome);
+        return `${waitingMsg}\n\n${resultadoFormatado}`;
       } else {
         // Erro na consulta
         this.metrics.erros++;
         this.limparSessao(sender);
-        return this.formatarErroConsulta(resultado, sessao.nome);
+        const resultadoFormatado = this.formatarErroConsulta(resultado, sessao.nome);
+        return `${waitingMsg}\n\n${resultadoFormatado}`;
       }
     } catch (error) {
       console.error("[BciService] Erro na execução da consulta:", error);
@@ -241,7 +250,9 @@ Ou *0* para voltar ao menu principal.`,
       this.limparSessao(sender);
       return {
         type: "text",
-        text: `❌ *Erro interno*
+        text: `${waitingMsg}
+
+❌ *Erro interno*
 
 ${sessao.nome}, ocorreu um erro inesperado durante a consulta.
 
