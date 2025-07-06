@@ -62,6 +62,9 @@ class DashboardController {
         return res.status(400).json({ error: 'Username e password são obrigatórios' });
       }
 
+      if (!this.metricsCollector) {
+        this.metricsCollector = new MetricsCollector();
+      }
       await this.metricsCollector.ensureInitialized();
       
       const user = await this.metricsCollector.db.get(

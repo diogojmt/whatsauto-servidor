@@ -46,6 +46,10 @@ async function inicializarDados() {
 // Carregar dados na inicialização
 inicializarDados();
 
+// ---------- Middleware para parsing JSON ----------
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // ---------- Servir arquivos estáticos (imagens) ----------
 app.use("/imagens", express.static(path.join(__dirname)));
 
@@ -55,21 +59,25 @@ app.use("/api/dashboard", dashboardRoutes);
 
 // ---------- LOG bruto ----------
 app.use((req, res, next) => {
-  console.log("\n🟡 NOVA REQUISIÇÃO");
-  console.log("➡️ Método:", req.method);
-  console.log("➡️ Headers:", req.headers);
+  // Só logar se não for para o dashboard admin
+  if (!req.path.startsWith('/admin') && !req.path.startsWith('/api/dashboard')) {
+    console.log("\n🟡 NOVA REQUISIÇÃO");
+    console.log("➡️ Método:", req.method);
+    console.log("➡️ Headers:", req.headers);
 
-  let raw = "";
-  req.on("data", (chunk) => (raw += chunk));
-  req.on("end", () => {
-    console.log("➡️ Corpo bruto:", raw);
-    req.rawBody = raw;
+    let raw = "";
+    req.on("data", (chunk) => (raw += chunk));
+    req.on("end", () => {
+      console.log("➡️ Corpo bruto:", raw);
+      req.rawBody = raw;
+      next();
+    });
+  } else {
     next();
-  });
+  }
 });
 
-// ---------- Tenta JSON -----------
-app.use(express.json());
+// ---------- Middleware JSON já configurado acima ----------
 
 // ---------- Se falhar, não aborta ----------
 app.use((err, req, res, next) => {
@@ -236,9 +244,21 @@ app.post("/mensagem", async (req, res) => {
 });
 
 // ---------- Health check ----------
-app.get("/", (_, res) =>
-  res.send("✅ Servidor WhatsAuto ativo – envie POST para testar.")
-);
+app.get("/", (_, res) => {
+  res.json({
+    status: "ativo",
+    servidor: "WhatsAuto - Servidor Express para chatbot Contribuintes Arapiraca",
+    versao: "1.0.0 - Refatorado com detecção de intenções + Dashboard Admin",
+    timestamp: new Date().toISOString(),
+    endpoints: [
+      "POST / - Receber mensagens",
+      "POST /mensagem - Receber mensagens (alternativo)",
+      "GET /status - Status detalhado",
+      "POST /reload - Recarregar dados",
+      "GET /admin - Dashboard administrativo"
+    ]
+  });
+});
 
 // ---------- Endpoint para recarregar dados ----------
 app.post("/reload", (req, res) => {
