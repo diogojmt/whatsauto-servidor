@@ -41,6 +41,16 @@ async function testarCorrecaoEnderecos() {
   console.log('🧪 TESTE: Correção de endereços duplicados');
   console.log('='.repeat(60));
   
+  // Encontrar a tag correta no XML
+  const matches = xmlComProblema.match(/<[^>]*Imovel[^>]*>/gi);
+  console.log('🔍 Tags relacionadas a Imovel encontradas:');
+  if (matches) {
+    matches.forEach(match => console.log(`  - ${match}`));
+  } else {
+    console.log('  - Nenhuma tag encontrada');
+  }
+  console.log('');
+  
   const service = new CadastroGeralService();
   
   // Testar o parser atualizado

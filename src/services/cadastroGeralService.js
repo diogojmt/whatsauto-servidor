@@ -657,9 +657,9 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     // Primeiro, tentar extrair apenas imóveis do bloco SDTRetornoPertencesImovel
     let imoveisEncontradosNoBlocoEspecifico = false;
 
-    // Verificar se existe o bloco específico de imóveis (ignorando namespaces)
+    // Verificar se existe o bloco específico de imóveis
     const blocoImoveis =
-      /<[^:]*:?SDTRetornoPertencesImovel[^>]*>(.*?)<\/[^:]*:?SDTRetornoPertencesImovel>/gi;
+      /<SDTRetornoPertencesImovel[^>]*>(.*?)<\/SDTRetornoPertencesImovel>/gi;
     let matchBloco;
 
     console.log(`[CadastroGeralService] Procurando bloco SDTRetornoPertencesImovel...`);
@@ -670,9 +670,9 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       
       const conteudoBlocoImoveis = matchBloco[1];
 
-      // Extrair imóveis apenas deste bloco específico (ignorando namespaces)
+      // Extrair imóveis apenas deste bloco específico
       const padraoImovelItem =
-        /<[^:]*:?SDTRetornoPertencesImovelItem[^>]*>(.*?)<\/[^:]*:?SDTRetornoPertencesImovelItem>/gi;
+        /<SDTRetornoPertencesImovelItem[^>]*>(.*?)<\/SDTRetornoPertencesImovelItem>/gi;
       let matchItem;
 
       while (
@@ -680,9 +680,9 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       ) {
         const conteudoItem = matchItem[1];
 
-        // Extrair inscrições dentro deste item específico (ignorando namespaces)
+        // Extrair inscrições dentro deste item específico
         const padraoInscricao =
-          /<[^:]*:?SRPInscricaoImovel[^>]*>([^<]+)<\/[^:]*:?SRPInscricaoImovel>/gi;
+          /<SRPInscricaoImovel[^>]*>([^<]+)<\/SRPInscricaoImovel>/gi;
         let matchInscricao;
 
         while ((matchInscricao = padraoInscricao.exec(conteudoItem)) !== null) {
@@ -811,13 +811,13 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
    */
   extrairInformacoesDoItem(conteudoItem, imovel) {
     try {
-      // Padrões específicos para cada campo do item (ignorando namespaces)
+      // Padrões específicos para cada campo do item
       const padroes = {
-        endereco: /<[^:]*:?SRPEnderecoImovel[^>]*>([^<]+)<\/[^:]*:?SRPEnderecoImovel>/gi,
-        tipoImovel: /<[^:]*:?SRPTipoImovel[^>]*>([^<]+)<\/[^:]*:?SRPTipoImovel>/gi,
-        tipoProprietario: /<[^:]*:?SRPTipoProprietario[^>]*>([^<]+)<\/[^:]*:?SRPTipoProprietario>/gi,
-        possuiDebito: /<[^:]*:?SRPPossuiDebitoImovel[^>]*>([^<]+)<\/[^:]*:?SRPPossuiDebitoImovel>/gi,
-        statusDebito: /<[^:]*:?SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/[^:]*:?SRPDebitoSuspensoImovel>/gi,
+        endereco: /<SRPEnderecoImovel[^>]*>([^<]+)<\/SRPEnderecoImovel>/gi,
+        tipoImovel: /<SRPTipoImovel[^>]*>([^<]+)<\/SRPTipoImovel>/gi,
+        tipoProprietario: /<SRPTipoProprietario[^>]*>([^<]+)<\/SRPTipoProprietario>/gi,
+        possuiDebito: /<SRPPossuiDebitoImovel[^>]*>([^<]+)<\/SRPPossuiDebitoImovel>/gi,
+        statusDebito: /<SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/SRPDebitoSuspensoImovel>/gi,
       };
 
       // Extrair cada campo específico
