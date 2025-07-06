@@ -680,9 +680,9 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       ) {
         const conteudoItem = matchItem[1];
 
-        // Extrair inscrições dentro deste item específico
+        // Extrair inscrições dentro deste item específico (ignorando namespaces)
         const padraoInscricao =
-          /<SRPInscricaoImovel[^>]*>([^<]+)<\/SRPInscricaoImovel>/gi;
+          /<[^:]*:?SRPInscricaoImovel[^>]*>([^<]+)<\/[^:]*:?SRPInscricaoImovel>/gi;
         let matchInscricao;
 
         while ((matchInscricao = padraoInscricao.exec(conteudoItem)) !== null) {
@@ -811,13 +811,13 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
    */
   extrairInformacoesDoItem(conteudoItem, imovel) {
     try {
-      // Padrões específicos para cada campo do item
+      // Padrões específicos para cada campo do item (ignorando namespaces)
       const padroes = {
-        endereco: /<SRPEnderecoImovel[^>]*>([^<]+)<\/SRPEnderecoImovel>/gi,
-        tipoImovel: /<SRPTipoImovel[^>]*>([^<]+)<\/SRPTipoImovel>/gi,
-        tipoProprietario: /<SRPTipoProprietario[^>]*>([^<]+)<\/SRPTipoProprietario>/gi,
-        possuiDebito: /<SRPPossuiDebitoImovel[^>]*>([^<]+)<\/SRPPossuiDebitoImovel>/gi,
-        statusDebito: /<SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/SRPDebitoSuspensoImovel>/gi,
+        endereco: /<[^:]*:?SRPEnderecoImovel[^>]*>([^<]+)<\/[^:]*:?SRPEnderecoImovel>/gi,
+        tipoImovel: /<[^:]*:?SRPTipoImovel[^>]*>([^<]+)<\/[^:]*:?SRPTipoImovel>/gi,
+        tipoProprietario: /<[^:]*:?SRPTipoProprietario[^>]*>([^<]+)<\/[^:]*:?SRPTipoProprietario>/gi,
+        possuiDebito: /<[^:]*:?SRPPossuiDebitoImovel[^>]*>([^<]+)<\/[^:]*:?SRPPossuiDebitoImovel>/gi,
+        statusDebito: /<[^:]*:?SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/[^:]*:?SRPDebitoSuspensoImovel>/gi,
       };
 
       // Extrair cada campo específico
