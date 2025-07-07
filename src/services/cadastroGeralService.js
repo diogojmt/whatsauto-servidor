@@ -1918,26 +1918,59 @@ Digite *menu* para voltar ao menu principal.`;
     try {
       console.log(`[CadastroGeralService] Emissão integrada de certidão - Documento: ${documento}`);
       
-      // Determinar tipo de contribuinte baseado no documento
-      const tipoDocumento = documento.length === 11 ? '1' : '1'; // Sempre geral para CPF/CNPJ
+      if (!inscricoes || inscricoes.length === 0) {
+        return {
+          sucesso: false,
+          motivo: "Nenhuma inscrição disponível para certidão"
+        };
+      }
       
-      // Usar primeira inscrição disponível ou documento
-      const inscricaoParaCertidao = inscricoes && inscricoes.length > 0 
-        ? inscricoes[0].inscricao 
-        : documento;
+      // Pegar primeira inscrição sem débitos
+      const inscricaoParaCertidao = inscricoes[0];
       
-      // Chamar o método de emissão do certidaoService
-      const resultado = await this.certidaoService.processarInscricaoEEmitir(sender, inscricaoParaCertidao, tipoDocumento);
+      // Determinar tipo de contribuinte baseado no tipo da inscrição
+      const tipoContribuinte = inscricaoParaCertidao.tipo === 'Municipal' ? '1' : '2'; // 1=PF/PJ, 2=Imóvel
       
-      if (resultado && resultado.type === 'text') {
+      console.log(`[CadastroGeralService] Emitindo certidão - Tipo: ${tipoContribuinte}, Inscrição: ${inscricaoParaCertidao.inscricao}`);
+      
+      // Usar API direta da certidão (igual ao certidaoService faz)
+      const { emitirCertidao } = require("../utils/certidaoApi");
+      
+      const resultado = await emitirCertidao({
+        tipoContribuinte: tipoContribuinte,
+        inscricao: inscricaoParaCertidao.inscricao,
+        cpfCnpj: "11111111111", // CPF fake como o certidaoService usa
+        operacao: "2" // Certidão
+      });
+      
+      if (resultado && resultado.SSACodigo === 0 && resultado.SSALinkDocumento) {
+        const nomeContribuinte = resultado.SSANomeRazao || "Não informado";
+        const inscricaoFinal = resultado.SSAInscricao || inscricaoParaCertidao.inscricao;
+        const tipoInscricaoLabel = tipoContribuinte === '2' ? 'Matrícula' : 'Cadastro';
+        
+        const textoFormatado = `${EMOJIS.SUCESSO} *Certidão Negativa Emitida!* ${EMOJIS.FESTA}
+
+${EMOJIS.LINK} *LINK DA CERTIDÃO:*
+${resultado.SSALinkDocumento}
+
+${EMOJIS.INFO} *Dados da Certidão:*
+👤 *Nome/Razão:* ${nomeContribuinte}
+🏷️ *${tipoInscricaoLabel}:* ${inscricaoFinal}
+
+${EMOJIS.ALERTA} *IMPORTANTE:*
+• Link temporário - baixe/imprima *AGORA*!
+• Válido por tempo limitado
+• Salve o arquivo no seu celular`;
+
         return {
           sucesso: true,
-          texto: resultado.text
+          texto: textoFormatado
         };
       } else {
         return {
           sucesso: false,
-          motivo: "Erro na emissão da certidão"
+          motivo: resultado?.SSAMensagem || "Erro na emissão da certidão",
+          codigo: resultado?.SSACodigo
         };
       }
       
