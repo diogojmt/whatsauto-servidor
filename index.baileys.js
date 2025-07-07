@@ -1,3 +1,6 @@
+// Desabilitar link preview para evitar erro link-preview-js
+require('./disable-link-preview');
+
 const {
   makeWASocket,
   useMultiFileAuthState,

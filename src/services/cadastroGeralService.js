@@ -1323,6 +1323,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       temDebitos: inscricoesComDebito.length > 0,
       temSemDebitos: inscricoesSemDebito.length > 0,
       debitosDetalhados: null,
+      debitosIndicados: null,
       certidaoOferta: null,
     };
 
@@ -1356,6 +1357,14 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
             inscricao: primeiraInscricaoComDebito.inscricao,
             tipo: primeiraInscricaoComDebito.tipo,
             debitos: debitosConsulta.SDTSaidaAPIDebito.slice(0, 3), // Limitar a 3 débitos para não sobrecarregar
+          };
+        } else if (debitosConsulta && debitosConsulta.SSACodigo === 0) {
+          // Caso especial: Webservice indica débitos mas API não encontrou detalhes
+          // Pode ser débitos de exercícios anteriores ou inconsistência entre sistemas
+          servicosIntegrados.debitosIndicados = {
+            inscricao: primeiraInscricaoComDebito.inscricao,
+            tipo: primeiraInscricaoComDebito.tipo,
+            semDetalhes: true
           };
         }
       } catch (error) {
@@ -1643,7 +1652,29 @@ Digite *menu* para voltar ao menu principal.`,
       textoResposta += `• Digite *2* para emitir certidão positiva\n\n`;
     }
 
-    // 🚀 INTEGRAÇÃO PROATIVA - OFERTA DE CERTIDÃO
+    // 🚀 INTEGRAÇÃO PROATIVA - CONSULTA DIRETA DE DÉBITOS
+    if (servicosIntegrados && servicosIntegrados.debitosIndicados) {
+      const debitos = servicosIntegrados.debitosIndicados;
+      
+      textoResposta += `\n${EMOJIS.ALERTA} *Débitos Detectados - Consultando Sistema...*\n\n`;
+      
+      try {
+        // INTEGRAÇÃO DIRETA: Consultar débitos usando o debitosService completo
+        const resultadoDebitos = await this.consultarDebitosIntegrado(debitos.inscricao, debitos.tipo, sender);
+        
+        if (resultadoDebitos && resultadoDebitos.encontrados) {
+          textoResposta += resultadoDebitos.texto;
+        } else {
+          textoResposta += `${EMOJIS.INFO} Débitos detectados mas não disponíveis para consulta online no momento.\n\n`;
+          textoResposta += `${EMOJIS.TELEFONE} *Entre em contato:* smfaz@arapiraca.al.gov.br\n\n`;
+        }
+      } catch (error) {
+        console.error(`[CadastroGeralService] Erro na consulta integrada de débitos:`, error);
+        textoResposta += `${EMOJIS.FERRAMENTA} Erro na consulta. Tente a opção *1* do menu principal.\n\n`;
+      }
+    }
+
+    // 🚀 INTEGRAÇÃO PROATIVA - EMISSÃO DIRETA DE CERTIDÃO
     if (
       servicosIntegrados &&
       servicosIntegrados.certidaoOferta &&
@@ -1653,9 +1684,23 @@ Digite *menu* para voltar ao menu principal.`,
 
       textoResposta += `\n${EMOJIS.SUCESSO} *Situação Regular - Sem Débitos!*\n\n`;
       textoResposta += `${EMOJIS.FESTA} Parabéns! Todas as suas inscrições estão em dia.\n\n`;
-      textoResposta += `${EMOJIS.CERTIDAO} *Emitir Certidão Negativa:*\n`;
-      textoResposta += `✅ Digite *certidao* para emitir agora\n`;
-      textoResposta += `✅ Digite *2* para ver todas as opções de certidões\n\n`;
+      
+      try {
+        // INTEGRAÇÃO DIRETA: Emitir certidão usando o certidaoService
+        const resultadoCertidao = await this.emitirCertidaoIntegrada(certidao.documento, certidao.inscricoes, sender);
+        
+        if (resultadoCertidao && resultadoCertidao.sucesso) {
+          textoResposta += resultadoCertidao.texto;
+        } else {
+          textoResposta += `${EMOJIS.CERTIDAO} *Certidão Negativa disponível!*\n`;
+          textoResposta += `${EMOJIS.LINK} Acesse: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n\n`;
+        }
+      } catch (error) {
+        console.error(`[CadastroGeralService] Erro na emissão integrada de certidão:`, error);
+        textoResposta += `${EMOJIS.CERTIDAO} *Emitir Certidão:*\n`;
+        textoResposta += `${EMOJIS.LINK} Portal: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n`;
+        textoResposta += `${EMOJIS.DICA} Ou digite *2* no menu principal\n\n`;
+      }
     }
 
     // INFORMAÇÕES ADICIONAIS
@@ -1748,6 +1793,97 @@ Digite *menu* para voltar ao menu principal.`;
       );
     }
     return documento;
+  }
+
+  /**
+   * INTEGRAÇÃO DIRETA - Consulta débitos usando debitosService completo
+   */
+  async consultarDebitosIntegrado(inscricao, tipo, sender) {
+    try {
+      console.log(`[CadastroGeralService] Consulta integrada de débitos - Inscrição: ${inscricao}, Tipo: ${tipo}`);
+      
+      // Configurar sessão temporária no debitosService
+      const tipoContribuinte = tipo === 'Municipal' ? '3' : '2';
+      
+      // Simular dados da sessão como se viesse do fluxo normal
+      this.debitosService.setSessao(sender, {
+        etapa: "consulta_completa",
+        tipoContribuinte: tipoContribuinte,
+        inscricao: inscricao,
+        exercicio: new Date().getFullYear()
+      });
+      
+      // Usar o método interno do debitosService para consultar
+      const resultado = await this.debitosService.debitosApi.consultarDebitos({
+        tipoContribuinte: tipoContribuinte,
+        inscricao: inscricao,
+        exercicio: new Date().getFullYear()
+      });
+      
+      // Limpar sessão temporária
+      this.debitosService.limparSessao(sender);
+      
+      if (resultado && resultado.SSACodigo === 0 && resultado.SDTSaidaAPIDebito && resultado.SDTSaidaAPIDebito.length > 0) {
+        // Usar o formatador do debitosService
+        const textoFormatado = this.debitosService.formatarResposta(resultado.SDTSaidaAPIDebito, "Usuário");
+        
+        return {
+          encontrados: true,
+          texto: textoFormatado.text
+        };
+      } else {
+        return {
+          encontrados: false,
+          motivo: resultado?.SSAMensagem || "Nenhum débito encontrado"
+        };
+      }
+      
+    } catch (error) {
+      console.error(`[CadastroGeralService] Erro na consulta integrada de débitos:`, error);
+      return {
+        encontrados: false,
+        erro: error.message
+      };
+    }
+  }
+
+  /**
+   * INTEGRAÇÃO DIRETA - Emite certidão usando certidaoService
+   */
+  async emitirCertidaoIntegrada(documento, inscricoes, sender) {
+    try {
+      console.log(`[CadastroGeralService] Emissão integrada de certidão - Documento: ${documento}`);
+      
+      // Determinar tipo de contribuinte baseado no documento
+      const tipoDocumento = documento.length === 11 ? '1' : '1'; // Sempre geral para CPF/CNPJ
+      
+      // Usar primeira inscrição disponível ou documento
+      const inscricaoParaCertidao = inscricoes && inscricoes.length > 0 
+        ? inscricoes[0].inscricao 
+        : documento;
+      
+      // Chamar o método de emissão do certidaoService
+      const resultado = await this.certidaoService.processarInscricaoEEmitir(sender, inscricaoParaCertidao, tipoDocumento);
+      
+      if (resultado && resultado.type === 'text') {
+        return {
+          sucesso: true,
+          texto: resultado.text
+        };
+      } else {
+        return {
+          sucesso: false,
+          motivo: "Erro na emissão da certidão"
+        };
+      }
+      
+    } catch (error) {
+      console.error(`[CadastroGeralService] Erro na emissão integrada de certidão:`, error);
+      return {
+        sucesso: false,
+        erro: error.message
+      };
+    }
   }
 
   /**
