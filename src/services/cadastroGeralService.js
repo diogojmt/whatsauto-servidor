@@ -1395,10 +1395,10 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       }
     }
 
-    // INTEGRAÇÃO COM SERVIÇO DE CERTIDÕES (quando não há débitos)
-    if (inscricoesSemDebito.length > 0 && inscricoesComDebito.length === 0) {
+    // INTEGRAÇÃO COM SERVIÇO DE CERTIDÕES (sempre que há inscrições sem débitos)
+    if (inscricoesSemDebito.length > 0) {
       console.log(
-        `[CadastroGeralService] Oferecendo certidão para inscrições sem débito`
+        `[CadastroGeralService] Oferecendo certidão para ${inscricoesSemDebito.length} inscrições sem débito`
       );
 
       servicosIntegrados.certidaoOferta = {
@@ -1702,16 +1702,23 @@ Digite *menu* para voltar ao menu principal.`,
       }
     }
 
-    // 🚀 INTEGRAÇÃO PROATIVA - EMISSÃO DIRETA DE CERTIDÃO
-    if (
-      servicosIntegrados &&
-      servicosIntegrados.certidaoOferta &&
-      !servicosIntegrados.temDebitos
-    ) {
+    // 🚀 INTEGRAÇÃO PROATIVA - EMISSÃO DIRETA DE CERTIDÃO (para inscrições sem débitos)
+    if (servicosIntegrados && servicosIntegrados.certidaoOferta) {
       const certidao = servicosIntegrados.certidaoOferta;
 
-      textoResposta += `\n${EMOJIS.SUCESSO} *Situação Regular - Sem Débitos!*\n\n`;
-      textoResposta += `${EMOJIS.FESTA} Parabéns! Todas as suas inscrições estão em dia.\n\n`;
+      textoResposta += `\n${EMOJIS.SUCESSO} *Certidão Negativa Disponível!*\n\n`;
+      
+      if (servicosIntegrados.temDebitos) {
+        textoResposta += `${EMOJIS.INFO} Para as inscrições sem débitos, você pode emitir certidão negativa:\n\n`;
+        
+        // Listar inscrições sem débitos
+        certidao.inscricoes.forEach((inscricao, index) => {
+          textoResposta += `📋 *${inscricao.tipo}:* ${inscricao.inscricao}\n`;
+        });
+        textoResposta += `\n`;
+      } else {
+        textoResposta += `${EMOJIS.FESTA} Parabéns! Todas as suas inscrições estão em dia.\n\n`;
+      }
       
       try {
         // INTEGRAÇÃO DIRETA: Emitir certidão usando o certidaoService
