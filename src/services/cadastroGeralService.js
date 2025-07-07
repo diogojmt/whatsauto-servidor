@@ -514,6 +514,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       codigo: null,
     };
 
+    const empresas = [];
     const imoveis = [];
     let encontrado = false;
 
@@ -612,6 +613,73 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       }
     }
 
+    // EXTRAIR INFORMAÇÕES DA EMPRESA/INSCRIÇÃO MUNICIPAL
+    // Bloco específico SDTRetornoPertencesEmpresa
+    const blocoEmpresa =
+      /<SDTRetornoPertencesEmpresa[^>]*>([\s\S]*?)<\/SDTRetornoPertencesEmpresa>/gi;
+    let matchBlocoEmpresa;
+
+    while ((matchBlocoEmpresa = blocoEmpresa.exec(xmlLimpo)) !== null) {
+      const conteudoBlocoEmpresa = matchBlocoEmpresa[1];
+
+      // Extrair itens da empresa
+      const padraoEmpresaItem =
+        /<SDTRetornoPertencesEmpresaItem[^>]*>([\s\S]*?)<\/SDTRetornoPertencesEmpresaItem>/gi;
+      let matchEmpresaItem;
+
+      while (
+        (matchEmpresaItem = padraoEmpresaItem.exec(conteudoBlocoEmpresa)) !==
+        null
+      ) {
+        const conteudoEmpresaItem = matchEmpresaItem[1];
+
+        // Extrair informações da empresa
+        const empresa = {
+          inscricao: null,
+          endereco: null,
+          tipoAutonomo: null,
+          possuiDebito: null,
+          debitoSuspenso: null,
+          tipoProprietario: null,
+          socioEmpresa: null,
+        };
+
+        // Padrões para extrair campos específicos da empresa
+        const padroesEmpresa = {
+          inscricao:
+            /<SRPInscricaoEmpresa[^>]*>([^<]+)<\/SRPInscricaoEmpresa>/gi,
+          endereco: /<SRPEnderecoEmpresa[^>]*>([^<]+)<\/SRPEnderecoEmpresa>/gi,
+          tipoAutonomo: /<SRPAutonomo[^>]*>([^<]+)<\/SRPAutonomo>/gi,
+          possuiDebito:
+            /<SRPPossuiDebitoEmpresa[^>]*>([^<]+)<\/SRPPossuiDebitoEmpresa>/gi,
+          debitoSuspenso:
+            /<SRPDebitoSuspensoEmpresa[^>]*>([^<]+)<\/SRPDebitoSuspensoEmpresa>/gi,
+          tipoProprietario:
+            /<SRPTipoProprietario[^>]*>([^<]+)<\/SRPTipoProprietario>/gi,
+          socioEmpresa: /<SRPSocioEmpresa[^>]*>([^<]+)<\/SRPSocioEmpresa>/gi,
+        };
+
+        // Extrair cada campo da empresa
+        for (const [campo, padrao] of Object.entries(padroesEmpresa)) {
+          const match = padrao.exec(conteudoEmpresaItem);
+          if (match) {
+            const valor = this.limparValor(match[1]);
+            if (valor) {
+              empresa[campo] = valor;
+            }
+          }
+          // Resetar regex para próxima busca
+          padrao.lastIndex = 0;
+        }
+
+        // Adicionar empresa se tiver inscrição válida
+        if (empresa.inscricao && /^\d+$/.test(empresa.inscricao)) {
+          empresas.push(empresa);
+          encontrado = true;
+        }
+      }
+    }
+
     // PADRÕES PARA EXTRAIR INFORMAÇÕES DOS IMÓVEIS
     const padroesImoveis = [
       // =================== PADRÕES ESPECÍFICOS WEBSERVICE ÁBACO ===================
@@ -660,11 +728,10 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     // Verificar se existe o bloco específico de imóveis
     const blocoImoveis =
       /<SDTRetornoPertencesImovel[^>]*>([\s\S]*?)<\/SDTRetornoPertencesImovel>/gi;
-    
+
     let matchBloco;
-    
+
     while ((matchBloco = blocoImoveis.exec(xmlLimpo)) !== null) {
-      
       const conteudoBlocoImoveis = matchBloco[1];
 
       // Extrair imóveis apenas deste bloco específico
@@ -797,6 +864,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     return {
       encontrado,
       contribuinte,
+      empresas,
       imoveis,
     };
   }
@@ -810,9 +878,12 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       const padroes = {
         endereco: /<SRPEnderecoImovel[^>]*>([^<]+)<\/SRPEnderecoImovel>/gi,
         tipoImovel: /<SRPTipoImovel[^>]*>([^<]+)<\/SRPTipoImovel>/gi,
-        tipoProprietario: /<SRPTipoProprietario[^>]*>([^<]+)<\/SRPTipoProprietario>/gi,
-        possuiDebito: /<SRPPossuiDebitoImovel[^>]*>([^<]+)<\/SRPPossuiDebitoImovel>/gi,
-        statusDebito: /<SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/SRPDebitoSuspensoImovel>/gi,
+        tipoProprietario:
+          /<SRPTipoProprietario[^>]*>([^<]+)<\/SRPTipoProprietario>/gi,
+        possuiDebito:
+          /<SRPPossuiDebitoImovel[^>]*>([^<]+)<\/SRPPossuiDebitoImovel>/gi,
+        statusDebito:
+          /<SRPDebitoSuspensoImovel[^>]*>([^<]+)<\/SRPDebitoSuspensoImovel>/gi,
       };
 
       // Extrair cada campo específico
@@ -1195,7 +1266,10 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     const tipoDocumento = documento.length === 11 ? "CPF" : "CNPJ";
     const documentoFormatado = this.formatarDocumento(documento);
 
-    if (!dados.encontrado || (dados.imoveis && dados.imoveis.length === 0 && !dados.contribuinte?.nome)) {
+    if (
+      !dados.encontrado ||
+      (dados.imoveis && dados.imoveis.length === 0 && !dados.contribuinte?.nome)
+    ) {
       let mensagemEspecifica =
         "Nenhuma inscrição ativa encontrada para este documento.";
       let detalhesAdicionais = `${EMOJIS.DICA} *Isso pode significar:*
@@ -1266,15 +1340,57 @@ Digite *menu* para voltar ao menu principal.`,
       textoResposta += `\n`;
     }
 
+    // INFORMAÇÕES DA EMPRESA/INSCRIÇÃO MUNICIPAL
+    if (dados.empresas && dados.empresas.length > 0) {
+      textoResposta += `${EMOJIS.EMPRESA} *Inscrições Municipais:*\n`;
+
+      dados.empresas.forEach((empresa, index) => {
+        const numero = index + 1;
+        textoResposta += `\n*${numero}.* *Inscrição Municipal:* ${empresa.inscricao}\n`;
+
+        if (empresa.endereco) {
+          textoResposta += `   ${EMOJIS.LOCALIZACAO} *Endereço:* ${empresa.endereco}\n`;
+        }
+
+        if (empresa.tipoAutonomo) {
+          const tipoDescricao = this.interpretarTipoAutonomo(
+            empresa.tipoAutonomo
+          );
+          textoResposta += `   ${EMOJIS.LISTA} *Tipo:* ${tipoDescricao}\n`;
+        }
+
+        if (empresa.possuiDebito) {
+          const iconeDebito = this.interpretarStatusDebito(empresa.possuiDebito)
+            ? EMOJIS.ALERTA
+            : EMOJIS.SUCESSO;
+          const textoDebito = this.interpretarStatusDebito(empresa.possuiDebito)
+            ? "Sim"
+            : "Não";
+          textoResposta += `   ${iconeDebito} *Possui débitos:* ${textoDebito}\n`;
+        }
+
+        if (
+          empresa.debitoSuspenso &&
+          empresa.debitoSuspenso.toLowerCase() === "s"
+        ) {
+          textoResposta += `   ${EMOJIS.INFO} *Débito suspenso:* Sim\n`;
+        }
+      });
+
+      textoResposta += `\n`;
+    }
+
     // INFORMAÇÕES DOS IMÓVEIS - APRESENTAÇÃO INDIVIDUAL
     if (dados.imoveis && dados.imoveis.length > 0) {
       // Limite de exibição de imóveis (medida de proteção e performance)
       const LIMITE_IMOVEIS = 5;
-      
+
       if (dados.imoveis.length > LIMITE_IMOVEIS) {
         // Log para auditoria
-        console.log(`[CADASTRO GERAL] Consulta bloqueada: ${dados.imoveis.length} imóveis vinculados (limite: ${LIMITE_IMOVEIS})`);
-        
+        console.log(
+          `[CADASTRO GERAL] Consulta bloqueada: ${dados.imoveis.length} imóveis vinculados (limite: ${LIMITE_IMOVEIS})`
+        );
+
         // Mensagem de orientação para casos com muitos imóveis
         textoResposta += `${EMOJIS.ALERTA} *Consulta de Cadastro Geral*\n\n`;
         textoResposta += `Encontramos *${dados.imoveis.length} imóveis* vinculados a este contribuinte.\n\n`;
@@ -1284,13 +1400,13 @@ Digite *menu* para voltar ao menu principal.`,
         textoResposta += `• Envie email para: smfaz@arapiraca.al.gov.br\n`;
         textoResposta += `• Compareça presencialmente na Secretaria\n\n`;
         textoResposta += `Digite *menu* para voltar ao menu principal.`;
-        
+
         return {
           type: "text",
           text: textoResposta,
         };
       }
-      
+
       textoResposta += `${EMOJIS.CASA} *Imóveis vinculados:*\n`;
 
       dados.imoveis.forEach((imovel, index) => {
@@ -1440,6 +1556,30 @@ Digite *menu* para voltar ao menu principal.`;
       );
     }
     return documento;
+  }
+
+  /**
+   * Interpreta o tipo autônomo/empresa
+   */
+  interpretarTipoAutonomo(tipoAutonomo) {
+    if (!tipoAutonomo) return "Não informado";
+
+    const tipo = tipoAutonomo.toUpperCase().trim();
+
+    switch (tipo) {
+      case "E":
+        return "Empresa";
+      case "A":
+        return "Autônomo";
+      case "MEI":
+        return "Microempreendedor Individual";
+      case "ME":
+        return "Microempresa";
+      case "EPP":
+        return "Empresa de Pequeno Porte";
+      default:
+        return tipo;
+    }
   }
 
   /**
