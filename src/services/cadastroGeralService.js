@@ -1345,11 +1345,17 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
             exercicio: new Date().getFullYear(),
           });
 
-        if (debitosConsulta && debitosConsulta.length > 0) {
+        console.log(`[CadastroGeralService] Resposta da consulta de débitos:`, {
+          codigo: debitosConsulta?.SSACodigo,
+          quantidadeDebitos: debitosConsulta?.SDTSaidaAPIDebito?.length || 0,
+          temDebitos: debitosConsulta?.SDTSaidaAPIDebito?.length > 0
+        });
+
+        if (debitosConsulta && debitosConsulta.SSACodigo === 0 && debitosConsulta.SDTSaidaAPIDebito && debitosConsulta.SDTSaidaAPIDebito.length > 0) {
           servicosIntegrados.debitosDetalhados = {
             inscricao: primeiraInscricaoComDebito.inscricao,
             tipo: primeiraInscricaoComDebito.tipo,
-            debitos: debitosConsulta.slice(0, 3), // Limitar a 3 débitos para não sobrecarregar
+            debitos: debitosConsulta.SDTSaidaAPIDebito.slice(0, 3), // Limitar a 3 débitos para não sobrecarregar
           };
         }
       } catch (error) {
