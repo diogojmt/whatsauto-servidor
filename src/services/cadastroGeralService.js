@@ -4,6 +4,8 @@ const path = require("path");
 const { EMOJIS, ESTADOS } = require("../config/constants");
 const { definirEstadoUsuario, obterEstadoUsuario } = require("./stateService");
 const { validarCPF, validarCNPJ } = require("../utils/validationUtils");
+const { DebitosService } = require("./debitosService");
+const { CertidaoService } = require("./certidaoService");
 
 /**
  * Serviço para consulta de Cadastro Geral via WebService SOAP da Ábaco
@@ -56,6 +58,10 @@ class CadastroGeralService {
     if (!fs.existsSync(this.logsDir)) {
       fs.mkdirSync(this.logsDir, { recursive: true });
     }
+
+    // Instanciar serviços integrados para UX proativa
+    this.debitosService = new DebitosService();
+    this.certidaoService = new CertidaoService();
   }
 
   /**
@@ -221,7 +227,7 @@ ${EMOJIS.INFO} Você digitou ${documento.length} dígitos.`,
       console.log(
         `[CadastroGeralService] Retornando dados do cache para ${documento}`
       );
-      return this.formatarResposta(dadosCache.data, documento);
+      return await this.formatarResposta(dadosCache.data, documento, sender);
     }
 
     // Realizar consulta SOAP
@@ -238,7 +244,7 @@ ${EMOJIS.INFO} Você digitou ${documento.length} dígitos.`,
         timestamp: Date.now(),
       });
 
-      return this.formatarResposta(resultados, documento);
+      return await this.formatarResposta(resultados, documento, sender);
     } catch (error) {
       console.error(`[CadastroGeralService] Erro na consulta:`, error);
 
@@ -1260,9 +1266,117 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
   }
 
   /**
+   * INTEGRAÇÃO PROATIVA - Detecta débitos e oferece serviços contextuais
+   *
+   * Esta é a funcionalidade REVOLUCIONÁRIA que melhora drasticamente a UX:
+   * - Se HÁ débitos: mostra débitos específicos automaticamente
+   * - Se NÃO HÁ débitos: oferece emissão de certidão automaticamente
+   * - Mantém compatibilidade com serviços diretos (opções 1 e 2 do menu)
+   */
+  async integrarServicosProativos(sender, dados, documento) {
+    const inscricoesComDebito = [];
+    const inscricoesSemDebito = [];
+
+    console.log(
+      `[CadastroGeralService] Analisando débitos para integração proativa`
+    );
+
+    // Analisar empresas/inscrições municipais
+    if (dados.empresas && dados.empresas.length > 0) {
+      dados.empresas.forEach((empresa) => {
+        if (this.interpretarStatusDebito(empresa.possuiDebito)) {
+          inscricoesComDebito.push({
+            tipo: "Municipal",
+            inscricao: empresa.inscricao,
+            endereco: empresa.endereco,
+          });
+        } else {
+          inscricoesSemDebito.push({
+            tipo: "Municipal",
+            inscricao: empresa.inscricao,
+            endereco: empresa.endereco,
+          });
+        }
+      });
+    }
+
+    // Analisar imóveis
+    if (dados.imoveis && dados.imoveis.length > 0) {
+      dados.imoveis.forEach((imovel) => {
+        if (this.interpretarStatusDebito(imovel.possuiDebito)) {
+          inscricoesComDebito.push({
+            tipo: "Imobiliária",
+            inscricao: imovel.inscricao,
+            endereco: imovel.endereco,
+          });
+        } else {
+          inscricoesSemDebito.push({
+            tipo: "Imobiliária",
+            inscricao: imovel.inscricao,
+            endereco: imovel.endereco,
+          });
+        }
+      });
+    }
+
+    let servicosIntegrados = {
+      temDebitos: inscricoesComDebito.length > 0,
+      temSemDebitos: inscricoesSemDebito.length > 0,
+      debitosDetalhados: null,
+      certidaoOferta: null,
+    };
+
+    // INTEGRAÇÃO COM SERVIÇO DE DÉBITOS (quando há débitos)
+    if (inscricoesComDebito.length > 0) {
+      console.log(
+        `[CadastroGeralService] Consultando débitos específicos para ${inscricoesComDebito.length} inscrição(ões)`
+      );
+
+      try {
+        // Consultar débitos da primeira inscrição com débito
+        const primeiraInscricaoComDebito = inscricoesComDebito[0];
+
+        // Consultar débitos via API direta
+        const debitosConsulta = await this.debitosService.debitosApi.consultarDebitos({
+          tipoContribuinte: primeiraInscricaoComDebito.tipo === 'Municipal' ? '3' : '2',
+          inscricao: primeiraInscricaoComDebito.inscricao,
+          exercicio: new Date().getFullYear()
+        });
+
+        if (debitosConsulta && debitosConsulta.length > 0) {
+          servicosIntegrados.debitosDetalhados = {
+            inscricao: primeiraInscricaoComDebito.inscricao,
+            tipo: primeiraInscricaoComDebito.tipo,
+            debitos: debitosConsulta.slice(0, 3), // Limitar a 3 débitos para não sobrecarregar
+          };
+        }
+      } catch (error) {
+        console.error(
+          `[CadastroGeralService] Erro ao consultar débitos integrados:`,
+          error
+        );
+      }
+    }
+
+    // INTEGRAÇÃO COM SERVIÇO DE CERTIDÕES (quando não há débitos)
+    if (inscricoesSemDebito.length > 0 && inscricoesComDebito.length === 0) {
+      console.log(
+        `[CadastroGeralService] Oferecendo certidão para inscrições sem débito`
+      );
+
+      servicosIntegrados.certidaoOferta = {
+        documento: documento,
+        inscricoes: inscricoesSemDebito.slice(0, 2), // Limitar para não sobrecarregar
+      };
+    }
+
+    return servicosIntegrados;
+  }
+
+  /**
    * Formata a resposta para o usuário - APRESENTAÇÃO APRIMORADA
    */
-  formatarResposta(dados, documento) {
+  async formatarResposta(dados, documento, sender = null) {
     const tipoDocumento = documento.length === 11 ? "CPF" : "CNPJ";
     const documentoFormatado = this.formatarDocumento(documento);
 
@@ -1318,6 +1432,23 @@ https://arapiraca.abaco.com.br/eagata/portal/
 
 Digite *menu* para voltar ao menu principal.`,
       };
+    }
+
+    // INTEGRAÇÃO PROATIVA - A REVOLUÇÃO NA UX! 🚀
+    let servicosIntegrados = null;
+    if (sender) {
+      try {
+        servicosIntegrados = await this.integrarServicosProativos(
+          sender,
+          dados,
+          documento
+        );
+      } catch (error) {
+        console.error(
+          `[CadastroGeralService] Erro na integração proativa:`,
+          error
+        );
+      }
     }
 
     // RESPOSTA COMPLETA COM DADOS APRIMORADOS
@@ -1464,6 +1595,59 @@ Digite *menu* para voltar ao menu principal.`,
           textoResposta += `• ${inscricao.numero}\n`;
         });
       }
+    }
+
+    // 🚀 INTEGRAÇÃO PROATIVA - DÉBITOS DETALHADOS
+    if (servicosIntegrados && servicosIntegrados.debitosDetalhados) {
+      const debitos = servicosIntegrados.debitosDetalhados;
+
+      textoResposta += `\n${EMOJIS.ALERTA} *Débitos Encontrados - Inscrição ${debitos.tipo}*\n\n`;
+      textoResposta += `${EMOJIS.NUMERO} *Inscrição:* ${debitos.inscricao}\n\n`;
+
+      debitos.debitos.forEach((debito, index) => {
+        const numero = index + 1;
+        const valorFormatado = this.debitosService.formatarMoeda(
+          debito.SSAValorTotal
+        );
+        const vencimento = this.debitosService.formatarData(
+          debito.SSAVencimento
+        );
+
+        textoResposta += `*${numero}️⃣ ${debito.SSATributo}*\n`;
+        textoResposta += `💰 Valor: ${valorFormatado}\n`;
+        textoResposta += `📅 Vencimento: ${vencimento}\n`;
+
+        if (debito.SSALinkkDAM || debito.SSALinkDAM) {
+          textoResposta += `🔗 [Segunda via (DAM)](${
+            debito.SSALinkkDAM || debito.SSALinkDAM
+          })\n`;
+        }
+
+        if (debito.SSALinhaDigitavel) {
+          textoResposta += `📋 Linha digitável:\n\`${debito.SSALinhaDigitavel}\`\n`;
+        }
+
+        textoResposta += `\n`;
+      });
+
+      textoResposta += `${EMOJIS.INFO} *Ações disponíveis:*\n`;
+      textoResposta += `• Digite *1* para ver todos os débitos\n`;
+      textoResposta += `• Digite *2* para emitir certidão positiva\n\n`;
+    }
+
+    // 🚀 INTEGRAÇÃO PROATIVA - OFERTA DE CERTIDÃO
+    if (
+      servicosIntegrados &&
+      servicosIntegrados.certidaoOferta &&
+      !servicosIntegrados.temDebitos
+    ) {
+      const certidao = servicosIntegrados.certidaoOferta;
+
+      textoResposta += `\n${EMOJIS.SUCESSO} *Situação Regular - Sem Débitos!*\n\n`;
+      textoResposta += `${EMOJIS.FESTA} Parabéns! Todas as suas inscrições estão em dia.\n\n`;
+      textoResposta += `${EMOJIS.CERTIDAO} *Emitir Certidão Negativa:*\n`;
+      textoResposta += `✅ Digite *certidao* para emitir agora\n`;
+      textoResposta += `✅ Digite *2* para ver todas as opções de certidões\n\n`;
     }
 
     // INFORMAÇÕES ADICIONAIS
