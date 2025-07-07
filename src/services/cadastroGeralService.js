@@ -1330,21 +1330,41 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     // INTEGRAÇÃO COM SERVIÇO DE DÉBITOS (quando há débitos)
     if (inscricoesComDebito.length > 0) {
       console.log(
-        `[CadastroGeralService] Consultando débitos específicos para ${inscricoesComDebito.length} inscrição(ões)`
+        `[CadastroGeralService] Consultando débitos específicos para ${inscricoesComDebito.length} inscrição(ões) - Exercícios: ${new Date().getFullYear()-4} a ${new Date().getFullYear()}`
       );
 
       try {
         // Consultar débitos da primeira inscrição com débito
         const primeiraInscricaoComDebito = inscricoesComDebito[0];
 
-        // Consultar débitos via API direta
-        const debitosConsulta =
-          await this.debitosService.debitosApi.consultarDebitos({
-            tipoContribuinte:
-              primeiraInscricaoComDebito.tipo === "Municipal" ? "3" : "2",
-            inscricao: primeiraInscricaoComDebito.inscricao,
-            exercicio: new Date().getFullYear(),
-          });
+        // Consultar débitos via API direta - ÚLTIMOS 5 ANOS
+        const anoAtual = new Date().getFullYear();
+        const anosParaConsultar = [anoAtual, anoAtual-1, anoAtual-2, anoAtual-3, anoAtual-4];
+        let todosDebitos = [];
+        
+        for (const ano of anosParaConsultar) {
+          try {
+            const debitosAno = await this.debitosService.debitosApi.consultarDebitos({
+              tipoContribuinte: primeiraInscricaoComDebito.tipo === "Municipal" ? "3" : "2",
+              inscricao: primeiraInscricaoComDebito.inscricao,
+              exercicio: ano,
+            });
+            
+            if (debitosAno && debitosAno.SSACodigo === 0 && debitosAno.SDTSaidaAPIDebito && debitosAno.SDTSaidaAPIDebito.length > 0) {
+              console.log(`[CadastroGeralService] Débitos encontrados no exercício ${ano}: ${debitosAno.SDTSaidaAPIDebito.length}`);
+              todosDebitos = todosDebitos.concat(debitosAno.SDTSaidaAPIDebito);
+            }
+          } catch (error) {
+            console.error(`[CadastroGeralService] Erro ao consultar exercício ${ano}:`, error);
+          }
+        }
+        
+        // Simular resposta consolidada
+        const debitosConsulta = {
+          SSACodigo: 0,
+          SDTSaidaAPIDebito: todosDebitos,
+          SSAMensagem: `Consulta realizada para exercícios ${anosParaConsultar.join(', ')}`
+        };
 
         console.log(`[CadastroGeralService] Resposta da consulta de débitos:`, {
           codigo: debitosConsulta?.SSACodigo,
@@ -1665,8 +1685,16 @@ Digite *menu* para voltar ao menu principal.`,
         if (resultadoDebitos && resultadoDebitos.encontrados) {
           textoResposta += resultadoDebitos.texto;
         } else {
-          textoResposta += `${EMOJIS.INFO} Débitos detectados mas não disponíveis para consulta online no momento.\n\n`;
-          textoResposta += `${EMOJIS.TELEFONE} *Entre em contato:* smfaz@arapiraca.al.gov.br\n\n`;
+          textoResposta += `${EMOJIS.NUMERO} *Inscrição:* ${debitos.inscricao}\n\n`;
+          textoResposta += `${EMOJIS.INFO} O sistema da Ábaco indica que esta inscrição possui débitos, mas não foram encontrados detalhes específicos nos últimos 5 anos (${new Date().getFullYear()-4}-${new Date().getFullYear()}).\n\n`;
+          textoResposta += `${EMOJIS.DICA} *Isso pode significar:*\n`;
+          textoResposta += `• Débitos de exercícios anteriores\n`;
+          textoResposta += `• Valores já quitados mas ainda não atualizados\n`;
+          textoResposta += `• Parcelamentos em andamento\n\n`;
+          textoResposta += `${EMOJIS.TELEFONE} *Para esclarecimentos:*\n`;
+          textoResposta += `• Digite *1* para consulta completa de débitos\n`;
+          textoResposta += `• Email: smfaz@arapiraca.al.gov.br\n`;
+          textoResposta += `• Telefone: (82) 3539-6000\n\n`;
         }
       } catch (error) {
         console.error(`[CadastroGeralService] Erro na consulta integrada de débitos:`, error);
@@ -1813,16 +1841,45 @@ Digite *menu* para voltar ao menu principal.`;
         exercicio: new Date().getFullYear()
       });
       
-      // Usar o método interno do debitosService para consultar
-      const resultado = await this.debitosService.debitosApi.consultarDebitos({
-        tipoContribuinte: tipoContribuinte,
-        inscricao: inscricao,
-        exercicio: new Date().getFullYear()
-      });
+      // Consultar múltiplos exercícios - ÚLTIMOS 5 ANOS
+      const anoAtual = new Date().getFullYear();
+      const anosParaConsultar = [anoAtual, anoAtual-1, anoAtual-2, anoAtual-3, anoAtual-4];
+      let todosDebitos = [];
+      
+      for (const ano of anosParaConsultar) {
+        try {
+          const debitosAno = await this.debitosService.debitosApi.consultarDebitos({
+            tipoContribuinte: tipoContribuinte,
+            inscricao: inscricao,
+            exercicio: ano
+          });
+          
+          if (debitosAno && debitosAno.SSACodigo === 0 && debitosAno.SDTSaidaAPIDebito && debitosAno.SDTSaidaAPIDebito.length > 0) {
+            console.log(`[CadastroGeralService] Integração - Débitos no exercício ${ano}: ${debitosAno.SDTSaidaAPIDebito.length}`);
+            todosDebitos = todosDebitos.concat(debitosAno.SDTSaidaAPIDebito);
+          }
+        } catch (error) {
+          console.error(`[CadastroGeralService] Erro na integração - exercício ${ano}:`, error);
+        }
+      }
+      
+      // Simular resultado consolidado
+      const resultado = {
+        SSACodigo: 0,
+        SDTSaidaAPIDebito: todosDebitos,
+        SSAMensagem: `Consulta integrada para exercícios ${anosParaConsultar.join(', ')}`
+      };
       
       // Limpar sessão temporária
       this.debitosService.limparSessao(sender);
       
+      console.log(`[CadastroGeralService] Resultado da consulta integrada:`, {
+        codigo: resultado?.SSACodigo,
+        temDebitos: resultado?.SDTSaidaAPIDebito?.length > 0,
+        quantidadeDebitos: resultado?.SDTSaidaAPIDebito?.length || 0,
+        mensagem: resultado?.SSAMensagem
+      });
+
       if (resultado && resultado.SSACodigo === 0 && resultado.SDTSaidaAPIDebito && resultado.SDTSaidaAPIDebito.length > 0) {
         // Usar o formatador do debitosService
         const textoFormatado = this.debitosService.formatarResposta(resultado.SDTSaidaAPIDebito, "Usuário");
@@ -1834,7 +1891,7 @@ Digite *menu* para voltar ao menu principal.`;
       } else {
         return {
           encontrados: false,
-          motivo: resultado?.SSAMensagem || "Nenhum débito encontrado"
+          motivo: resultado?.SSAMensagem || "Nenhum débito encontrado para o exercício atual"
         };
       }
       
