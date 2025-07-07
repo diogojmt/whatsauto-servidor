@@ -5,7 +5,7 @@ const { EMOJIS, ESTADOS } = require("../config/constants");
 const { definirEstadoUsuario, obterEstadoUsuario } = require("./stateService");
 const { validarCPF, validarCNPJ } = require("../utils/validationUtils");
 const { DebitosService } = require("./debitosService");
-const { CertidaoService } = require("./certidaoService");
+const certidaoService = require("./certidaoService");
 
 /**
  * Serviço para consulta de Cadastro Geral via WebService SOAP da Ábaco
@@ -61,7 +61,7 @@ class CadastroGeralService {
 
     // Instanciar serviços integrados para UX proativa
     this.debitosService = new DebitosService();
-    this.certidaoService = new CertidaoService();
+    this.certidaoService = certidaoService;
   }
 
   /**
@@ -1337,11 +1337,13 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
         const primeiraInscricaoComDebito = inscricoesComDebito[0];
 
         // Consultar débitos via API direta
-        const debitosConsulta = await this.debitosService.debitosApi.consultarDebitos({
-          tipoContribuinte: primeiraInscricaoComDebito.tipo === 'Municipal' ? '3' : '2',
-          inscricao: primeiraInscricaoComDebito.inscricao,
-          exercicio: new Date().getFullYear()
-        });
+        const debitosConsulta =
+          await this.debitosService.debitosApi.consultarDebitos({
+            tipoContribuinte:
+              primeiraInscricaoComDebito.tipo === "Municipal" ? "3" : "2",
+            inscricao: primeiraInscricaoComDebito.inscricao,
+            exercicio: new Date().getFullYear(),
+          });
 
         if (debitosConsulta && debitosConsulta.length > 0) {
           servicosIntegrados.debitosDetalhados = {
