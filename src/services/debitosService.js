@@ -291,8 +291,11 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
     }
 
     // Exibir dados coletados e iniciar consulta
-    const mensagemConsultando = await this.enviarMensagemConsultando(sender, parametros);
-    
+    const mensagemConsultando = await this.enviarMensagemConsultando(
+      sender,
+      parametros
+    );
+
     // Mostrar mensagem de aguardo no console
     const WaitingMessage = require("../utils/waitingMessage");
     const waitingMsg = WaitingMessage.getMessageForType("debitos");
@@ -320,12 +323,12 @@ Digite *1* para tentar novamente ou *0* para voltar ao menu principal.`,
 
       // Mostrar mensagem de repetição e executar consulta
       await this.enviarMensagemConsultando(sender, parametros);
-      
+
       // Mostrar mensagem de aguardo no console
       const WaitingMessage = require("../utils/waitingMessage");
       const waitingMsg = WaitingMessage.getMessageForType("debitos");
       console.log(`[DebitosService] 📋 ${waitingMsg}`);
-      
+
       return await this.executarConsulta(sender, parametros);
     }
 
@@ -526,7 +529,7 @@ Ou digite *menu* para voltar ao menu principal.`,
       });
     }
 
-    let resposta = `✅ *Débitos encontrados*
+    let resposta = `⚠️ *Débitos encontrados*
 
 ${nome}, foram encontrados *${debitos.length}* débito(s) em aberto para sua inscrição:
 

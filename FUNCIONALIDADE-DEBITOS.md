@@ -121,7 +121,7 @@ Digite o número correspondente:
 ### Resultado Final
 
 ```
-✅ Débitos encontrados
+⚠️ Débitos encontrados
 
 João, foram encontrados 2 débito(s) em aberto para sua inscrição:
 
