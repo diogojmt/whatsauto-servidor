@@ -49,7 +49,7 @@ const certidaoService = require("./certidaoService");
 class CadastroGeralService {
   constructor() {
     this.wsdlUrl =
-      "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apwsretornopertences?wsdl";
+      "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidocumento";
     this.cache = new Map();
     this.cacheTTL = 5 * 60 * 1000; // 5 minutos
 
