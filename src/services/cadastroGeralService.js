@@ -219,36 +219,84 @@ ${EMOJIS.INFO} Você digitou ${documento.length} dígitos.`,
       };
     }
 
-    // Verificar cache
-    const chaveCache = `cadastro_${documento}`;
-    const dadosCache = this.cache.get(chaveCache);
+    // 🚀 INICIAR PROCESSAMENTO EM BACKGROUND E RETORNAR MENSAGEM DE AGUARDE
+    this.processarConsultaBackground(sender, documento);
 
-    if (dadosCache && Date.now() - dadosCache.timestamp < this.cacheTTL) {
-      console.log(
-        `[CadastroGeralService] Retornando dados do cache para ${documento}`
-      );
-      return await this.formatarResposta(dadosCache.data, documento, sender);
-    }
+    // Retornar mensagem de aguarde imediatamente
+    const tipoDocumento = documento.length === 11 ? "CPF" : "CNPJ";
+    const documentoFormatado = this.formatarDocumento(documento);
 
-    // Realizar consulta SOAP
+    return {
+      type: "text",
+      text: `${EMOJIS.BUSCA} *Consultando seus dados...*
+
+📋 *${tipoDocumento}:* ${documentoFormatado}
+
+⏳ *Aguarde enquanto consultamos:*
+• Cadastro Geral no sistema da Ábaco
+• Inscrições Municipais e Imobiliárias
+• Status de débitos em tempo real
+• Disponibilidade de certidões
+
+${EMOJIS.RELOGIO} *Processando... Isso pode levar alguns segundos.*
+
+${EMOJIS.INFO} *Em breve você receberá:*
+✅ Dados completos do cadastro
+💰 Débitos detalhados (se houver)
+📄 Certidão negativa (se sem débitos)
+📊 Resumo consolidado`,
+    };
+  }
+
+  /**
+   * Processa consulta em background e envia resultado
+   */
+  async processarConsultaBackground(sender, documento) {
     try {
       console.log(
-        `[CadastroGeralService] Realizando consulta SOAP para ${documento}`
+        `[CadastroGeralService] Iniciando consulta background para ${documento}`
       );
 
-      const resultados = await this.consultarCadastroGeral(documento);
+      // Verificar cache
+      const chaveCache = `cadastro_${documento}`;
+      const dadosCache = this.cache.get(chaveCache);
 
-      // Armazenar no cache
-      this.cache.set(chaveCache, {
-        data: resultados,
-        timestamp: Date.now(),
-      });
+      let resultados;
+      if (dadosCache && Date.now() - dadosCache.timestamp < this.cacheTTL) {
+        console.log(
+          `[CadastroGeralService] Retornando dados do cache para ${documento}`
+        );
+        resultados = dadosCache.data;
+      } else {
+        console.log(
+          `[CadastroGeralService] Realizando consulta SOAP para ${documento}`
+        );
+        resultados = await this.consultarCadastroGeral(documento);
 
-      return await this.formatarResposta(resultados, documento, sender);
+        // Armazenar no cache
+        this.cache.set(chaveCache, {
+          data: resultados,
+          timestamp: Date.now(),
+        });
+      }
+
+      // Formatar resposta completa
+      const resposta = await this.formatarResposta(
+        resultados,
+        documento,
+        sender
+      );
+
+      // Enviar resultado final
+      await this.enviarResultadoFinal(sender, resposta);
     } catch (error) {
-      console.error(`[CadastroGeralService] Erro na consulta:`, error);
+      console.error(
+        `[CadastroGeralService] Erro na consulta background:`,
+        error
+      );
 
-      return {
+      // Enviar mensagem de erro
+      await this.enviarResultadoFinal(sender, {
         type: "text",
         text: `${EMOJIS.ERRO} *Erro na consulta*
 
@@ -259,7 +307,7 @@ ${EMOJIS.DICA} *Tente novamente em alguns minutos ou:*
 • Acesse o portal: https://arapiraca.abaco.com.br/eagata/portal/
 
 ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
-      };
+      });
     }
   }
 
