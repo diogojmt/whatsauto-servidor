@@ -1302,29 +1302,58 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       });
     }
 
-    // Analisar imóveis - VERIFICAR SE REALMENTE PERTENCEM AO DOCUMENTO
+    // Analisar imóveis - VALIDAR SE REALMENTE PERTENCEM AO DOCUMENTO
     if (dados.imoveis && dados.imoveis.length > 0) {
-      dados.imoveis.forEach((imovel) => {
-        // IMPORTANTE: Imóveis podem estar vinculados a outros CPFs!
-        // Por enquanto, vamos assumir que pertencem (mas isso precisa ser verificado na prática)
-        const pertenceAoDocumento = true; // TODO: Implementar verificação real
+      for (const imovel of dados.imoveis) {
+        // VALIDAÇÃO: Verificar se o imóvel realmente pertence ao documento consultado
+        let pertenceAoDocumento = false;
         
-        if (this.interpretarStatusDebito(imovel.possuiDebito)) {
-          inscricoesComDebito.push({
-            tipo: "Imobiliária",
+        try {
+          // Fazer consulta rápida na API de certidão para verificar pertencimento
+          const { emitirCertidao } = require("../utils/certidaoApi");
+          
+          const verificacao = await emitirCertidao({
+            tipoContribuinte: "2", // Imóvel
             inscricao: imovel.inscricao,
-            endereco: imovel.endereco,
-            pertenceAoDocumento: pertenceAoDocumento,
+            cpfCnpj: "11111111111", // CPF fake
+            operacao: "2"
           });
-        } else {
-          inscricoesSemDebito.push({
-            tipo: "Imobiliária",
-            inscricao: imovel.inscricao,
-            endereco: imovel.endereco,
-            pertenceAoDocumento: pertenceAoDocumento,
-          });
+          
+          if (verificacao && verificacao.SSACodigo === 0 && verificacao.SSACPFCNPJ) {
+            const documentoConsultado = documento.replace(/\D/g, '');
+            const documentoRetornado = verificacao.SSACPFCNPJ.replace(/\D/g, '');
+            
+            pertenceAoDocumento = (documentoRetornado === documentoConsultado);
+            
+            if (!pertenceAoDocumento) {
+              console.log(`[CadastroGeralService] Imóvel ${imovel.inscricao} pertence a outro documento (${verificacao.SSACPFCNPJ}) - será omitido`);
+            }
+          }
+        } catch (error) {
+          console.error(`[CadastroGeralService] Erro ao verificar pertencimento do imóvel ${imovel.inscricao}:`, error);
+          // Em caso de erro, não incluir por segurança
+          pertenceAoDocumento = false;
         }
-      });
+        
+        // Só incluir se realmente pertencer ao documento
+        if (pertenceAoDocumento) {
+          if (this.interpretarStatusDebito(imovel.possuiDebito)) {
+            inscricoesComDebito.push({
+              tipo: "Imobiliária",
+              inscricao: imovel.inscricao,
+              endereco: imovel.endereco,
+              pertenceAoDocumento: true,
+            });
+          } else {
+            inscricoesSemDebito.push({
+              tipo: "Imobiliária",
+              inscricao: imovel.inscricao,
+              endereco: imovel.endereco,
+              pertenceAoDocumento: true,
+            });
+          }
+        }
+      }
     }
 
     // Analisar CÓDIGO DO CONTRIBUINTE - CONSULTA DIRETA!
@@ -1608,20 +1637,28 @@ Digite *menu* para voltar ao menu principal.`,
       textoResposta += `\n`;
     }
 
-    // INFORMAÇÕES DOS IMÓVEIS - APRESENTAÇÃO INDIVIDUAL
-    if (dados.imoveis && dados.imoveis.length > 0) {
+    // INFORMAÇÕES DOS IMÓVEIS - APRESENTAÇÃO INDIVIDUAL (apenas os que pertencem ao documento)
+    const imoveisValidos = dados.imoveis ? dados.imoveis.filter((imovel) => {
+      // Verificar se o imóvel foi incluído nas listas de débitos (significa que pertence ao documento)
+      const pertenceAoDocumento = [...inscricoesComDebito, ...inscricoesSemDebito].some(
+        inscricao => inscricao.inscricao === imovel.inscricao && inscricao.tipo === "Imobiliária"
+      );
+      return pertenceAoDocumento;
+    }) : [];
+    
+    if (imoveisValidos && imoveisValidos.length > 0) {
       // Limite de exibição de imóveis (medida de proteção e performance)
       const LIMITE_IMOVEIS = 5;
 
-      if (dados.imoveis.length > LIMITE_IMOVEIS) {
+      if (imoveisValidos.length > LIMITE_IMOVEIS) {
         // Log para auditoria
         console.log(
-          `[CADASTRO GERAL] Consulta bloqueada: ${dados.imoveis.length} imóveis vinculados (limite: ${LIMITE_IMOVEIS})`
+          `[CADASTRO GERAL] Consulta bloqueada: ${imoveisValidos.length} imóveis vinculados (limite: ${LIMITE_IMOVEIS})`
         );
 
         // Mensagem de orientação para casos com muitos imóveis
         textoResposta += `${EMOJIS.ALERTA} *Consulta de Cadastro Geral*\n\n`;
-        textoResposta += `Encontramos *${dados.imoveis.length} imóveis* vinculados a este contribuinte.\n\n`;
+        textoResposta += `Encontramos *${imoveisValidos.length} imóveis* vinculados a este contribuinte.\n\n`;
         textoResposta += `Por questões de segurança e para evitar excesso de informações neste canal, a relação completa de imóveis só pode ser consultada presencialmente na Secretaria Municipal da Fazenda.\n\n`;
         textoResposta += `*📅 Recomendações:*\n`;
         textoResposta += `• Digite *8* para agendar atendimento presencial\n`;
@@ -1637,7 +1674,7 @@ Digite *menu* para voltar ao menu principal.`,
 
       textoResposta += `${EMOJIS.CASA} *Imóveis vinculados:*\n`;
 
-      dados.imoveis.forEach((imovel, index) => {
+      imoveisValidos.forEach((imovel, index) => {
         const numero = index + 1;
         textoResposta += `\n*${numero}.* *Inscrição ${imovel.tipo}:* ${imovel.inscricao}\n`;
 
