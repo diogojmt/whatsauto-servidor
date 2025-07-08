@@ -2314,8 +2314,8 @@ Digite *menu* para voltar ao menu principal.`,
       let tipoContribuinte;
       if (inscricaoParaCertidao.tipo === "Contribuinte") {
         tipoContribuinte = "1"; // Código do contribuinte é sempre tipo 1 (PF/PJ)
-      } else if (inscricaoParaCertidao.tipo === "Municipal") {
-        tipoContribuinte = "1"; // Inscrição municipal também é tipo 1 (PF/PJ)
+        // } else if (inscricaoParaCertidao.tipo === "Municipal") {
+        //   tipoContribuinte = "1"; // Inscrição municipal também é tipo 1 (PF/PJ)
       } else if (inscricaoParaCertidao.tipo === "Imobiliária") {
         tipoContribuinte = "2"; // Inscrição imobiliária é tipo 2 (Imóvel)
       } else {
