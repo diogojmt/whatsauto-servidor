@@ -1739,6 +1739,44 @@ Digite *menu* para voltar ao menu principal.`,
       textoResposta += `\n`;
     }
 
+    // 🚀 INTEGRAÇÃO PROATIVA - DÉBITOS DETALHADOS (PRIORIDADE MÁXIMA)
+    if (servicosIntegrados && servicosIntegrados.debitosDetalhados) {
+      const debitos = servicosIntegrados.debitosDetalhados;
+
+      textoResposta += `\n${EMOJIS.ALERTA} *Débitos Encontrados - Inscrição ${debitos.tipo}*\n\n`;
+      textoResposta += `${EMOJIS.NUMERO} *Inscrição:* ${debitos.inscricao}\n\n`;
+
+      debitos.debitos.forEach((debito, index) => {
+        const numero = index + 1;
+        const valorFormatado = this.debitosService.formatarMoeda(
+          debito.SSAValorTotal
+        );
+        const vencimento = this.debitosService.formatarData(
+          debito.SSAVencimento
+        );
+
+        textoResposta += `*${numero}️⃣ ${debito.SSATributo}*\n`;
+        textoResposta += `💰 Valor: ${valorFormatado}\n`;
+        textoResposta += `📅 Vencimento: ${vencimento}\n`;
+
+        if (debito.SSALinkkDAM || debito.SSALinkDAM) {
+          textoResposta += `🔗 [Segunda via (DAM)](${
+            debito.SSALinkkDAM || debito.SSALinkDAM
+          })\n`;
+        }
+
+        if (debito.SSALinhaDigitavel) {
+          textoResposta += `📋 Linha digitável:\n\`${debito.SSALinhaDigitavel}\`\n`;
+        }
+
+        textoResposta += `\n`;
+      });
+
+      textoResposta += `${EMOJIS.INFO} *Ações disponíveis:*\n`;
+      textoResposta += `• Digite *1* para ver todos os débitos\n`;
+      textoResposta += `• Digite *2* para emitir certidão positiva\n\n`;
+    }
+
     // =================== BLOCO 3: INSCRIÇÕES IMOBILIÁRIAS ===================
     const imoveisValidos = dados.imoveis
       ? dados.imoveis.filter((imovel) => {
@@ -1859,43 +1897,7 @@ Digite *menu* para voltar ao menu principal.`,
       }
     }
 
-    // 🚀 INTEGRAÇÃO PROATIVA - DÉBITOS DETALHADOS
-    if (servicosIntegrados && servicosIntegrados.debitosDetalhados) {
-      const debitos = servicosIntegrados.debitosDetalhados;
 
-      textoResposta += `\n${EMOJIS.ALERTA} *Débitos Encontrados - Inscrição ${debitos.tipo}*\n\n`;
-      textoResposta += `${EMOJIS.NUMERO} *Inscrição:* ${debitos.inscricao}\n\n`;
-
-      debitos.debitos.forEach((debito, index) => {
-        const numero = index + 1;
-        const valorFormatado = this.debitosService.formatarMoeda(
-          debito.SSAValorTotal
-        );
-        const vencimento = this.debitosService.formatarData(
-          debito.SSAVencimento
-        );
-
-        textoResposta += `*${numero}️⃣ ${debito.SSATributo}*\n`;
-        textoResposta += `💰 Valor: ${valorFormatado}\n`;
-        textoResposta += `📅 Vencimento: ${vencimento}\n`;
-
-        if (debito.SSALinkkDAM || debito.SSALinkDAM) {
-          textoResposta += `🔗 [Segunda via (DAM)](${
-            debito.SSALinkkDAM || debito.SSALinkDAM
-          })\n`;
-        }
-
-        if (debito.SSALinhaDigitavel) {
-          textoResposta += `📋 Linha digitável:\n\`${debito.SSALinhaDigitavel}\`\n`;
-        }
-
-        textoResposta += `\n`;
-      });
-
-      // textoResposta += `${EMOJIS.INFO} *Ações disponíveis:*\n`;
-      // textoResposta += `• Digite *1* para ver todos os débitos\n`;
-      // textoResposta += `• Digite *2* para emitir certidão positiva\n\n`;
-    }
 
     // 🚀 INTEGRAÇÃO PROATIVA - CONSULTA DIRETA DE DÉBITOS
     if (servicosIntegrados && servicosIntegrados.debitosIndicados) {
