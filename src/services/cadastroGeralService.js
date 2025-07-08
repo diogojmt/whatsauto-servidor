@@ -1496,6 +1496,10 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       };
     }
 
+    // Incluir listas para uso na formatação
+    servicosIntegrados.inscricoesComDebito = inscricoesComDebito;
+    servicosIntegrados.inscricoesSemDebito = inscricoesSemDebito;
+    
     return servicosIntegrados;
   }
 
@@ -1640,10 +1644,13 @@ Digite *menu* para voltar ao menu principal.`,
     // INFORMAÇÕES DOS IMÓVEIS - APRESENTAÇÃO INDIVIDUAL (apenas os que pertencem ao documento)
     const imoveisValidos = dados.imoveis ? dados.imoveis.filter((imovel) => {
       // Verificar se o imóvel foi incluído nas listas de débitos (significa que pertence ao documento)
-      const pertenceAoDocumento = [...inscricoesComDebito, ...inscricoesSemDebito].some(
-        inscricao => inscricao.inscricao === imovel.inscricao && inscricao.tipo === "Imobiliária"
-      );
-      return pertenceAoDocumento;
+      if (servicosIntegrados && servicosIntegrados.inscricoesComDebito && servicosIntegrados.inscricoesSemDebito) {
+        const pertenceAoDocumento = [...servicosIntegrados.inscricoesComDebito, ...servicosIntegrados.inscricoesSemDebito].some(
+          inscricao => inscricao.inscricao === imovel.inscricao && inscricao.tipo === "Imobiliária"
+        );
+        return pertenceAoDocumento;
+      }
+      return false; // Se não há serviços integrados, não mostrar por segurança
     }) : [];
     
     if (imoveisValidos && imoveisValidos.length > 0) {
