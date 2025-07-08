@@ -2054,7 +2054,7 @@ Digite *menu* para voltar ao menu principal.`,
     textoResposta += `${EMOJIS.INTERNET} *Portal:*\n`;
     textoResposta += `https://arapiraca.abaco.com.br/eagata/portal/\n\n`;
 
-    textoResposta += `${EMOJIS.DICA} *Obs.:* Use a inscrição imobiliária para acessar outros serviços. O código do contribuinte não deve ser usado como inscrição de imóvel.`;
+    textoResposta += `${EMOJIS.DICA} *Obs.:* Digite um novo *CPF/CNPJ* ou *menu* para voltar ao menu principal.`;
 
     return {
       type: "text",
