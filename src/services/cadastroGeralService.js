@@ -219,84 +219,36 @@ ${EMOJIS.INFO} Você digitou ${documento.length} dígitos.`,
       };
     }
 
-    // 🚀 INICIAR PROCESSAMENTO EM BACKGROUND E RETORNAR MENSAGEM DE AGUARDE
-    this.processarConsultaBackground(sender, documento);
+    // Verificar cache
+    const chaveCache = `cadastro_${documento}`;
+    const dadosCache = this.cache.get(chaveCache);
 
-    // Retornar mensagem de aguarde imediatamente
-    const tipoDocumento = documento.length === 11 ? "CPF" : "CNPJ";
-    const documentoFormatado = this.formatarDocumento(documento);
+    if (dadosCache && Date.now() - dadosCache.timestamp < this.cacheTTL) {
+      console.log(
+        `[CadastroGeralService] Retornando dados do cache para ${documento}`
+      );
+      return await this.formatarResposta(dadosCache.data, documento, sender);
+    }
 
-    return {
-      type: "text",
-      text: `${EMOJIS.BUSCA} *Consultando seus dados...*
-
-📋 *${tipoDocumento}:* ${documentoFormatado}
-
-⏳ *Aguarde enquanto consultamos:*
-• Cadastro Geral no sistema da Ábaco
-• Inscrições Municipais e Imobiliárias
-• Status de débitos em tempo real
-• Disponibilidade de certidões
-
-${EMOJIS.RELOGIO} *Processando... Isso pode levar alguns segundos.*
-
-${EMOJIS.INFO} *Em breve você receberá:*
-✅ Dados completos do cadastro
-💰 Débitos detalhados (se houver)
-📄 Certidão negativa (se sem débitos)
-📊 Resumo consolidado`,
-    };
-  }
-
-  /**
-   * Processa consulta em background e envia resultado
-   */
-  async processarConsultaBackground(sender, documento) {
+    // Realizar consulta SOAP
     try {
       console.log(
-        `[CadastroGeralService] Iniciando consulta background para ${documento}`
+        `[CadastroGeralService] Realizando consulta SOAP para ${documento}`
       );
 
-      // Verificar cache
-      const chaveCache = `cadastro_${documento}`;
-      const dadosCache = this.cache.get(chaveCache);
+      const resultados = await this.consultarCadastroGeral(documento);
 
-      let resultados;
-      if (dadosCache && Date.now() - dadosCache.timestamp < this.cacheTTL) {
-        console.log(
-          `[CadastroGeralService] Retornando dados do cache para ${documento}`
-        );
-        resultados = dadosCache.data;
-      } else {
-        console.log(
-          `[CadastroGeralService] Realizando consulta SOAP para ${documento}`
-        );
-        resultados = await this.consultarCadastroGeral(documento);
+      // Armazenar no cache
+      this.cache.set(chaveCache, {
+        data: resultados,
+        timestamp: Date.now(),
+      });
 
-        // Armazenar no cache
-        this.cache.set(chaveCache, {
-          data: resultados,
-          timestamp: Date.now(),
-        });
-      }
-
-      // Formatar resposta completa
-      const resposta = await this.formatarResposta(
-        resultados,
-        documento,
-        sender
-      );
-
-      // 📤 SALVAR RESULTADO PARA ENVIO POSTERIOR
-      this.salvarResultadoParaEnvio(sender, resposta);
+      return await this.formatarResposta(resultados, documento, sender);
     } catch (error) {
-      console.error(
-        `[CadastroGeralService] Erro na consulta background:`,
-        error
-      );
+      console.error(`[CadastroGeralService] Erro na consulta:`, error);
 
-      // Salvar mensagem de erro
-      this.salvarResultadoParaEnvio(sender, {
+      return {
         type: "text",
         text: `${EMOJIS.ERRO} *Erro na consulta*
 
@@ -307,48 +259,8 @@ ${EMOJIS.DICA} *Tente novamente em alguns minutos ou:*
 • Acesse o portal: https://arapiraca.abaco.com.br/eagata/portal/
 
 ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
-      });
+      };
     }
-  }
-
-  /**
-   * Salva resultado para ser enviado pelo sistema principal
-   */
-  salvarResultadoParaEnvio(sender, resposta) {
-    // Criar uma propriedade para armazenar resultados pendentes
-    if (!this.resultadosPendentes) {
-      this.resultadosPendentes = new Map();
-    }
-
-    this.resultadosPendentes.set(sender, {
-      resposta: resposta,
-      timestamp: Date.now(),
-    });
-
-    console.log(
-      `[CadastroGeralService] Resultado salvo para envio posterior: ${sender}`
-    );
-    console.log(
-      `[CadastroGeralService] Texto: ${resposta.text.substring(0, 100)}...`
-    );
-  }
-
-  /**
-   * Verifica se há resultados pendentes para envio
-   */
-  obterResultadoPendente(sender) {
-    if (!this.resultadosPendentes) {
-      return null;
-    }
-
-    const resultado = this.resultadosPendentes.get(sender);
-    if (resultado) {
-      // Remove da lista após obter
-      this.resultadosPendentes.delete(sender);
-      return resultado.resposta;
-    }
-
-    return null;
   }
 
   /**
