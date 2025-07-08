@@ -49,7 +49,7 @@ const certidaoService = require("./certidaoService");
 class CadastroGeralService {
   constructor() {
     this.wsdlUrl =
-      "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidocumento";
+      "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apwsretornopertences?wsdl";
     this.cache = new Map();
     this.cacheTTL = 5 * 60 * 1000; // 5 minutos
 
@@ -1995,7 +1995,7 @@ Digite *menu* para voltar ao menu principal.`,
             textoResposta += `${EMOJIS.DICA} Use a inscrição do imóvel para emitir certidão específica\n\n`;
           } else {
             textoResposta += `${EMOJIS.CERTIDAO} *Certidão Negativa disponível!*\n`;
-            textoResposta += `${EMOJIS.LINK} Portal: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n\n`;
+            textoResposta += `${EMOJIS.LINK} Portal: "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidocumento"\n\n`;
           }
         }
       } catch (error) {
