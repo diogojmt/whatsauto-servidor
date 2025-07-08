@@ -1790,6 +1790,12 @@ Digite *menu* para voltar ao menu principal.`,
         
         if (resultadoCertidao && resultadoCertidao.sucesso) {
           textoResposta += resultadoCertidao.texto;
+        } else if (resultadoCertidao && resultadoCertidao.seguranca) {
+          // Erro de segurança - inscrição pertence a outro contribuinte
+          textoResposta += `${EMOJIS.ALERTA} *Atenção:* As inscrições listadas podem pertencer a outros contribuintes.\n\n`;
+          textoResposta += `${EMOJIS.SEGURANCA} Por segurança, a emissão de certidão deve ser feita diretamente:\n`;
+          textoResposta += `• Digite *2* no menu principal\n`;
+          textoResposta += `• Acesse: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n\n`;
         } else {
           textoResposta += `${EMOJIS.CERTIDAO} *Certidão Negativa disponível!*\n`;
           textoResposta += `${EMOJIS.LINK} Acesse: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n\n`;
@@ -2008,6 +2014,26 @@ Digite *menu* para voltar ao menu principal.`;
       });
       
       if (resultado && resultado.SSACodigo === 0 && resultado.SSALinkDocumento) {
+        // VALIDAÇÃO CRÍTICA: Verificar se a inscrição realmente pertence ao documento consultado
+        const documentoConsultado = documento.replace(/\D/g, '');
+        const documentoRetornado = resultado.SSACPFCNPJ ? resultado.SSACPFCNPJ.replace(/\D/g, '') : '';
+        
+        console.log(`[CadastroGeralService] Validação de pertencimento:`, {
+          documentoConsultado: documentoConsultado,
+          documentoRetornado: documentoRetornado,
+          inscricao: inscricaoParaCertidao.inscricao,
+          nomeRetornado: resultado.SSANomeRazao
+        });
+        
+        if (documentoRetornado && documentoRetornado !== documentoConsultado) {
+          console.log(`[CadastroGeralService] ERRO: Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro documento!`);
+          return {
+            sucesso: false,
+            motivo: `Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte (${resultado.SSANomeRazao}). Não é possível emitir certidão.`,
+            seguranca: true
+          };
+        }
+        
         const nomeContribuinte = resultado.SSANomeRazao || "Não informado";
         const inscricaoFinal = resultado.SSAInscricao || inscricaoParaCertidao.inscricao;
         const tipoInscricaoLabel = tipoContribuinte === '2' ? 'Matrícula' : 'Cadastro';
