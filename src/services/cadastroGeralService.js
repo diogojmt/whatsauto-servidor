@@ -1482,18 +1482,23 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       }
     }
 
-    // INTEGRAÇÃO COM SERVIÇO DE CERTIDÕES (apenas para inscrições que pertencem ao documento)
+    // INTEGRAÇÃO COM SERVIÇO DE CERTIDÕES (apenas quando NÃO há débitos em nenhuma inscrição)
     const inscricoesSemDebitoValidas = inscricoesSemDebito.filter(inscricao => inscricao.pertenceAoDocumento);
     
-    if (inscricoesSemDebitoValidas.length > 0) {
+    // SÓ OFERECER CERTIDÃO SE NÃO HÁ DÉBITOS EM NENHUMA INSCRIÇÃO VINCULADA
+    if (inscricoesSemDebitoValidas.length > 0 && inscricoesComDebito.length === 0) {
       console.log(
-        `[CadastroGeralService] Oferecendo certidão para ${inscricoesSemDebitoValidas.length} inscrições válidas sem débito`
+        `[CadastroGeralService] Oferecendo certidão para ${inscricoesSemDebitoValidas.length} inscrições válidas sem débito (nenhum débito encontrado)`
       );
 
       servicosIntegrados.certidaoOferta = {
         documento: documento,
         inscricoes: inscricoesSemDebitoValidas.slice(0, 2), // Limitar para não sobrecarregar
       };
+    } else if (inscricoesComDebito.length > 0) {
+      console.log(
+        `[CadastroGeralService] Certidão NÃO oferecida: encontrados débitos em ${inscricoesComDebito.length} inscrição(ões)`
+      );
     }
 
     // Incluir listas para uso na formatação
@@ -1601,6 +1606,12 @@ Digite *menu* para voltar ao menu principal.`,
       if (codigo) {
         textoResposta += `${EMOJIS.CODIGO} *Código:* \`${codigo}\`\n`;
       }
+
+      // VERIFICAR SE HÁ DÉBITOS EM QUALQUER INSCRIÇÃO VINCULADA
+      const temDebitosVinculados = this.verificarDebitosVinculados(dados);
+      const iconeDebito = temDebitosVinculados ? EMOJIS.ALERTA : EMOJIS.SUCESSO;
+      const textoDebito = temDebitosVinculados ? "Sim" : "Não";
+      textoResposta += `${iconeDebito} *Possui débitos:* ${textoDebito}\n`;
 
       textoResposta += `\n`;
     }
@@ -1875,7 +1886,8 @@ Digite *menu* para voltar ao menu principal.`,
     }
 
     // =================== BLOCO 4: RESUMO ===================
-    const totalInscricoes = (dados.empresas?.length || 0) + (imoveisValidos?.length || 0);
+    const quantidadeContribuinte = dados.contribuinte && dados.contribuinte.codigo ? 1 : 0;
+    const totalInscricoes = quantidadeContribuinte + (dados.empresas?.length || 0) + (imoveisValidos?.length || 0);
     
     textoResposta += `${'═'.repeat(35)}\n`;
     textoResposta += `${EMOJIS.RESUMO} *RESUMO*\n`;
@@ -1883,6 +1895,7 @@ Digite *menu* para voltar ao menu principal.`,
     
     if (totalInscricoes > 0) {
       textoResposta += `${EMOJIS.CONTAGEM} *Total de Inscrições:* ${totalInscricoes}\n`;
+      textoResposta += `${EMOJIS.PESSOA} *Código Contribuinte:* ${quantidadeContribuinte}\n`;
       textoResposta += `${EMOJIS.EMPRESA} *Municipais:* ${dados.empresas?.length || 0}\n`;
       textoResposta += `${EMOJIS.CASA} *Imobiliárias:* ${imoveisValidos?.length || 0}\n\n`;
     } else {
@@ -1907,6 +1920,36 @@ Digite *menu* para voltar ao menu principal.`,
       type: "text",
       text: textoResposta,
     };
+  }
+
+  /**
+   * Verifica se há débitos em qualquer inscrição vinculada ao documento
+   */
+  verificarDebitosVinculados(dados) {
+    console.log(`[CadastroGeralService] Verificando débitos vinculados em todas as inscrições`);
+    
+    // Verificar débitos nas empresas/inscrições municipais
+    if (dados.empresas && dados.empresas.length > 0) {
+      for (const empresa of dados.empresas) {
+        if (empresa.possuiDebito && this.interpretarStatusDebito(empresa.possuiDebito)) {
+          console.log(`[CadastroGeralService] Débito encontrado na inscrição municipal: ${empresa.inscricao}`);
+          return true;
+        }
+      }
+    }
+    
+    // Verificar débitos nos imóveis
+    if (dados.imoveis && dados.imoveis.length > 0) {
+      for (const imovel of dados.imoveis) {
+        if (imovel.possuiDebito && this.interpretarStatusDebito(imovel.possuiDebito)) {
+          console.log(`[CadastroGeralService] Débito encontrado na inscrição imobiliária: ${imovel.inscricao}`);
+          return true;
+        }
+      }
+    }
+    
+    console.log(`[CadastroGeralService] Nenhum débito encontrado nas inscrições vinculadas`);
+    return false;
   }
 
   /**
