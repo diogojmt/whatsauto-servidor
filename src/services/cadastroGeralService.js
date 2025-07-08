@@ -1289,34 +1289,92 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
             tipo: "Municipal",
             inscricao: empresa.inscricao,
             endereco: empresa.endereco,
+            pertenceAoDocumento: true, // Empresa sempre pertence ao CNPJ consultado
           });
         } else {
           inscricoesSemDebito.push({
             tipo: "Municipal",
             inscricao: empresa.inscricao,
             endereco: empresa.endereco,
+            pertenceAoDocumento: true, // Empresa sempre pertence ao CNPJ consultado
           });
         }
       });
     }
 
-    // Analisar imóveis
+    // Analisar imóveis - VERIFICAR SE REALMENTE PERTENCEM AO DOCUMENTO
     if (dados.imoveis && dados.imoveis.length > 0) {
       dados.imoveis.forEach((imovel) => {
+        // IMPORTANTE: Imóveis podem estar vinculados a outros CPFs!
+        // Por enquanto, vamos assumir que pertencem (mas isso precisa ser verificado na prática)
+        const pertenceAoDocumento = true; // TODO: Implementar verificação real
+        
         if (this.interpretarStatusDebito(imovel.possuiDebito)) {
           inscricoesComDebito.push({
             tipo: "Imobiliária",
             inscricao: imovel.inscricao,
             endereco: imovel.endereco,
+            pertenceAoDocumento: pertenceAoDocumento,
           });
         } else {
           inscricoesSemDebito.push({
             tipo: "Imobiliária",
             inscricao: imovel.inscricao,
             endereco: imovel.endereco,
+            pertenceAoDocumento: pertenceAoDocumento,
           });
         }
       });
+    }
+
+    // Analisar CÓDIGO DO CONTRIBUINTE - CONSULTA DIRETA!
+    if (dados.contribuinte && dados.contribuinte.codigo) {
+      console.log(`[CadastroGeralService] Verificando débitos do Código do Contribuinte: ${dados.contribuinte.codigo}`);
+      
+      try {
+        // Consultar débitos do código do contribuinte (tipo 1 = Pessoa Física/Jurídica)
+        const anoAtual = new Date().getFullYear();
+        let temDebitosContribuinte = false;
+        
+        for (let ano = anoAtual; ano >= anoAtual - 4; ano--) {
+          const debitosContribuinte = await this.debitosService.debitosApi.consultarDebitos({
+            tipoContribuinte: "1", // Código do contribuinte é sempre tipo 1
+            inscricao: dados.contribuinte.codigo,
+            exercicio: ano,
+          });
+          
+          if (debitosContribuinte && debitosContribuinte.SSACodigo === 0 && debitosContribuinte.SDTSaidaAPIDebito && debitosContribuinte.SDTSaidaAPIDebito.length > 0) {
+            console.log(`[CadastroGeralService] Código do Contribuinte tem débitos no exercício ${ano}: ${debitosContribuinte.SDTSaidaAPIDebito.length}`);
+            temDebitosContribuinte = true;
+            break;
+          }
+        }
+        
+        if (temDebitosContribuinte) {
+          inscricoesComDebito.push({
+            tipo: "Contribuinte",
+            inscricao: dados.contribuinte.codigo,
+            endereco: null,
+            pertenceAoDocumento: true,
+          });
+        } else {
+          inscricoesSemDebito.push({
+            tipo: "Contribuinte", 
+            inscricao: dados.contribuinte.codigo,
+            endereco: null,
+            pertenceAoDocumento: true,
+          });
+        }
+      } catch (error) {
+        console.error(`[CadastroGeralService] Erro ao verificar débitos do código do contribuinte:`, error);
+        // Em caso de erro, assumir sem débitos para não bloquear o fluxo
+        inscricoesSemDebito.push({
+          tipo: "Contribuinte",
+          inscricao: dados.contribuinte.codigo,
+          endereco: null,
+          pertenceAoDocumento: true,
+        });
+      }
     }
 
     let servicosIntegrados = {
@@ -1395,15 +1453,17 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       }
     }
 
-    // INTEGRAÇÃO COM SERVIÇO DE CERTIDÕES (sempre que há inscrições sem débitos)
-    if (inscricoesSemDebito.length > 0) {
+    // INTEGRAÇÃO COM SERVIÇO DE CERTIDÕES (apenas para inscrições que pertencem ao documento)
+    const inscricoesSemDebitoValidas = inscricoesSemDebito.filter(inscricao => inscricao.pertenceAoDocumento);
+    
+    if (inscricoesSemDebitoValidas.length > 0) {
       console.log(
-        `[CadastroGeralService] Oferecendo certidão para ${inscricoesSemDebito.length} inscrições sem débito`
+        `[CadastroGeralService] Oferecendo certidão para ${inscricoesSemDebitoValidas.length} inscrições válidas sem débito`
       );
 
       servicosIntegrados.certidaoOferta = {
         documento: documento,
-        inscricoes: inscricoesSemDebito.slice(0, 2), // Limitar para não sobrecarregar
+        inscricoes: inscricoesSemDebitoValidas.slice(0, 2), // Limitar para não sobrecarregar
       };
     }
 
@@ -1709,11 +1769,15 @@ Digite *menu* para voltar ao menu principal.`,
       textoResposta += `\n${EMOJIS.SUCESSO} *Certidão Negativa Disponível!*\n\n`;
       
       if (servicosIntegrados.temDebitos) {
-        textoResposta += `${EMOJIS.INFO} Para as inscrições sem débitos, você pode emitir certidão negativa:\n\n`;
+        textoResposta += `${EMOJIS.INFO} Para as inscrições sem débitos vinculadas ao seu documento, você pode emitir certidão negativa:\n\n`;
         
-        // Listar inscrições sem débitos
+        // Listar inscrições sem débitos (apenas as que pertencem ao documento)
         certidao.inscricoes.forEach((inscricao, index) => {
-          textoResposta += `📋 *${inscricao.tipo}:* ${inscricao.inscricao}\n`;
+          let labelTipo = inscricao.tipo;
+          if (inscricao.tipo === "Contribuinte") {
+            labelTipo = "Código do Contribuinte";
+          }
+          textoResposta += `📋 *${labelTipo}:* ${inscricao.inscricao}\n`;
         });
         textoResposta += `\n`;
       } else {
