@@ -110,19 +110,28 @@ class CadastroGeralService {
       type: "text",
       text: `${EMOJIS.BUSCA} *Consulta de Cadastro Geral*
 
-${nome}, informe o *CPF* ou *CNPJ* para consultar as inscrições vinculadas:
+${nome}, informe o *CPF* ou *CNPJ* para consultar todas as inscrições vinculadas:
 
-${EMOJIS.PESSOA} *CPF:* apenas números (11 dígitos)
-${EMOJIS.EMPRESA} *CNPJ:* apenas números (14 dígitos)
+${EMOJIS.PESSOA} *CPF (11 dígitos):*
+• Apenas números: 12345678901
+• Com pontuação: 123.456.789-01
 
-${EMOJIS.EXEMPLO} *Exemplo:*
-• CPF: 12345678901
-• CNPJ: 12345678000123
+${EMOJIS.EMPRESA} *CNPJ (14 dígitos):*
+• Apenas números: 12345678000123
+• Com pontuação: 12.345.678/0001-23
 
 ${EMOJIS.INFO} *Esta consulta retorna:*
-• Inscrições Municipais
-• Inscrições Imobiliárias
-• Dados Cadastrais básicos
+• Código do Contribuinte
+• Inscrições Municipais (empresas)
+• Inscrições Imobiliárias (imóveis)
+• Endereços dos imóveis
+• Status de débitos de cada inscrição
+• Dados cadastrais básicos
+
+${EMOJIS.TEMPO} *Tempo de consulta:* 10 a 30 segundos
+${EMOJIS.ALERTA} *Aguarde* - consultando sistema da Ábaco...
+
+${EMOJIS.DICA} *Dica:* Você pode digitar com ou sem pontos/traços. O sistema aceita ambos os formatos!
 
 Digite *menu* para voltar ao menu principal.`,
     };
