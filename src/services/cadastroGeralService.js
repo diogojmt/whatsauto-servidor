@@ -1772,9 +1772,9 @@ Digite *menu* para voltar ao menu principal.`,
         textoResposta += `\n`;
       });
 
-      textoResposta += `${EMOJIS.INFO} *Ações disponíveis:*\n`;
-      textoResposta += `• Digite *1* para ver todos os débitos\n`;
-      textoResposta += `• Digite *2* para emitir certidão positiva\n\n`;
+      // textoResposta += `${EMOJIS.INFO} *Ações disponíveis:*\n`;
+      // textoResposta += `• Digite *1* para ver todos os débitos\n`;
+      // textoResposta += `• Digite *2* para emitir certidão positiva\n\n`;
     }
 
     // =================== BLOCO 3: INSCRIÇÕES IMOBILIÁRIAS ===================
@@ -1896,8 +1896,6 @@ Digite *menu* para voltar ao menu principal.`,
         });
       }
     }
-
-
 
     // 🚀 INTEGRAÇÃO PROATIVA - CONSULTA DIRETA DE DÉBITOS
     if (servicosIntegrados && servicosIntegrados.debitosIndicados) {
