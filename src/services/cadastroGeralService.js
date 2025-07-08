@@ -1281,26 +1281,26 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       `[CadastroGeralService] Analisando débitos para integração proativa`
     );
 
-    // Analisar empresas/inscrições municipais
-    if (dados.empresas && dados.empresas.length > 0) {
-      dados.empresas.forEach((empresa) => {
-        if (this.interpretarStatusDebito(empresa.possuiDebito)) {
-          inscricoesComDebito.push({
-            tipo: "Municipal",
-            inscricao: empresa.inscricao,
-            endereco: empresa.endereco,
-            pertenceAoDocumento: true, // Empresa sempre pertence ao CNPJ consultado
-          });
-        } else {
-          inscricoesSemDebito.push({
-            tipo: "Municipal",
-            inscricao: empresa.inscricao,
-            endereco: empresa.endereco,
-            pertenceAoDocumento: true, // Empresa sempre pertence ao CNPJ consultado
-          });
-        }
-      });
-    }
+    // // Analisar empresas/inscrições municipais
+    // if (dados.empresas && dados.empresas.length > 0) {
+    //   dados.empresas.forEach((empresa) => {
+    //     if (this.interpretarStatusDebito(empresa.possuiDebito)) {
+    //       inscricoesComDebito.push({
+    //         tipo: "Municipal",
+    //         inscricao: empresa.inscricao,
+    //         endereco: empresa.endereco,
+    //         pertenceAoDocumento: true, // Empresa sempre pertence ao CNPJ consultado
+    //       });
+    //     } else {
+    //       inscricoesSemDebito.push({
+    //         tipo: "Municipal",
+    //         inscricao: empresa.inscricao,
+    //         endereco: empresa.endereco,
+    //         pertenceAoDocumento: true, // Empresa sempre pertence ao CNPJ consultado
+    //       });
+    //     }
+    //   });
+    // }
 
     // Analisar imóveis - VALIDAR SE REALMENTE PERTENCEM AO DOCUMENTO
     if (dados.imoveis && dados.imoveis.length > 0) {
@@ -1409,6 +1409,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
             pertenceAoDocumento: true,
           });
         } else {
+          // ✅ APENAS PARA CERTIDÕES: Código do contribuinte sem débitos
           inscricoesSemDebito.push({
             tipo: "Contribuinte",
             inscricao: dados.contribuinte.codigo,
@@ -1422,6 +1423,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
           error
         );
         // Em caso de erro, assumir sem débitos para não bloquear o fluxo
+        // ✅ APENAS PARA CERTIDÕES: Código do contribuinte (fallback)
         inscricoesSemDebito.push({
           tipo: "Contribuinte",
           inscricao: dados.contribuinte.codigo,
@@ -2313,13 +2315,15 @@ Digite *menu* para voltar ao menu principal.`,
       // Determinar tipo de contribuinte baseado no tipo da inscrição
       let tipoContribuinte;
       if (inscricaoParaCertidao.tipo === "Contribuinte") {
-        tipoContribuinte = "1"; // Código do contribuinte é sempre tipo 1 (PF/PJ)
-        // } else if (inscricaoParaCertidao.tipo === "Municipal") {
-        //   tipoContribuinte = "1"; // Inscrição municipal também é tipo 1 (PF/PJ)
-      } else if (inscricaoParaCertidao.tipo === "Imobiliária") {
-        tipoContribuinte = "2"; // Inscrição imobiliária é tipo 2 (Imóvel)
+        tipoContribuinte = "1"; // ✅ Cadastro Geral
+      } else if (inscricaoParaCertidao.tipo === "Imobiliário") {
+        tipoContribuinte = "2"; // ✅ Cadastro Imobiliário
       } else {
-        tipoContribuinte = "1"; // Fallback para tipo 1
+        // ❌ REMOVE: Não deve ter fallback para tipo 1
+        // Deve rejeitar tipos não suportados
+        throw new Error(
+          `Tipo de inscrição não suportado para certidões: ${inscricaoParaCertidao.tipo}`
+        );
       }
 
       console.log(
