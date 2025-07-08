@@ -287,16 +287,16 @@ ${EMOJIS.INFO} *Em breve você receberá:*
         sender
       );
 
-      // Enviar resultado final
-      await this.enviarResultadoFinal(sender, resposta);
+      // 📤 SALVAR RESULTADO PARA ENVIO POSTERIOR
+      this.salvarResultadoParaEnvio(sender, resposta);
     } catch (error) {
       console.error(
         `[CadastroGeralService] Erro na consulta background:`,
         error
       );
 
-      // Enviar mensagem de erro
-      await this.enviarResultadoFinal(sender, {
+      // Salvar mensagem de erro
+      this.salvarResultadoParaEnvio(sender, {
         type: "text",
         text: `${EMOJIS.ERRO} *Erro na consulta*
 
@@ -309,6 +309,46 @@ ${EMOJIS.DICA} *Tente novamente em alguns minutos ou:*
 ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       });
     }
+  }
+
+  /**
+   * Salva resultado para ser enviado pelo sistema principal
+   */
+  salvarResultadoParaEnvio(sender, resposta) {
+    // Criar uma propriedade para armazenar resultados pendentes
+    if (!this.resultadosPendentes) {
+      this.resultadosPendentes = new Map();
+    }
+
+    this.resultadosPendentes.set(sender, {
+      resposta: resposta,
+      timestamp: Date.now(),
+    });
+
+    console.log(
+      `[CadastroGeralService] Resultado salvo para envio posterior: ${sender}`
+    );
+    console.log(
+      `[CadastroGeralService] Texto: ${resposta.text.substring(0, 100)}...`
+    );
+  }
+
+  /**
+   * Verifica se há resultados pendentes para envio
+   */
+  obterResultadoPendente(sender) {
+    if (!this.resultadosPendentes) {
+      return null;
+    }
+
+    const resultado = this.resultadosPendentes.get(sender);
+    if (resultado) {
+      // Remove da lista após obter
+      this.resultadosPendentes.delete(sender);
+      return resultado.resposta;
+    }
+
+    return null;
   }
 
   /**
