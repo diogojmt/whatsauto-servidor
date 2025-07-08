@@ -1551,15 +1551,15 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
         servicosIntegrados.certidaoOferta = {
           documento: documento,
           inscricoes: inscricoesSemDebitoValidas.slice(0, 2),
-          tipoOferta: 'geral'
+          tipoOferta: "geral",
         };
       }
     } else {
       // CASO 2: Há débitos - verificar se existem imóveis específicos sem débitos
-      const imoveisSemDebito = inscricoesSemDebitoValidas.filter(inscricao => 
-        inscricao.tipo === "Imobiliária"
+      const imoveisSemDebito = inscricoesSemDebitoValidas.filter(
+        (inscricao) => inscricao.tipo === "Imobiliária"
       );
-      
+
       if (imoveisSemDebito.length > 0) {
         console.log(
           `[CadastroGeralService] Oferecendo certidão ESPECÍFICA para ${imoveisSemDebito.length} imóvel(is) sem débito`
@@ -1568,8 +1568,8 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
         servicosIntegrados.certidaoOferta = {
           documento: documento,
           inscricoes: imoveisSemDebito.slice(0, 2),
-          tipoOferta: 'especifica',
-          temOutrosDebitos: true
+          tipoOferta: "especifica",
+          temOutrosDebitos: true,
         };
       } else {
         console.log(
@@ -1942,10 +1942,10 @@ Digite *menu* para voltar ao menu principal.`,
     if (servicosIntegrados && servicosIntegrados.certidaoOferta) {
       const certidao = servicosIntegrados.certidaoOferta;
 
-      if (certidao.tipoOferta === 'especifica') {
+      if (certidao.tipoOferta === "especifica") {
         // CERTIDÃO ESPECÍFICA PARA IMÓVEIS SEM DÉBITOS
         textoResposta += `\n${EMOJIS.SUCESSO} *Certidão Negativa Específica Disponível!*\n\n`;
-        textoResposta += `${EMOJIS.AVISO} Embora você possua débitos em outras inscrições, é possível emitir certidão negativa para os imóveis sem pendências:\n\n`;
+        textoResposta += `Cidadão, Embora você possua débitos em outras inscrições, é possível emitir certidão negativa para os imóveis sem pendências:\n\n`;
 
         // Listar apenas os imóveis sem débitos
         certidao.inscricoes.forEach((inscricao, index) => {
@@ -1989,7 +1989,7 @@ Digite *menu* para voltar ao menu principal.`,
           textoResposta += `• Digite *2* no menu principal\n`;
           textoResposta += `• Acesse: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n\n`;
         } else {
-          if (certidao.tipoOferta === 'especifica') {
+          if (certidao.tipoOferta === "especifica") {
             textoResposta += `${EMOJIS.CERTIDAO} *Emitir Certidão Imobiliária:*\n`;
             textoResposta += `${EMOJIS.LINK} Portal: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?18,certidao-imobiliaria\n`;
             textoResposta += `${EMOJIS.DICA} Use a inscrição do imóvel para emitir certidão específica\n\n`;
@@ -2003,7 +2003,7 @@ Digite *menu* para voltar ao menu principal.`,
           `[CadastroGeralService] Erro na emissão integrada de certidão:`,
           error
         );
-        if (certidao.tipoOferta === 'especifica') {
+        if (certidao.tipoOferta === "especifica") {
           textoResposta += `${EMOJIS.CERTIDAO} *Emitir Certidão Imobiliária:*\n`;
           textoResposta += `${EMOJIS.LINK} Portal: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?18,certidao-imobiliaria\n`;
           textoResposta += `${EMOJIS.DICA} Digite *2* no menu principal e escolha certidão imobiliária\n\n`;
@@ -2405,7 +2405,7 @@ ${EMOJIS.INFO} *Dados da Certidão:*
 ${EMOJIS.ALERTA} *IMPORTANTE:*
 • Link temporário - baixe/imprima *AGORA*!
 • Válido por tempo limitado
-• Salve o arquivo no seu celular`;
+• Salve o arquivo no seu celular\n`;
 
         return {
           sucesso: true,
