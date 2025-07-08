@@ -1307,34 +1307,46 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
       for (const imovel of dados.imoveis) {
         // VALIDAÇÃO: Verificar se o imóvel realmente pertence ao documento consultado
         let pertenceAoDocumento = false;
-        
+
         try {
           // Fazer consulta rápida na API de certidão para verificar pertencimento
           const { emitirCertidao } = require("../utils/certidaoApi");
-          
+
           const verificacao = await emitirCertidao({
             tipoContribuinte: "2", // Imóvel
             inscricao: imovel.inscricao,
             cpfCnpj: "11111111111", // CPF fake
-            operacao: "2"
+            operacao: "2",
           });
-          
-          if (verificacao && verificacao.SSACodigo === 0 && verificacao.SSACPFCNPJ) {
-            const documentoConsultado = documento.replace(/\D/g, '');
-            const documentoRetornado = verificacao.SSACPFCNPJ.replace(/\D/g, '');
-            
-            pertenceAoDocumento = (documentoRetornado === documentoConsultado);
-            
+
+          if (
+            verificacao &&
+            verificacao.SSACodigo === 0 &&
+            verificacao.SSACPFCNPJ
+          ) {
+            const documentoConsultado = documento.replace(/\D/g, "");
+            const documentoRetornado = verificacao.SSACPFCNPJ.replace(
+              /\D/g,
+              ""
+            );
+
+            pertenceAoDocumento = documentoRetornado === documentoConsultado;
+
             if (!pertenceAoDocumento) {
-              console.log(`[CadastroGeralService] Imóvel ${imovel.inscricao} pertence a outro documento (${verificacao.SSACPFCNPJ}) - será omitido`);
+              console.log(
+                `[CadastroGeralService] Imóvel ${imovel.inscricao} pertence a outro documento (${verificacao.SSACPFCNPJ}) - será omitido`
+              );
             }
           }
         } catch (error) {
-          console.error(`[CadastroGeralService] Erro ao verificar pertencimento do imóvel ${imovel.inscricao}:`, error);
+          console.error(
+            `[CadastroGeralService] Erro ao verificar pertencimento do imóvel ${imovel.inscricao}:`,
+            error
+          );
           // Em caso de erro, não incluir por segurança
           pertenceAoDocumento = false;
         }
-        
+
         // Só incluir se realmente pertencer ao documento
         if (pertenceAoDocumento) {
           if (this.interpretarStatusDebito(imovel.possuiDebito)) {
@@ -1358,27 +1370,37 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
 
     // Analisar CÓDIGO DO CONTRIBUINTE - CONSULTA DIRETA!
     if (dados.contribuinte && dados.contribuinte.codigo) {
-      console.log(`[CadastroGeralService] Verificando débitos do Código do Contribuinte: ${dados.contribuinte.codigo}`);
-      
+      console.log(
+        `[CadastroGeralService] Verificando débitos do Código do Contribuinte: ${dados.contribuinte.codigo}`
+      );
+
       try {
         // Consultar débitos do código do contribuinte (tipo 1 = Pessoa Física/Jurídica)
         const anoAtual = new Date().getFullYear();
         let temDebitosContribuinte = false;
-        
+
         for (let ano = anoAtual; ano >= anoAtual - 4; ano--) {
-          const debitosContribuinte = await this.debitosService.debitosApi.consultarDebitos({
-            tipoContribuinte: "1", // Código do contribuinte é sempre tipo 1
-            inscricao: dados.contribuinte.codigo,
-            exercicio: ano,
-          });
-          
-          if (debitosContribuinte && debitosContribuinte.SSACodigo === 0 && debitosContribuinte.SDTSaidaAPIDebito && debitosContribuinte.SDTSaidaAPIDebito.length > 0) {
-            console.log(`[CadastroGeralService] Código do Contribuinte tem débitos no exercício ${ano}: ${debitosContribuinte.SDTSaidaAPIDebito.length}`);
+          const debitosContribuinte =
+            await this.debitosService.debitosApi.consultarDebitos({
+              tipoContribuinte: "1", // Código do contribuinte é sempre tipo 1
+              inscricao: dados.contribuinte.codigo,
+              exercicio: ano,
+            });
+
+          if (
+            debitosContribuinte &&
+            debitosContribuinte.SSACodigo === 0 &&
+            debitosContribuinte.SDTSaidaAPIDebito &&
+            debitosContribuinte.SDTSaidaAPIDebito.length > 0
+          ) {
+            console.log(
+              `[CadastroGeralService] Código do Contribuinte tem débitos no exercício ${ano}: ${debitosContribuinte.SDTSaidaAPIDebito.length}`
+            );
             temDebitosContribuinte = true;
             break;
           }
         }
-        
+
         if (temDebitosContribuinte) {
           inscricoesComDebito.push({
             tipo: "Contribuinte",
@@ -1388,14 +1410,17 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
           });
         } else {
           inscricoesSemDebito.push({
-            tipo: "Contribuinte", 
+            tipo: "Contribuinte",
             inscricao: dados.contribuinte.codigo,
             endereco: null,
             pertenceAoDocumento: true,
           });
         }
       } catch (error) {
-        console.error(`[CadastroGeralService] Erro ao verificar débitos do código do contribuinte:`, error);
+        console.error(
+          `[CadastroGeralService] Erro ao verificar débitos do código do contribuinte:`,
+          error
+        );
         // Em caso de erro, assumir sem débitos para não bloquear o fluxo
         inscricoesSemDebito.push({
           tipo: "Contribuinte",
@@ -1417,7 +1442,11 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     // INTEGRAÇÃO COM SERVIÇO DE DÉBITOS (quando há débitos)
     if (inscricoesComDebito.length > 0) {
       console.log(
-        `[CadastroGeralService] Consultando débitos específicos para ${inscricoesComDebito.length} inscrição(ões) - Exercícios: ${new Date().getFullYear()-4} a ${new Date().getFullYear()}`
+        `[CadastroGeralService] Consultando débitos específicos para ${
+          inscricoesComDebito.length
+        } inscrição(ões) - Exercícios: ${
+          new Date().getFullYear() - 4
+        } a ${new Date().getFullYear()}`
       );
 
       try {
@@ -1426,40 +1455,65 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
 
         // Consultar débitos via API direta - ÚLTIMOS 5 ANOS
         const anoAtual = new Date().getFullYear();
-        const anosParaConsultar = [anoAtual, anoAtual-1, anoAtual-2, anoAtual-3, anoAtual-4];
+        const anosParaConsultar = [
+          anoAtual,
+          anoAtual - 1,
+          anoAtual - 2,
+          anoAtual - 3,
+          anoAtual - 4,
+        ];
         let todosDebitos = [];
-        
+
         for (const ano of anosParaConsultar) {
           try {
-            const debitosAno = await this.debitosService.debitosApi.consultarDebitos({
-              tipoContribuinte: primeiraInscricaoComDebito.tipo === "Municipal" ? "3" : "2",
-              inscricao: primeiraInscricaoComDebito.inscricao,
-              exercicio: ano,
-            });
-            
-            if (debitosAno && debitosAno.SSACodigo === 0 && debitosAno.SDTSaidaAPIDebito && debitosAno.SDTSaidaAPIDebito.length > 0) {
-              console.log(`[CadastroGeralService] Débitos encontrados no exercício ${ano}: ${debitosAno.SDTSaidaAPIDebito.length}`);
+            const debitosAno =
+              await this.debitosService.debitosApi.consultarDebitos({
+                tipoContribuinte:
+                  primeiraInscricaoComDebito.tipo === "Municipal" ? "3" : "2",
+                inscricao: primeiraInscricaoComDebito.inscricao,
+                exercicio: ano,
+              });
+
+            if (
+              debitosAno &&
+              debitosAno.SSACodigo === 0 &&
+              debitosAno.SDTSaidaAPIDebito &&
+              debitosAno.SDTSaidaAPIDebito.length > 0
+            ) {
+              console.log(
+                `[CadastroGeralService] Débitos encontrados no exercício ${ano}: ${debitosAno.SDTSaidaAPIDebito.length}`
+              );
               todosDebitos = todosDebitos.concat(debitosAno.SDTSaidaAPIDebito);
             }
           } catch (error) {
-            console.error(`[CadastroGeralService] Erro ao consultar exercício ${ano}:`, error);
+            console.error(
+              `[CadastroGeralService] Erro ao consultar exercício ${ano}:`,
+              error
+            );
           }
         }
-        
+
         // Simular resposta consolidada
         const debitosConsulta = {
           SSACodigo: 0,
           SDTSaidaAPIDebito: todosDebitos,
-          SSAMensagem: `Consulta realizada para exercícios ${anosParaConsultar.join(', ')}`
+          SSAMensagem: `Consulta realizada para exercícios ${anosParaConsultar.join(
+            ", "
+          )}`,
         };
 
         console.log(`[CadastroGeralService] Resposta da consulta de débitos:`, {
           codigo: debitosConsulta?.SSACodigo,
           quantidadeDebitos: debitosConsulta?.SDTSaidaAPIDebito?.length || 0,
-          temDebitos: debitosConsulta?.SDTSaidaAPIDebito?.length > 0
+          temDebitos: debitosConsulta?.SDTSaidaAPIDebito?.length > 0,
         });
 
-        if (debitosConsulta && debitosConsulta.SSACodigo === 0 && debitosConsulta.SDTSaidaAPIDebito && debitosConsulta.SDTSaidaAPIDebito.length > 0) {
+        if (
+          debitosConsulta &&
+          debitosConsulta.SSACodigo === 0 &&
+          debitosConsulta.SDTSaidaAPIDebito &&
+          debitosConsulta.SDTSaidaAPIDebito.length > 0
+        ) {
           servicosIntegrados.debitosDetalhados = {
             inscricao: primeiraInscricaoComDebito.inscricao,
             tipo: primeiraInscricaoComDebito.tipo,
@@ -1471,7 +1525,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
           servicosIntegrados.debitosIndicados = {
             inscricao: primeiraInscricaoComDebito.inscricao,
             tipo: primeiraInscricaoComDebito.tipo,
-            semDetalhes: true
+            semDetalhes: true,
           };
         }
       } catch (error) {
@@ -1483,10 +1537,15 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     }
 
     // INTEGRAÇÃO COM SERVIÇO DE CERTIDÕES (apenas quando NÃO há débitos em nenhuma inscrição)
-    const inscricoesSemDebitoValidas = inscricoesSemDebito.filter(inscricao => inscricao.pertenceAoDocumento);
-    
+    const inscricoesSemDebitoValidas = inscricoesSemDebito.filter(
+      (inscricao) => inscricao.pertenceAoDocumento
+    );
+
     // SÓ OFERECER CERTIDÃO SE NÃO HÁ DÉBITOS EM NENHUMA INSCRIÇÃO VINCULADA
-    if (inscricoesSemDebitoValidas.length > 0 && inscricoesComDebito.length === 0) {
+    if (
+      inscricoesSemDebitoValidas.length > 0 &&
+      inscricoesComDebito.length === 0
+    ) {
       console.log(
         `[CadastroGeralService] Oferecendo certidão para ${inscricoesSemDebitoValidas.length} inscrições válidas sem débito (nenhum débito encontrado)`
       );
@@ -1504,7 +1563,7 @@ ${EMOJIS.TELEFONE} *Suporte:* smfaz@arapiraca.al.gov.br`,
     // Incluir listas para uso na formatação
     servicosIntegrados.inscricoesComDebito = inscricoesComDebito;
     servicosIntegrados.inscricoesSemDebito = inscricoesSemDebito;
-    
+
     return servicosIntegrados;
   }
 
@@ -1593,9 +1652,9 @@ Digite *menu* para voltar ao menu principal.`,
     if (dados.contribuinte) {
       const { nome, cpfCnpj, codigo } = dados.contribuinte;
 
-      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${"═".repeat(35)}\n`;
       textoResposta += `${EMOJIS.PESSOA} *CÓDIGO DO CONTRIBUINTE*\n`;
-      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${"═".repeat(35)}\n`;
 
       if (nome) {
         textoResposta += `${EMOJIS.USUARIO} *Nome:* ${nome}\n`;
@@ -1618,9 +1677,9 @@ Digite *menu* para voltar ao menu principal.`,
 
     // =================== BLOCO 2: INSCRIÇÕES MUNICIPAIS ===================
     if (dados.empresas && dados.empresas.length > 0) {
-      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${"═".repeat(35)}\n`;
       textoResposta += `${EMOJIS.EMPRESA} *INSCRIÇÕES MUNICIPAIS*\n`;
-      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${"═".repeat(35)}\n`;
 
       dados.empresas.forEach((empresa, index) => {
         const numero = index + 1;
@@ -1655,7 +1714,7 @@ Digite *menu* para voltar ao menu principal.`,
         }
 
         if (index < dados.empresas.length - 1) {
-          textoResposta += `   ${'-'.repeat(25)}\n`;
+          textoResposta += `   ${"-".repeat(25)}\n`;
         }
       });
 
@@ -1663,17 +1722,28 @@ Digite *menu* para voltar ao menu principal.`,
     }
 
     // =================== BLOCO 3: INSCRIÇÕES IMOBILIÁRIAS ===================
-    const imoveisValidos = dados.imoveis ? dados.imoveis.filter((imovel) => {
-      // Verificar se o imóvel foi incluído nas listas de débitos (significa que pertence ao documento)
-      if (servicosIntegrados && servicosIntegrados.inscricoesComDebito && servicosIntegrados.inscricoesSemDebito) {
-        const pertenceAoDocumento = [...servicosIntegrados.inscricoesComDebito, ...servicosIntegrados.inscricoesSemDebito].some(
-          inscricao => inscricao.inscricao === imovel.inscricao && inscricao.tipo === "Imobiliária"
-        );
-        return pertenceAoDocumento;
-      }
-      return false; // Se não há serviços integrados, não mostrar por segurança
-    }) : [];
-    
+    const imoveisValidos = dados.imoveis
+      ? dados.imoveis.filter((imovel) => {
+          // Verificar se o imóvel foi incluído nas listas de débitos (significa que pertence ao documento)
+          if (
+            servicosIntegrados &&
+            servicosIntegrados.inscricoesComDebito &&
+            servicosIntegrados.inscricoesSemDebito
+          ) {
+            const pertenceAoDocumento = [
+              ...servicosIntegrados.inscricoesComDebito,
+              ...servicosIntegrados.inscricoesSemDebito,
+            ].some(
+              (inscricao) =>
+                inscricao.inscricao === imovel.inscricao &&
+                inscricao.tipo === "Imobiliária"
+            );
+            return pertenceAoDocumento;
+          }
+          return false; // Se não há serviços integrados, não mostrar por segurança
+        })
+      : [];
+
     if (imoveisValidos && imoveisValidos.length > 0) {
       // Limite de exibição de imóveis (medida de proteção e performance)
       const LIMITE_IMOVEIS = 5;
@@ -1685,9 +1755,9 @@ Digite *menu* para voltar ao menu principal.`,
         );
 
         // Mensagem de orientação para casos com muitos imóveis
-        textoResposta += `${'═'.repeat(35)}\n`;
+        textoResposta += `${"═".repeat(35)}\n`;
         textoResposta += `${EMOJIS.ALERTA} *MUITOS IMÓVEIS VINCULADOS*\n`;
-        textoResposta += `${'═'.repeat(35)}\n`;
+        textoResposta += `${"═".repeat(35)}\n`;
         textoResposta += `Encontramos *${imoveisValidos.length} imóveis* vinculados a este contribuinte.\n\n`;
         textoResposta += `Por questões de segurança e para evitar excesso de informações neste canal, a relação completa de imóveis só pode ser consultada presencialmente na Secretaria Municipal da Fazenda.\n\n`;
         textoResposta += `${EMOJIS.OPCOES} *Recomendações:*\n`;
@@ -1702,9 +1772,9 @@ Digite *menu* para voltar ao menu principal.`,
         };
       }
 
-      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${"═".repeat(35)}\n`;
       textoResposta += `${EMOJIS.CASA} *INSCRIÇÕES IMOBILIÁRIAS*\n`;
-      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${"═".repeat(35)}\n`;
 
       imoveisValidos.forEach((imovel, index) => {
         const numero = index + 1;
@@ -1733,7 +1803,7 @@ Digite *menu* para voltar ao menu principal.`,
         }
 
         if (index < imoveisValidos.length - 1) {
-          textoResposta += `   ${'-'.repeat(25)}\n`;
+          textoResposta += `   ${"-".repeat(25)}\n`;
         }
       });
 
@@ -1743,9 +1813,9 @@ Digite *menu* para voltar ao menu principal.`,
       (dados.contribuinte.nome || dados.contribuinte.codigo)
     ) {
       // Caso especial: contribuinte encontrado mas sem imóveis vinculados
-      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${"═".repeat(35)}\n`;
       textoResposta += `${EMOJIS.CASA} *INSCRIÇÕES IMOBILIÁRIAS*\n`;
-      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${"═".repeat(35)}\n`;
       textoResposta += `${EMOJIS.INFO} Nenhum imóvel vinculado encontrado para este contribuinte.\n\n`;
     } else {
       // Fallback para formato antigo (compatibilidade)
@@ -1812,18 +1882,26 @@ Digite *menu* para voltar ao menu principal.`,
     // 🚀 INTEGRAÇÃO PROATIVA - CONSULTA DIRETA DE DÉBITOS
     if (servicosIntegrados && servicosIntegrados.debitosIndicados) {
       const debitos = servicosIntegrados.debitosIndicados;
-      
+
       textoResposta += `\n${EMOJIS.ALERTA} *Débitos Detectados - Consultando Sistema...*\n\n`;
-      
+
       try {
         // INTEGRAÇÃO DIRETA: Consultar débitos usando o debitosService completo
-        const resultadoDebitos = await this.consultarDebitosIntegrado(debitos.inscricao, debitos.tipo, sender);
-        
+        const resultadoDebitos = await this.consultarDebitosIntegrado(
+          debitos.inscricao,
+          debitos.tipo,
+          sender
+        );
+
         if (resultadoDebitos && resultadoDebitos.encontrados) {
           textoResposta += resultadoDebitos.texto;
         } else {
           textoResposta += `${EMOJIS.NUMERO} *Inscrição:* ${debitos.inscricao}\n\n`;
-          textoResposta += `${EMOJIS.INFO} O sistema da Ábaco indica que esta inscrição possui débitos, mas não foram encontrados detalhes específicos nos últimos 5 anos (${new Date().getFullYear()-4}-${new Date().getFullYear()}).\n\n`;
+          textoResposta += `${
+            EMOJIS.INFO
+          } O sistema da Ábaco indica que esta inscrição possui débitos, mas não foram encontrados detalhes específicos nos últimos 5 anos (${
+            new Date().getFullYear() - 4
+          }-${new Date().getFullYear()}).\n\n`;
           textoResposta += `${EMOJIS.DICA} *Isso pode significar:*\n`;
           textoResposta += `• Débitos de exercícios anteriores\n`;
           textoResposta += `• Valores já quitados mas ainda não atualizados\n`;
@@ -1834,7 +1912,10 @@ Digite *menu* para voltar ao menu principal.`,
           textoResposta += `• Telefone: (82) 3539-6000\n\n`;
         }
       } catch (error) {
-        console.error(`[CadastroGeralService] Erro na consulta integrada de débitos:`, error);
+        console.error(
+          `[CadastroGeralService] Erro na consulta integrada de débitos:`,
+          error
+        );
         textoResposta += `${EMOJIS.FERRAMENTA} Erro na consulta. Tente a opção *1* do menu principal.\n\n`;
       }
     }
@@ -1844,10 +1925,10 @@ Digite *menu* para voltar ao menu principal.`,
       const certidao = servicosIntegrados.certidaoOferta;
 
       textoResposta += `\n${EMOJIS.SUCESSO} *Certidão Negativa Disponível!*\n\n`;
-      
+
       if (servicosIntegrados.temDebitos) {
         textoResposta += `${EMOJIS.INFO} Para as inscrições sem débitos vinculadas ao seu documento, você pode emitir certidão negativa:\n\n`;
-        
+
         // Listar inscrições sem débitos (apenas as que pertencem ao documento)
         certidao.inscricoes.forEach((inscricao, index) => {
           let labelTipo = inscricao.tipo;
@@ -1860,11 +1941,16 @@ Digite *menu* para voltar ao menu principal.`,
       } else {
         textoResposta += `${EMOJIS.FESTA} Parabéns! Todas as suas inscrições estão em dia.\n\n`;
       }
-      
+
       try {
         // INTEGRAÇÃO DIRETA: Emitir certidão usando o certidaoService
-        const resultadoCertidao = await this.emitirCertidaoIntegrada(certidao.documento, certidao.inscricoes, sender, dados);
-        
+        const resultadoCertidao = await this.emitirCertidaoIntegrada(
+          certidao.documento,
+          certidao.inscricoes,
+          sender,
+          dados
+        );
+
         if (resultadoCertidao && resultadoCertidao.sucesso) {
           textoResposta += resultadoCertidao.texto;
         } else if (resultadoCertidao && resultadoCertidao.seguranca) {
@@ -1878,7 +1964,10 @@ Digite *menu* para voltar ao menu principal.`,
           textoResposta += `${EMOJIS.LINK} Acesse: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n\n`;
         }
       } catch (error) {
-        console.error(`[CadastroGeralService] Erro na emissão integrada de certidão:`, error);
+        console.error(
+          `[CadastroGeralService] Erro na emissão integrada de certidão:`,
+          error
+        );
         textoResposta += `${EMOJIS.CERTIDAO} *Emitir Certidão:*\n`;
         textoResposta += `${EMOJIS.LINK} Portal: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n`;
         textoResposta += `${EMOJIS.DICA} Ou digite *2* no menu principal\n\n`;
@@ -1886,30 +1975,38 @@ Digite *menu* para voltar ao menu principal.`,
     }
 
     // =================== BLOCO 4: RESUMO ===================
-    const quantidadeContribuinte = dados.contribuinte && dados.contribuinte.codigo ? 1 : 0;
-    const totalInscricoes = quantidadeContribuinte + (dados.empresas?.length || 0) + (imoveisValidos?.length || 0);
-    
-    textoResposta += `${'═'.repeat(35)}\n`;
+    const quantidadeContribuinte =
+      dados.contribuinte && dados.contribuinte.codigo ? 1 : 0;
+    const totalInscricoes =
+      quantidadeContribuinte +
+      (dados.empresas?.length || 0) +
+      (imoveisValidos?.length || 0);
+
+    textoResposta += `${"═".repeat(35)}\n`;
     textoResposta += `${EMOJIS.RESUMO} *RESUMO*\n`;
-    textoResposta += `${'═'.repeat(35)}\n`;
-    
+    textoResposta += `${"═".repeat(35)}\n`;
+
     if (totalInscricoes > 0) {
       textoResposta += `${EMOJIS.CONTAGEM} *Total de Inscrições:* ${totalInscricoes}\n`;
       textoResposta += `${EMOJIS.PESSOA} *Código Contribuinte:* ${quantidadeContribuinte}\n`;
-      textoResposta += `${EMOJIS.EMPRESA} *Municipais:* ${dados.empresas?.length || 0}\n`;
-      textoResposta += `${EMOJIS.CASA} *Imobiliárias:* ${imoveisValidos?.length || 0}\n\n`;
+      textoResposta += `${EMOJIS.EMPRESA} *Municipais:* ${
+        dados.empresas?.length || 0
+      }\n`;
+      textoResposta += `${EMOJIS.CASA} *Imobiliárias:* ${
+        imoveisValidos?.length || 0
+      }\n\n`;
     } else {
       textoResposta += `${EMOJIS.INFO} *Nenhuma inscrição encontrada*\n`;
       textoResposta += `• O documento é válido, mas não foram encontradas inscrições vinculadas.\n\n`;
     }
 
     // =================== BLOCO 5: PRÓXIMOS PASSOS ===================
-    textoResposta += `${'═'.repeat(35)}\n`;
-    textoResposta += `${EMOJIS.OPCOES} *PRÓXIMOS PASSOS*\n`;
-    textoResposta += `${'═'.repeat(35)}\n`;
-    textoResposta += `${EMOJIS.DEBITO} Digite *1* para segunda via de DAM\n`;
-    textoResposta += `${EMOJIS.CERTIDAO} Digite *2* para certidões\n`;
-    textoResposta += `${EMOJIS.MENU} Digite *menu* para menu principal\n\n`;
+    // textoResposta += `${'═'.repeat(35)}\n`;
+    // textoResposta += `${EMOJIS.OPCOES} *PRÓXIMOS PASSOS*\n`;
+    // textoResposta += `${'═'.repeat(35)}\n`;
+    // textoResposta += `${EMOJIS.DEBITO} Digite *1* para segunda via de DAM\n`;
+    // textoResposta += `${EMOJIS.CERTIDAO} Digite *2* para certidões\n`;
+    // textoResposta += `${EMOJIS.MENU} Digite *menu* para menu principal\n\n`;
 
     textoResposta += `${EMOJIS.INTERNET} *Portal:*\n`;
     textoResposta += `https://arapiraca.abaco.com.br/eagata/portal/\n\n`;
@@ -1926,29 +2023,43 @@ Digite *menu* para voltar ao menu principal.`,
    * Verifica se há débitos em qualquer inscrição vinculada ao documento
    */
   verificarDebitosVinculados(dados) {
-    console.log(`[CadastroGeralService] Verificando débitos vinculados em todas as inscrições`);
-    
+    console.log(
+      `[CadastroGeralService] Verificando débitos vinculados em todas as inscrições`
+    );
+
     // Verificar débitos nas empresas/inscrições municipais
     if (dados.empresas && dados.empresas.length > 0) {
       for (const empresa of dados.empresas) {
-        if (empresa.possuiDebito && this.interpretarStatusDebito(empresa.possuiDebito)) {
-          console.log(`[CadastroGeralService] Débito encontrado na inscrição municipal: ${empresa.inscricao}`);
+        if (
+          empresa.possuiDebito &&
+          this.interpretarStatusDebito(empresa.possuiDebito)
+        ) {
+          console.log(
+            `[CadastroGeralService] Débito encontrado na inscrição municipal: ${empresa.inscricao}`
+          );
           return true;
         }
       }
     }
-    
+
     // Verificar débitos nos imóveis
     if (dados.imoveis && dados.imoveis.length > 0) {
       for (const imovel of dados.imoveis) {
-        if (imovel.possuiDebito && this.interpretarStatusDebito(imovel.possuiDebito)) {
-          console.log(`[CadastroGeralService] Débito encontrado na inscrição imobiliária: ${imovel.inscricao}`);
+        if (
+          imovel.possuiDebito &&
+          this.interpretarStatusDebito(imovel.possuiDebito)
+        ) {
+          console.log(
+            `[CadastroGeralService] Débito encontrado na inscrição imobiliária: ${imovel.inscricao}`
+          );
           return true;
         }
       }
     }
-    
-    console.log(`[CadastroGeralService] Nenhum débito encontrado nas inscrições vinculadas`);
+
+    console.log(
+      `[CadastroGeralService] Nenhum débito encontrado nas inscrições vinculadas`
+    );
     return false;
   }
 
@@ -2030,78 +2141,111 @@ Digite *menu* para voltar ao menu principal.`,
    */
   async consultarDebitosIntegrado(inscricao, tipo, sender) {
     try {
-      console.log(`[CadastroGeralService] Consulta integrada de débitos - Inscrição: ${inscricao}, Tipo: ${tipo}`);
-      
+      console.log(
+        `[CadastroGeralService] Consulta integrada de débitos - Inscrição: ${inscricao}, Tipo: ${tipo}`
+      );
+
       // Configurar sessão temporária no debitosService
-      const tipoContribuinte = tipo === 'Municipal' ? '3' : '2';
-      
+      const tipoContribuinte = tipo === "Municipal" ? "3" : "2";
+
       // Simular dados da sessão como se viesse do fluxo normal
       this.debitosService.setSessao(sender, {
         etapa: "consulta_completa",
         tipoContribuinte: tipoContribuinte,
         inscricao: inscricao,
-        exercicio: new Date().getFullYear()
+        exercicio: new Date().getFullYear(),
       });
-      
+
       // Consultar múltiplos exercícios - ÚLTIMOS 5 ANOS
       const anoAtual = new Date().getFullYear();
-      const anosParaConsultar = [anoAtual, anoAtual-1, anoAtual-2, anoAtual-3, anoAtual-4];
+      const anosParaConsultar = [
+        anoAtual,
+        anoAtual - 1,
+        anoAtual - 2,
+        anoAtual - 3,
+        anoAtual - 4,
+      ];
       let todosDebitos = [];
-      
+
       for (const ano of anosParaConsultar) {
         try {
-          const debitosAno = await this.debitosService.debitosApi.consultarDebitos({
-            tipoContribuinte: tipoContribuinte,
-            inscricao: inscricao,
-            exercicio: ano
-          });
-          
-          if (debitosAno && debitosAno.SSACodigo === 0 && debitosAno.SDTSaidaAPIDebito && debitosAno.SDTSaidaAPIDebito.length > 0) {
-            console.log(`[CadastroGeralService] Integração - Débitos no exercício ${ano}: ${debitosAno.SDTSaidaAPIDebito.length}`);
+          const debitosAno =
+            await this.debitosService.debitosApi.consultarDebitos({
+              tipoContribuinte: tipoContribuinte,
+              inscricao: inscricao,
+              exercicio: ano,
+            });
+
+          if (
+            debitosAno &&
+            debitosAno.SSACodigo === 0 &&
+            debitosAno.SDTSaidaAPIDebito &&
+            debitosAno.SDTSaidaAPIDebito.length > 0
+          ) {
+            console.log(
+              `[CadastroGeralService] Integração - Débitos no exercício ${ano}: ${debitosAno.SDTSaidaAPIDebito.length}`
+            );
             todosDebitos = todosDebitos.concat(debitosAno.SDTSaidaAPIDebito);
           }
         } catch (error) {
-          console.error(`[CadastroGeralService] Erro na integração - exercício ${ano}:`, error);
+          console.error(
+            `[CadastroGeralService] Erro na integração - exercício ${ano}:`,
+            error
+          );
         }
       }
-      
+
       // Simular resultado consolidado
       const resultado = {
         SSACodigo: 0,
         SDTSaidaAPIDebito: todosDebitos,
-        SSAMensagem: `Consulta integrada para exercícios ${anosParaConsultar.join(', ')}`
+        SSAMensagem: `Consulta integrada para exercícios ${anosParaConsultar.join(
+          ", "
+        )}`,
       };
-      
+
       // Limpar sessão temporária
       this.debitosService.limparSessao(sender);
-      
+
       console.log(`[CadastroGeralService] Resultado da consulta integrada:`, {
         codigo: resultado?.SSACodigo,
         temDebitos: resultado?.SDTSaidaAPIDebito?.length > 0,
         quantidadeDebitos: resultado?.SDTSaidaAPIDebito?.length || 0,
-        mensagem: resultado?.SSAMensagem
+        mensagem: resultado?.SSAMensagem,
       });
 
-      if (resultado && resultado.SSACodigo === 0 && resultado.SDTSaidaAPIDebito && resultado.SDTSaidaAPIDebito.length > 0) {
+      if (
+        resultado &&
+        resultado.SSACodigo === 0 &&
+        resultado.SDTSaidaAPIDebito &&
+        resultado.SDTSaidaAPIDebito.length > 0
+      ) {
         // Usar o formatador do debitosService
-        const textoFormatado = this.debitosService.formatarResposta(resultado.SDTSaidaAPIDebito, "Usuário");
-        
+        const textoFormatado = this.debitosService.formatarResposta(
+          resultado.SDTSaidaAPIDebito,
+          "Usuário"
+        );
+
         return {
           encontrados: true,
-          texto: textoFormatado.text
+          texto: textoFormatado.text,
         };
       } else {
         return {
           encontrados: false,
-          motivo: resultado?.SSAMensagem || "Nenhum débito encontrado para o exercício atual"
+          motivo:
+            resultado?.SSAMensagem ||
+            "Nenhum débito encontrado para o exercício atual",
         };
       }
-      
     } catch (error) {
-      console.error(`[CadastroGeralService] Erro na consulta integrada de débitos:`, error);
+      console.error(
+        `[CadastroGeralService] Erro na consulta integrada de débitos:`,
+        error
+      );
       return {
         encontrados: false,
-        erro: error.message
+        erro: error.message,
       };
     }
   }
@@ -2111,84 +2255,103 @@ Digite *menu* para voltar ao menu principal.`,
    */
   async emitirCertidaoIntegrada(documento, inscricoes, sender, dados) {
     try {
-      console.log(`[CadastroGeralService] Emissão integrada de certidão - Documento: ${documento}`);
-      
+      console.log(
+        `[CadastroGeralService] Emissão integrada de certidão - Documento: ${documento}`
+      );
+
       if (!inscricoes || inscricoes.length === 0) {
         return {
           sucesso: false,
-          motivo: "Nenhuma inscrição disponível para certidão"
+          motivo: "Nenhuma inscrição disponível para certidão",
         };
       }
-      
+
       // Pegar primeira inscrição sem débitos
       const inscricaoParaCertidao = inscricoes[0];
-      
+
       // Determinar tipo de contribuinte baseado no tipo da inscrição
       let tipoContribuinte;
-      if (inscricaoParaCertidao.tipo === 'Contribuinte') {
-        tipoContribuinte = '1'; // Código do contribuinte é sempre tipo 1 (PF/PJ)
-      } else if (inscricaoParaCertidao.tipo === 'Municipal') {
-        tipoContribuinte = '1'; // Inscrição municipal também é tipo 1 (PF/PJ)
-      } else if (inscricaoParaCertidao.tipo === 'Imobiliária') {
-        tipoContribuinte = '2'; // Inscrição imobiliária é tipo 2 (Imóvel)
+      if (inscricaoParaCertidao.tipo === "Contribuinte") {
+        tipoContribuinte = "1"; // Código do contribuinte é sempre tipo 1 (PF/PJ)
+      } else if (inscricaoParaCertidao.tipo === "Municipal") {
+        tipoContribuinte = "1"; // Inscrição municipal também é tipo 1 (PF/PJ)
+      } else if (inscricaoParaCertidao.tipo === "Imobiliária") {
+        tipoContribuinte = "2"; // Inscrição imobiliária é tipo 2 (Imóvel)
       } else {
-        tipoContribuinte = '1'; // Fallback para tipo 1
+        tipoContribuinte = "1"; // Fallback para tipo 1
       }
-      
-      console.log(`[CadastroGeralService] Emitindo certidão - Tipo: ${tipoContribuinte}, Inscrição: ${inscricaoParaCertidao.inscricao}`);
-      
+
+      console.log(
+        `[CadastroGeralService] Emitindo certidão - Tipo: ${tipoContribuinte}, Inscrição: ${inscricaoParaCertidao.inscricao}`
+      );
+
       // Usar API direta da certidão (igual ao certidaoService faz)
       const { emitirCertidao } = require("../utils/certidaoApi");
-      
+
       const resultado = await emitirCertidao({
         tipoContribuinte: tipoContribuinte,
         inscricao: inscricaoParaCertidao.inscricao,
         cpfCnpj: "11111111111", // CPF fake como o certidaoService usa
-        operacao: "2" // Certidão
+        operacao: "2", // Certidão
       });
-      
-      if (resultado && resultado.SSACodigo === 0 && resultado.SSALinkDocumento) {
+
+      if (
+        resultado &&
+        resultado.SSACodigo === 0 &&
+        resultado.SSALinkDocumento
+      ) {
         // VALIDAÇÃO CRÍTICA: Verificar se a inscrição realmente pertence ao documento consultado
-        const documentoConsultado = documento.replace(/\D/g, '');
-        const documentoRetornado = resultado.SSACPFCNPJ ? resultado.SSACPFCNPJ.replace(/\D/g, '') : '';
-        
+        const documentoConsultado = documento.replace(/\D/g, "");
+        const documentoRetornado = resultado.SSACPFCNPJ
+          ? resultado.SSACPFCNPJ.replace(/\D/g, "")
+          : "";
+
         console.log(`[CadastroGeralService] Validação de pertencimento:`, {
           documentoConsultado: documentoConsultado,
           documentoRetornado: documentoRetornado,
           inscricao: inscricaoParaCertidao.inscricao,
-          nomeRetornado: resultado.SSANomeRazao
+          nomeRetornado: resultado.SSANomeRazao,
         });
-        
+
         // Validação especial para código do contribuinte
-        if (inscricaoParaCertidao.tipo === 'Contribuinte') {
+        if (inscricaoParaCertidao.tipo === "Contribuinte") {
           // Para código do contribuinte, verificar se o nome confere
-          const nomeConsultado = dados.contribuinte?.nome || '';
-          const nomeRetornado = resultado.SSANomeRazao || '';
-          
+          const nomeConsultado = dados.contribuinte?.nome || "";
+          const nomeRetornado = resultado.SSANomeRazao || "";
+
           if (nomeRetornado && nomeRetornado !== nomeConsultado) {
-            console.log(`[CadastroGeralService] ERRO: Código ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte! Esperado: ${nomeConsultado}, Retornado: ${nomeRetornado}`);
+            console.log(
+              `[CadastroGeralService] ERRO: Código ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte! Esperado: ${nomeConsultado}, Retornado: ${nomeRetornado}`
+            );
             return {
               sucesso: false,
               motivo: `Código ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte (${resultado.SSANomeRazao}). Não é possível emitir certidão.`,
-              seguranca: true
+              seguranca: true,
             };
           }
         } else {
           // Para inscrições municipais/imobiliárias, verificar CPF/CNPJ
-          if (documentoRetornado && documentoRetornado !== documentoConsultado) {
-            console.log(`[CadastroGeralService] ERRO: Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro documento!`);
+          if (
+            documentoRetornado &&
+            documentoRetornado !== documentoConsultado
+          ) {
+            console.log(
+              `[CadastroGeralService] ERRO: Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro documento!`
+            );
             return {
               sucesso: false,
               motivo: `Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte (${resultado.SSANomeRazao}). Não é possível emitir certidão.`,
-              seguranca: true
+              seguranca: true,
             };
           }
         }
-        
+
         const nomeContribuinte = resultado.SSANomeRazao || "Não informado";
-        const inscricaoFinal = resultado.SSAInscricao || inscricaoParaCertidao.inscricao;
-        const tipoInscricaoLabel = tipoContribuinte === '2' ? 'Matrícula' : 'Cadastro';
-        
+        const inscricaoFinal =
+          resultado.SSAInscricao || inscricaoParaCertidao.inscricao;
+        const tipoInscricaoLabel =
+          tipoContribuinte === "2" ? "Matrícula" : "Cadastro";
+
         const textoFormatado = `${EMOJIS.SUCESSO} *Certidão Negativa Emitida!* ${EMOJIS.FESTA}
 
 ${EMOJIS.LINK} *LINK DA CERTIDÃO:*
@@ -2205,21 +2368,23 @@ ${EMOJIS.ALERTA} *IMPORTANTE:*
 
         return {
           sucesso: true,
-          texto: textoFormatado
+          texto: textoFormatado,
         };
       } else {
         return {
           sucesso: false,
           motivo: resultado?.SSAMensagem || "Erro na emissão da certidão",
-          codigo: resultado?.SSACodigo
+          codigo: resultado?.SSACodigo,
         };
       }
-      
     } catch (error) {
-      console.error(`[CadastroGeralService] Erro na emissão integrada de certidão:`, error);
+      console.error(
+        `[CadastroGeralService] Erro na emissão integrada de certidão:`,
+        error
+      );
       return {
         sucesso: false,
-        erro: error.message
+        erro: error.message,
       };
     }
   }
