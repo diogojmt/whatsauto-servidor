@@ -154,6 +154,18 @@ const EMOJIS = {
   AVANCAR: "➡️",
   CIMA: "⬆️",
   BAIXO: "⬇️",
+  
+  // Emojis específicos para blocos organizados
+  CODIGO: "🏷️",
+  PROPRIETARIO: "👤",
+  CATEGORIA: "📦",
+  TRABALHO: "💼",
+  SUSPENSAO: "⏸️",
+  RESUMO: "📋",
+  CONTAGEM: "🔢",
+  OPCOES: "⚙️",
+  STATUS: "📊",
+  DEBITO: "💰",
 };
 
 // Palavras de agradecimento

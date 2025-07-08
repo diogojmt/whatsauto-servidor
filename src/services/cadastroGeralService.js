@@ -1581,33 +1581,39 @@ Digite *menu* para voltar ao menu principal.`,
       }
     }
 
-    // RESPOSTA COMPLETA COM DADOS APRIMORADOS
+    // RESPOSTA COMPLETA COM DADOS APRIMORADOS EM BLOCOS ORGANIZADOS
     let textoResposta = `${EMOJIS.SUCESSO} *Consulta de Cadastro Geral*\n\n`;
 
-    // INFORMAÇÕES DO CONTRIBUINTE
+    // =================== BLOCO 1: CÓDIGO DO CONTRIBUINTE ===================
     if (dados.contribuinte) {
       const { nome, cpfCnpj, codigo } = dados.contribuinte;
 
+      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${EMOJIS.PESSOA} *CÓDIGO DO CONTRIBUINTE*\n`;
+      textoResposta += `${'═'.repeat(35)}\n`;
+
       if (nome) {
-        textoResposta += `${EMOJIS.PESSOA} *Nome:* ${nome}\n`;
+        textoResposta += `${EMOJIS.USUARIO} *Nome:* ${nome}\n`;
       }
 
       textoResposta += `${EMOJIS.DOCUMENTO} *${tipoDocumento}:* ${documentoFormatado}\n`;
 
       if (codigo) {
-        textoResposta += `${EMOJIS.NUMERO} *Código do Contribuinte:* ${codigo}\n`;
+        textoResposta += `${EMOJIS.CODIGO} *Código:* \`${codigo}\`\n`;
       }
 
       textoResposta += `\n`;
     }
 
-    // INFORMAÇÕES DA EMPRESA/INSCRIÇÃO MUNICIPAL
+    // =================== BLOCO 2: INSCRIÇÕES MUNICIPAIS ===================
     if (dados.empresas && dados.empresas.length > 0) {
-      textoResposta += `${EMOJIS.EMPRESA} *Inscrições Municipais:*\n`;
+      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${EMOJIS.EMPRESA} *INSCRIÇÕES MUNICIPAIS*\n`;
+      textoResposta += `${'═'.repeat(35)}\n`;
 
       dados.empresas.forEach((empresa, index) => {
         const numero = index + 1;
-        textoResposta += `\n*${numero}.* *Inscrição Municipal:* ${empresa.inscricao}\n`;
+        textoResposta += `${EMOJIS.NUMERO} *${numero}ª Inscrição:* \`${empresa.inscricao}\`\n`;
 
         if (empresa.endereco) {
           textoResposta += `   ${EMOJIS.LOCALIZACAO} *Endereço:* ${empresa.endereco}\n`;
@@ -1617,7 +1623,7 @@ Digite *menu* para voltar ao menu principal.`,
           const tipoDescricao = this.interpretarTipoAutonomo(
             empresa.tipoAutonomo
           );
-          textoResposta += `   ${EMOJIS.LISTA} *Tipo:* ${tipoDescricao}\n`;
+          textoResposta += `   ${EMOJIS.TRABALHO} *Tipo:* ${tipoDescricao}\n`;
         }
 
         if (empresa.possuiDebito) {
@@ -1634,14 +1640,18 @@ Digite *menu* para voltar ao menu principal.`,
           empresa.debitoSuspenso &&
           empresa.debitoSuspenso.toLowerCase() === "s"
         ) {
-          textoResposta += `   ${EMOJIS.INFO} *Débito suspenso:* Sim\n`;
+          textoResposta += `   ${EMOJIS.SUSPENSAO} *Débito suspenso:* Sim\n`;
+        }
+
+        if (index < dados.empresas.length - 1) {
+          textoResposta += `   ${'-'.repeat(25)}\n`;
         }
       });
 
       textoResposta += `\n`;
     }
 
-    // INFORMAÇÕES DOS IMÓVEIS - APRESENTAÇÃO INDIVIDUAL (apenas os que pertencem ao documento)
+    // =================== BLOCO 3: INSCRIÇÕES IMOBILIÁRIAS ===================
     const imoveisValidos = dados.imoveis ? dados.imoveis.filter((imovel) => {
       // Verificar se o imóvel foi incluído nas listas de débitos (significa que pertence ao documento)
       if (servicosIntegrados && servicosIntegrados.inscricoesComDebito && servicosIntegrados.inscricoesSemDebito) {
@@ -1664,10 +1674,12 @@ Digite *menu* para voltar ao menu principal.`,
         );
 
         // Mensagem de orientação para casos com muitos imóveis
-        textoResposta += `${EMOJIS.ALERTA} *Consulta de Cadastro Geral*\n\n`;
+        textoResposta += `${'═'.repeat(35)}\n`;
+        textoResposta += `${EMOJIS.ALERTA} *MUITOS IMÓVEIS VINCULADOS*\n`;
+        textoResposta += `${'═'.repeat(35)}\n`;
         textoResposta += `Encontramos *${imoveisValidos.length} imóveis* vinculados a este contribuinte.\n\n`;
         textoResposta += `Por questões de segurança e para evitar excesso de informações neste canal, a relação completa de imóveis só pode ser consultada presencialmente na Secretaria Municipal da Fazenda.\n\n`;
-        textoResposta += `*📅 Recomendações:*\n`;
+        textoResposta += `${EMOJIS.OPCOES} *Recomendações:*\n`;
         textoResposta += `• Digite *8* para agendar atendimento presencial\n`;
         textoResposta += `• Envie email para: smfaz@arapiraca.al.gov.br\n`;
         textoResposta += `• Compareça presencialmente na Secretaria\n\n`;
@@ -1679,22 +1691,24 @@ Digite *menu* para voltar ao menu principal.`,
         };
       }
 
-      textoResposta += `${EMOJIS.CASA} *Imóveis vinculados:*\n`;
+      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${EMOJIS.CASA} *INSCRIÇÕES IMOBILIÁRIAS*\n`;
+      textoResposta += `${'═'.repeat(35)}\n`;
 
       imoveisValidos.forEach((imovel, index) => {
         const numero = index + 1;
-        textoResposta += `\n*${numero}.* *Inscrição ${imovel.tipo}:* ${imovel.inscricao}\n`;
+        textoResposta += `${EMOJIS.NUMERO} *${numero}ª Inscrição:* \`${imovel.inscricao}\`\n`;
 
         if (imovel.endereco) {
           textoResposta += `   ${EMOJIS.LOCALIZACAO} *Endereço:* ${imovel.endereco}\n`;
         }
 
         if (imovel.tipoImovel) {
-          textoResposta += `   ${EMOJIS.CASA} *Tipo do imóvel:* ${imovel.tipoImovel}\n`;
+          textoResposta += `   ${EMOJIS.CATEGORIA} *Tipo do imóvel:* ${imovel.tipoImovel}\n`;
         }
 
         if (imovel.tipoProprietario) {
-          textoResposta += `   ${EMOJIS.PESSOA} *Proprietário:* ${imovel.tipoProprietario}\n`;
+          textoResposta += `   ${EMOJIS.PROPRIETARIO} *Proprietário:* ${imovel.tipoProprietario}\n`;
         }
 
         if (imovel.possuiDebito) {
@@ -1706,14 +1720,22 @@ Digite *menu* para voltar ao menu principal.`,
             : "Não";
           textoResposta += `   ${iconeDebito} *Possui débitos:* ${textoDebito}\n`;
         }
+
+        if (index < imoveisValidos.length - 1) {
+          textoResposta += `   ${'-'.repeat(25)}\n`;
+        }
       });
+
+      textoResposta += `\n`;
     } else if (
       dados.contribuinte &&
       (dados.contribuinte.nome || dados.contribuinte.codigo)
     ) {
       // Caso especial: contribuinte encontrado mas sem imóveis vinculados
-      textoResposta += `${EMOJIS.INFO} *Imóveis vinculados:*\n`;
-      textoResposta += `Nenhum imóvel vinculado encontrado para este contribuinte.\n`;
+      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${EMOJIS.CASA} *INSCRIÇÕES IMOBILIÁRIAS*\n`;
+      textoResposta += `${'═'.repeat(35)}\n`;
+      textoResposta += `${EMOJIS.INFO} Nenhum imóvel vinculado encontrado para este contribuinte.\n\n`;
     } else {
       // Fallback para formato antigo (compatibilidade)
       const inscricoesMunicipais = dados.inscricoes
@@ -1852,18 +1874,34 @@ Digite *menu* para voltar ao menu principal.`,
       }
     }
 
-    // INFORMAÇÕES ADICIONAIS
-    textoResposta += `\n${EMOJIS.INFO} *Para mais detalhes:*
-• Acesse o Portal do Contribuinte
-• Digite *1* para segunda via de DAM
-• Digite *2* para certidões
+    // =================== BLOCO 4: RESUMO ===================
+    const totalInscricoes = (dados.empresas?.length || 0) + (imoveisValidos?.length || 0);
+    
+    textoResposta += `${'═'.repeat(35)}\n`;
+    textoResposta += `${EMOJIS.RESUMO} *RESUMO*\n`;
+    textoResposta += `${'═'.repeat(35)}\n`;
+    
+    if (totalInscricoes > 0) {
+      textoResposta += `${EMOJIS.CONTAGEM} *Total de Inscrições:* ${totalInscricoes}\n`;
+      textoResposta += `${EMOJIS.EMPRESA} *Municipais:* ${dados.empresas?.length || 0}\n`;
+      textoResposta += `${EMOJIS.CASA} *Imobiliárias:* ${imoveisValidos?.length || 0}\n\n`;
+    } else {
+      textoResposta += `${EMOJIS.INFO} *Nenhuma inscrição encontrada*\n`;
+      textoResposta += `• O documento é válido, mas não foram encontradas inscrições vinculadas.\n\n`;
+    }
 
-${EMOJIS.INTERNET} *Portal:*
-https://arapiraca.abaco.com.br/eagata/portal/
+    // =================== BLOCO 5: PRÓXIMOS PASSOS ===================
+    textoResposta += `${'═'.repeat(35)}\n`;
+    textoResposta += `${EMOJIS.OPCOES} *PRÓXIMOS PASSOS*\n`;
+    textoResposta += `${'═'.repeat(35)}\n`;
+    textoResposta += `${EMOJIS.DEBITO} Digite *1* para segunda via de DAM\n`;
+    textoResposta += `${EMOJIS.CERTIDAO} Digite *2* para certidões\n`;
+    textoResposta += `${EMOJIS.MENU} Digite *menu* para menu principal\n\n`;
 
-${EMOJIS.DICA} *Obs.:* Use a inscrição imobiliária para acessar outros serviços. O código do contribuinte não deve ser usado como inscrição de imóvel.
+    textoResposta += `${EMOJIS.INTERNET} *Portal:*\n`;
+    textoResposta += `https://arapiraca.abaco.com.br/eagata/portal/\n\n`;
 
-Digite *menu* para voltar ao menu principal.`;
+    textoResposta += `${EMOJIS.DICA} *Obs.:* Use a inscrição imobiliária para acessar outros serviços. O código do contribuinte não deve ser usado como inscrição de imóvel.`;
 
     return {
       type: "text",
