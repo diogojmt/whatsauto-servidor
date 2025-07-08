@@ -1830,7 +1830,7 @@ Digite *menu* para voltar ao menu principal.`,
       
       try {
         // INTEGRAÇÃO DIRETA: Emitir certidão usando o certidaoService
-        const resultadoCertidao = await this.emitirCertidaoIntegrada(certidao.documento, certidao.inscricoes, sender);
+        const resultadoCertidao = await this.emitirCertidaoIntegrada(certidao.documento, certidao.inscricoes, sender, dados);
         
         if (resultadoCertidao && resultadoCertidao.sucesso) {
           textoResposta += resultadoCertidao.texto;
@@ -2028,7 +2028,7 @@ Digite *menu* para voltar ao menu principal.`;
   /**
    * INTEGRAÇÃO DIRETA - Emite certidão usando certidaoService
    */
-  async emitirCertidaoIntegrada(documento, inscricoes, sender) {
+  async emitirCertidaoIntegrada(documento, inscricoes, sender, dados) {
     try {
       console.log(`[CadastroGeralService] Emissão integrada de certidão - Documento: ${documento}`);
       
@@ -2043,7 +2043,16 @@ Digite *menu* para voltar ao menu principal.`;
       const inscricaoParaCertidao = inscricoes[0];
       
       // Determinar tipo de contribuinte baseado no tipo da inscrição
-      const tipoContribuinte = inscricaoParaCertidao.tipo === 'Municipal' ? '1' : '2'; // 1=PF/PJ, 2=Imóvel
+      let tipoContribuinte;
+      if (inscricaoParaCertidao.tipo === 'Contribuinte') {
+        tipoContribuinte = '1'; // Código do contribuinte é sempre tipo 1 (PF/PJ)
+      } else if (inscricaoParaCertidao.tipo === 'Municipal') {
+        tipoContribuinte = '1'; // Inscrição municipal também é tipo 1 (PF/PJ)
+      } else if (inscricaoParaCertidao.tipo === 'Imobiliária') {
+        tipoContribuinte = '2'; // Inscrição imobiliária é tipo 2 (Imóvel)
+      } else {
+        tipoContribuinte = '1'; // Fallback para tipo 1
+      }
       
       console.log(`[CadastroGeralService] Emitindo certidão - Tipo: ${tipoContribuinte}, Inscrição: ${inscricaoParaCertidao.inscricao}`);
       
@@ -2069,13 +2078,30 @@ Digite *menu* para voltar ao menu principal.`;
           nomeRetornado: resultado.SSANomeRazao
         });
         
-        if (documentoRetornado && documentoRetornado !== documentoConsultado) {
-          console.log(`[CadastroGeralService] ERRO: Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro documento!`);
-          return {
-            sucesso: false,
-            motivo: `Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte (${resultado.SSANomeRazao}). Não é possível emitir certidão.`,
-            seguranca: true
-          };
+        // Validação especial para código do contribuinte
+        if (inscricaoParaCertidao.tipo === 'Contribuinte') {
+          // Para código do contribuinte, verificar se o nome confere
+          const nomeConsultado = dados.contribuinte?.nome || '';
+          const nomeRetornado = resultado.SSANomeRazao || '';
+          
+          if (nomeRetornado && nomeRetornado !== nomeConsultado) {
+            console.log(`[CadastroGeralService] ERRO: Código ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte! Esperado: ${nomeConsultado}, Retornado: ${nomeRetornado}`);
+            return {
+              sucesso: false,
+              motivo: `Código ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte (${resultado.SSANomeRazao}). Não é possível emitir certidão.`,
+              seguranca: true
+            };
+          }
+        } else {
+          // Para inscrições municipais/imobiliárias, verificar CPF/CNPJ
+          if (documentoRetornado && documentoRetornado !== documentoConsultado) {
+            console.log(`[CadastroGeralService] ERRO: Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro documento!`);
+            return {
+              sucesso: false,
+              motivo: `Inscrição ${inscricaoParaCertidao.inscricao} pertence a outro contribuinte (${resultado.SSANomeRazao}). Não é possível emitir certidão.`,
+              seguranca: true
+            };
+          }
         }
         
         const nomeContribuinte = resultado.SSANomeRazao || "Não informado";
