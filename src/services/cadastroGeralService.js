@@ -1995,7 +1995,7 @@ Digite *menu* para voltar ao menu principal.`,
             textoResposta += `${EMOJIS.DICA} Use a inscrição do imóvel para emitir certidão específica\n\n`;
           } else {
             textoResposta += `${EMOJIS.CERTIDAO} *Certidão Negativa disponível!*\n`;
-            textoResposta += `${EMOJIS.LINK} Portal: "https://homologacao.abaco.com.br/arapiraca_proj_hml_eagata/servlet/apapidocumento"\n\n`;
+            textoResposta += `${EMOJIS.LINK} Portal: https://arapiraca.abaco.com.br/eagata/servlet/hwtportalcontribuinte?20,certidao-geral\n\n`;
           }
         }
       } catch (error) {
