@@ -326,7 +326,7 @@ class DashboardApp {
     };
 
     Object.entries(chartCreators).forEach(([key, creator]) => {
-      if (data[key]) creator();
+      creator();
     });
   }
 
