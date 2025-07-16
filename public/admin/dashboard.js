@@ -1,532 +1,731 @@
-// Dashboard JavaScript
+/**
+ * WhatsAuto Admin Dashboard
+ * Responsável por gerenciar a interface administrativa do chatbot
+ * @author Copilot
+ * @version 2.0.0
+ */
+
 class DashboardApp {
-    constructor() {
-        this.token = localStorage.getItem('admin_token');
-        this.apiBase = window.location.port === '3001' ? '/api/dashboard' : '/api/dashboard';
-        this.charts = {};
-        this.currentPage = 1;
-        this.itemsPerPage = 50;
-        
-        this.init();
+  // Configurações iniciais
+  static CONFIG = {
+    ITEMS_PER_PAGE: 50,
+    TOKEN_KEY: "admin_token",
+    CHART_COLORS: {
+      primary: "#36A2EB",
+      success: "#4BC0C0",
+      warning: "#FFCE56",
+      danger: "#FF6384",
+      purple: "#9966FF",
+      orange: "#FF9F40",
+      gray: "#C9CBCF",
+    },
+  };
+
+  /**
+   * Construtor da aplicação
+   */
+  constructor() {
+    // Estado da aplicação
+    this.state = {
+      token: localStorage.getItem(DashboardApp.CONFIG.TOKEN_KEY),
+      currentPage: 1,
+      charts: new Map(),
+      apiBase: this.determineApiBase(),
+    };
+
+    this.init();
+  }
+
+  /**
+   * Determina a base da API baseado na porta
+   */
+  determineApiBase() {
+    return "/api/dashboard";
+  }
+
+  /**
+   * Inicializa a aplicação
+   */
+  init() {
+    this.state.token ? this.showDashboard() : this.showLogin();
+    this.setupEventListeners();
+  }
+
+  /**
+   * Configura os event listeners da aplicação
+   */
+  setupEventListeners() {
+    // Autenticação
+    this.setupAuthListeners();
+
+    // Navegação
+    this.setupNavigationListeners();
+
+    // Filtros
+    this.setupFilterListeners();
+  }
+
+  /**
+   * Configura listeners relacionados à autenticação
+   */
+  setupAuthListeners() {
+    const loginForm = document.getElementById("loginForm");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    loginForm?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.handleLogin();
+    });
+
+    logoutBtn?.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.handleLogout();
+    });
+  }
+
+  /**
+   * Configura listeners de navegação
+   */
+  setupNavigationListeners() {
+    document.querySelectorAll("[data-section]").forEach((link) => {
+      link.addEventListener("click", (e) => {
+        e.preventDefault();
+        const section = e.target.closest("[data-section]").dataset.section;
+        this.showSection(section);
+      });
+    });
+  }
+
+  /**
+   * Configura listeners dos filtros
+   */
+  setupFilterListeners() {
+    ["filtroTipo", "filtroStatus"].forEach((filterId) => {
+      document.getElementById(filterId)?.addEventListener("change", () => {
+        this.state.currentPage = 1;
+        this.carregarAtendimentos();
+      });
+    });
+  }
+
+  /**
+   * Gerencia o processo de login
+   */
+  async handleLogin() {
+    const credentials = {
+      username: document.getElementById("username").value,
+      password: document.getElementById("password").value,
+    };
+
+    try {
+      const response = await this.apiRequest("/login", {
+        method: "POST",
+        body: JSON.stringify(credentials),
+      });
+
+      if (response?.token) {
+        this.state.token = response.token;
+        localStorage.setItem(DashboardApp.CONFIG.TOKEN_KEY, response.token);
+        this.showDashboard();
+      }
+    } catch (error) {
+      this.showLoginError(error.message || "Erro ao fazer login");
+    }
+  }
+
+  /**
+   * Gerencia o processo de logout
+   */
+  handleLogout() {
+    this.state.token = null;
+    localStorage.removeItem(DashboardApp.CONFIG.TOKEN_KEY);
+    this.showLogin();
+  }
+
+  /**
+   * Exibe erro de login
+   */
+  showLoginError(message) {
+    const errorElement = document.getElementById("loginError");
+    if (errorElement) {
+      errorElement.style.display = "block";
+      errorElement.textContent = message;
+    }
+  }
+
+  /**
+   * Alterna para a tela de login
+   */
+  showLogin() {
+    document.getElementById("loginScreen").style.display = "flex";
+    document.getElementById("dashboardScreen").style.display = "none";
+  }
+
+  /**
+   * Alterna para o dashboard
+   */
+  showDashboard() {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("dashboardScreen").style.display = "block";
+    this.loadInitialData();
+  }
+
+  /**
+   * Carrega os dados iniciais do dashboard
+   */
+  async loadInitialData() {
+    await Promise.all([this.loadStats(), this.loadChartData()]);
+  }
+
+  /**
+   * Exibe uma seção específica do dashboard
+   */
+  showSection(sectionName) {
+    this.updateSectionVisibility(sectionName);
+    this.updateNavigationState(sectionName);
+    this.loadSectionData(sectionName);
+  }
+
+  /**
+   * Atualiza a visibilidade das seções
+   */
+  updateSectionVisibility(sectionName) {
+    document.querySelectorAll(".content-section").forEach((section) => {
+      section.style.display = "none";
+    });
+    document.getElementById(sectionName + "Section").style.display = "block";
+  }
+
+  /**
+   * Atualiza o estado da navegação
+   */
+  updateNavigationState(sectionName) {
+    document.querySelectorAll(".nav-link").forEach((link) => {
+      link.classList.remove("active");
+    });
+    document
+      .querySelector(`[data-section="${sectionName}"]`)
+      ?.classList.add("active");
+  }
+
+  /**
+   * Carrega dados específicos da seção
+   */
+  async loadSectionData(section) {
+    const sectionLoaders = {
+      overview: async () => {
+        await Promise.all([this.loadStats(), this.loadChartData()]);
+      },
+      analytics: () => this.loadChartData(),
+      atendimentos: () => this.carregarAtendimentos(),
+      usuarios: () => {
+        /* Implementação futura */
+      },
+      relatorios: () => {
+        /* Não requer carregamento */
+      },
+    };
+
+    await sectionLoaders[section]?.();
+  }
+
+  /**
+   * Realiza uma requisição à API
+   */
+  async apiRequest(endpoint, options = {}) {
+    const config = {
+      headers: {
+        Authorization: `Bearer ${this.state.token}`,
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
+    };
+
+    try {
+      const response = await fetch(`${this.state.apiBase}${endpoint}`, config);
+
+      if (response.status === 401) {
+        this.handleLogout();
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erro na requisição:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Carrega as estatísticas do dashboard
+   */
+  async loadStats() {
+    try {
+      const stats = await this.apiRequest("/stats");
+      if (stats) {
+        this.updateDashboardStats(stats);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar estatísticas:", error);
+    }
+  }
+
+  /**
+   * Atualiza as estatísticas no dashboard
+   */
+  updateDashboardStats(stats) {
+    const statElements = {
+      atendimentosHoje: stats.atendimentosHoje?.total || 0,
+      atendimentosSemana: stats.atendimentosSemana?.total || 0,
+      taxaSucesso: `${stats.taxaSucesso?.taxa_sucesso || 0}%`,
+      usuariosUnicos: stats.usuariosUnicos?.total || 0,
+    };
+
+    Object.entries(statElements).forEach(([id, value]) => {
+      document.getElementById(id).textContent = value;
+    });
+  }
+
+  /**
+   * Carrega dados para os gráficos
+   */
+  async loadChartData() {
+    try {
+      const chartData = await this.apiRequest("/charts");
+      if (chartData) {
+        this.createCharts(chartData);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar dados dos gráficos:", error);
+    }
+  }
+
+  /**
+   * Cria ou atualiza os gráficos do dashboard
+   */
+  createCharts(data) {
+    const chartCreators = {
+      tiposPopulares: () =>
+        this.createTiposPopularesChart(data.tiposAtendimento),
+      atendimentosHora: () =>
+        this.createAtendimentosHoraChart(data.atendimentosPorHora),
+      atendimentosDia: () =>
+        this.createAtendimentosDiaChart(data.atendimentosPorDia),
+      performance: () => this.createPerformanceChart(data.tiposAtendimento),
+      intencoes: () => this.createIntencoesChart(data.intencoes),
+    };
+
+    Object.entries(chartCreators).forEach(([key, creator]) => {
+      if (data[key]) creator();
+    });
+  }
+
+  /**
+   * Cria o gráfico de tipos populares
+   */
+  createTiposPopularesChart(data) {
+    this.createChart("tiposPopularesChart", {
+      type: "pie",
+      data: {
+        labels: data.map((item) => item.tipo_atendimento),
+        datasets: [
+          {
+            data: data.map((item) => item.total),
+            backgroundColor: Object.values(DashboardApp.CONFIG.CHART_COLORS),
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom" },
+        },
+      },
+    });
+  }
+
+  /**
+   * Cria o gráfico de atendimentos por hora
+   */
+  createAtendimentosHoraChart(data) {
+    const horasCompletas = this.generateHourlyData(data);
+
+    this.createChart("atendimentosHoraChart", {
+      type: "bar",
+      data: {
+        labels: horasCompletas.map((item) => `${item.hora}:00`),
+        datasets: [
+          {
+            label: "Atendimentos",
+            data: horasCompletas.map((item) => item.total),
+            backgroundColor: DashboardApp.CONFIG.CHART_COLORS.primary,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Gera dados horários completos
+   */
+  generateHourlyData(data) {
+    return Array.from({ length: 24 }, (_, i) => ({
+      hora: i,
+      total: data.find((d) => d.hora === i)?.total || 0,
+    }));
+  }
+
+  /**
+   * Cria o gráfico de atendimentos por dia
+   */
+  createAtendimentosDiaChart(data) {
+    this.createChart("atendimentosDiaChart", {
+      type: "line",
+      data: {
+        labels: data.map((item) =>
+          new Date(item.data).toLocaleDateString("pt-BR")
+        ),
+        datasets: [
+          {
+            label: "Total de Atendimentos",
+            data: data.map((item) => item.total),
+            borderColor: DashboardApp.CONFIG.CHART_COLORS.primary,
+            fill: false,
+          },
+          {
+            label: "Atendimentos com Sucesso",
+            data: data.map((item) => item.sucessos),
+            borderColor: DashboardApp.CONFIG.CHART_COLORS.success,
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true },
+        },
+      },
+    });
+  }
+
+  /**
+   * Cria o gráfico de performance
+   */
+  createPerformanceChart(data) {
+    this.createChart("performanceChart", {
+      type: "bar",
+      data: {
+        labels: data.map((item) => item.tipo_atendimento),
+        datasets: [
+          {
+            label: "Taxa de Sucesso (%)",
+            data: data.map((item) => this.calculateSuccessRate(item)),
+            backgroundColor: DashboardApp.CONFIG.CHART_COLORS.success,
+          },
+          {
+            label: "Tempo Médio (s)",
+            data: data.map((item) => item.tempo_medio || 0),
+            backgroundColor: DashboardApp.CONFIG.CHART_COLORS.orange,
+            yAxisID: "y1",
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            position: "left",
+          },
+          y1: {
+            type: "linear",
+            position: "right",
+            grid: { drawOnChartArea: false },
+            beginAtZero: true,
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Calcula a taxa de sucesso
+   */
+  calculateSuccessRate(item) {
+    return item.total > 0 ? ((item.sucessos / item.total) * 100).toFixed(1) : 0;
+  }
+
+  /**
+   * Cria o gráfico de intenções
+   */
+  createIntencoesChart(data) {
+    this.createChart("intencoesChart", {
+      type: "doughnut",
+      data: {
+        labels: data.map((item) => item.intencao_detectada),
+        datasets: [
+          {
+            data: data.map((item) => item.total),
+            backgroundColor: Object.values(DashboardApp.CONFIG.CHART_COLORS),
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: "bottom" },
+        },
+      },
+    });
+  }
+
+  /**
+   * Função utilitária para criar/atualizar gráficos
+   */
+  createChart(canvasId, config) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+
+    if (this.state.charts.has(canvasId)) {
+      this.state.charts.get(canvasId).destroy();
     }
 
-    init() {
-        if (this.token) {
-            this.showDashboard();
-        } else {
-            this.showLogin();
-        }
-        
-        this.setupEventListeners();
+    this.state.charts.set(canvasId, new Chart(ctx, config));
+  }
+
+  /**
+   * Carrega a lista de atendimentos
+   */
+  async carregarAtendimentos() {
+    try {
+      const params = this.buildAtendimentosParams();
+      const data = await this.apiRequest(`/atendimentos?${params}`);
+
+      if (data) {
+        this.renderAtendimentos(data.atendimentos);
+        this.renderPagination(data.pagination);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar atendimentos:", error);
     }
+  }
 
-    setupEventListeners() {
-        // Login form
-        document.getElementById('loginForm')?.addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.login();
-        });
+  /**
+   * Constrói os parâmetros para a busca de atendimentos
+   */
+  buildAtendimentosParams() {
+    const params = new URLSearchParams({
+      page: this.state.currentPage,
+      limit: DashboardApp.CONFIG.ITEMS_PER_PAGE,
+    });
 
-        // Navigation
-        document.querySelectorAll('[data-section]').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const section = e.target.closest('[data-section]').dataset.section;
-                this.showSection(section);
-            });
-        });
+    const filters = {
+      tipo: document.getElementById("filtroTipo")?.value,
+      status: document.getElementById("filtroStatus")?.value,
+    };
 
-        // Logout
-        document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.logout();
-        });
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) params.append(key, value);
+    });
 
-        // Filtros
-        document.getElementById('filtroTipo')?.addEventListener('change', () => {
-            this.currentPage = 1;
-            this.carregarAtendimentos();
-        });
+    return params;
+  }
 
-        document.getElementById('filtroStatus')?.addEventListener('change', () => {
-            this.currentPage = 1;
-            this.carregarAtendimentos();
-        });
-    }
+  /**
+   * Renderiza a tabela de atendimentos
+   */
+  renderAtendimentos(atendimentos) {
+    const tbody = document.getElementById("atendimentosTableBody");
+    if (!tbody) return;
 
-    async login() {
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        
-        try {
-            const response = await fetch(`${this.apiBase}/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username, password })
-            });
+    tbody.innerHTML = atendimentos.length
+      ? this.generateAtendimentosRows(atendimentos)
+      : this.generateEmptyTableRow();
+  }
 
-            const data = await response.json();
-            
-            if (response.ok) {
-                this.token = data.token;
-                localStorage.setItem('admin_token', this.token);
-                this.showDashboard();
-            } else {
-                document.getElementById('loginError').style.display = 'block';
-                document.getElementById('loginError').textContent = data.error || 'Erro ao fazer login';
-            }
-        } catch (error) {
-            console.error('Erro no login:', error);
-            document.getElementById('loginError').style.display = 'block';
-            document.getElementById('loginError').textContent = 'Erro de conexão';
-        }
-    }
-
-    logout() {
-        this.token = null;
-        localStorage.removeItem('admin_token');
-        this.showLogin();
-    }
-
-    showLogin() {
-        document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('dashboardScreen').style.display = 'none';
-    }
-
-    showDashboard() {
-        document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('dashboardScreen').style.display = 'block';
-        this.loadInitialData();
-    }
-
-    showSection(sectionName) {
-        // Hide all sections
-        document.querySelectorAll('.content-section').forEach(section => {
-            section.style.display = 'none';
-        });
-        
-        // Show selected section
-        document.getElementById(sectionName + 'Section').style.display = 'block';
-        
-        // Update navigation
-        document.querySelectorAll('.nav-link').forEach(link => {
-            link.classList.remove('active');
-        });
-        document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
-        
-        // Load section data
-        this.loadSectionData(sectionName);
-    }
-
-    async loadInitialData() {
-        await this.loadStats();
-        await this.loadChartData();
-    }
-
-    async loadSectionData(section) {
-        switch (section) {
-            case 'overview':
-                await this.loadStats();
-                await this.loadChartData();
-                break;
-            case 'analytics':
-                await this.loadChartData();
-                break;
-            case 'atendimentos':
-                await this.carregarAtendimentos();
-                break;
-            case 'usuarios':
-                // Implementar análise de usuários
-                break;
-            case 'relatorios':
-                // Seção de relatórios não precisa carregar dados
-                break;
-        }
-    }
-
-    async apiRequest(endpoint, options = {}) {
-        const config = {
-            headers: {
-                'Authorization': `Bearer ${this.token}`,
-                'Content-Type': 'application/json',
-                ...options.headers
-            },
-            ...options
-        };
-
-        const response = await fetch(`${this.apiBase}${endpoint}`, config);
-        
-        if (response.status === 401) {
-            this.logout();
-            return null;
-        }
-        
-        return response.json();
-    }
-
-    async loadStats() {
-        try {
-            const stats = await this.apiRequest('/stats');
-            if (stats) {
-                document.getElementById('atendimentosHoje').textContent = stats.atendimentosHoje?.total || 0;
-                document.getElementById('atendimentosSemana').textContent = stats.atendimentosSemana?.total || 0;
-                document.getElementById('taxaSucesso').textContent = stats.taxaSucesso?.taxa_sucesso ? `${stats.taxaSucesso.taxa_sucesso}%` : '0%';
-                document.getElementById('usuariosUnicos').textContent = stats.usuariosUnicos?.total || 0;
-            }
-        } catch (error) {
-            console.error('Erro ao carregar estatísticas:', error);
-        }
-    }
-
-    async loadChartData() {
-        try {
-            const chartData = await this.apiRequest('/charts');
-            if (chartData) {
-                this.createCharts(chartData);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar dados dos gráficos:', error);
-        }
-    }
-
-    createCharts(data) {
-        // Tipos populares
-        if (data.tiposAtendimento) {
-            this.createTiposPopularesChart(data.tiposAtendimento);
-        }
-
-        // Atendimentos por hora
-        if (data.atendimentosPorHora) {
-            this.createAtendimentosHoraChart(data.atendimentosPorHora);
-        }
-
-        // Atendimentos por dia
-        if (data.atendimentosPorDia) {
-            this.createAtendimentosDiaChart(data.atendimentosPorDia);
-        }
-
-        // Performance
-        if (data.tiposAtendimento) {
-            this.createPerformanceChart(data.tiposAtendimento);
-        }
-
-        // Intenções
-        if (data.intencoes) {
-            this.createIntencoesChart(data.intencoes);
-        }
-    }
-
-    createTiposPopularesChart(data) {
-        const ctx = document.getElementById('tiposPopularesChart');
-        if (!ctx) return;
-
-        if (this.charts.tiposPopulares) {
-            this.charts.tiposPopulares.destroy();
-        }
-
-        this.charts.tiposPopulares = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: data.map(item => item.tipo_atendimento),
-                datasets: [{
-                    data: data.map(item => item.total),
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    }
-
-    createAtendimentosHoraChart(data) {
-        const ctx = document.getElementById('atendimentosHoraChart');
-        if (!ctx) return;
-
-        if (this.charts.atendimentosHora) {
-            this.charts.atendimentosHora.destroy();
-        }
-
-        // Preencher todas as horas do dia
-        const horasCompletas = Array.from({length: 24}, (_, i) => {
-            const item = data.find(d => d.hora === i);
-            return {
-                hora: i,
-                total: item ? item.total : 0
-            };
-        });
-
-        this.charts.atendimentosHora = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: horasCompletas.map(item => `${item.hora}:00`),
-                datasets: [{
-                    label: 'Atendimentos',
-                    data: horasCompletas.map(item => item.total),
-                    backgroundColor: '#36A2EB'
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-
-    createAtendimentosDiaChart(data) {
-        const ctx = document.getElementById('atendimentosDiaChart');
-        if (!ctx) return;
-
-        if (this.charts.atendimentosDia) {
-            this.charts.atendimentosDia.destroy();
-        }
-
-        this.charts.atendimentosDia = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: data.map(item => new Date(item.data).toLocaleDateString('pt-BR')),
-                datasets: [{
-                    label: 'Total de Atendimentos',
-                    data: data.map(item => item.total),
-                    borderColor: '#36A2EB',
-                    fill: false
-                }, {
-                    label: 'Atendimentos com Sucesso',
-                    data: data.map(item => item.sucessos),
-                    borderColor: '#4BC0C0',
-                    fill: false
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-
-    createPerformanceChart(data) {
-        const ctx = document.getElementById('performanceChart');
-        if (!ctx) return;
-
-        if (this.charts.performance) {
-            this.charts.performance.destroy();
-        }
-
-        this.charts.performance = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: data.map(item => item.tipo_atendimento),
-                datasets: [{
-                    label: 'Taxa de Sucesso (%)',
-                    data: data.map(item => item.total > 0 ? (item.sucessos / item.total * 100).toFixed(1) : 0),
-                    backgroundColor: '#4BC0C0'
-                }, {
-                    label: 'Tempo Médio (s)',
-                    data: data.map(item => item.tempo_medio || 0),
-                    backgroundColor: '#FF9F40',
-                    yAxisID: 'y1'
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        position: 'left'
-                    },
-                    y1: {
-                        type: 'linear',
-                        position: 'right',
-                        grid: {
-                            drawOnChartArea: false
-                        },
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    }
-
-    createIntencoesChart(data) {
-        const ctx = document.getElementById('intencoesChart');
-        if (!ctx) return;
-
-        if (this.charts.intencoes) {
-            this.charts.intencoes.destroy();
-        }
-
-        this.charts.intencoes = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: data.map(item => item.intencao_detectada),
-                datasets: [{
-                    data: data.map(item => item.total),
-                    backgroundColor: [
-                        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0',
-                        '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-    }
-
-    async carregarAtendimentos() {
-        try {
-            const tipo = document.getElementById('filtroTipo')?.value || '';
-            const status = document.getElementById('filtroStatus')?.value || '';
-            
-            const params = new URLSearchParams({
-                page: this.currentPage,
-                limit: this.itemsPerPage
-            });
-            
-            if (tipo) params.append('tipo', tipo);
-            if (status) params.append('status', status);
-            
-            const data = await this.apiRequest(`/atendimentos?${params}`);
-            
-            if (data) {
-                this.renderAtendimentos(data.atendimentos);
-                this.renderPagination(data.pagination);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar atendimentos:', error);
-        }
-    }
-
-    renderAtendimentos(atendimentos) {
-        const tbody = document.getElementById('atendimentosTableBody');
-        if (!tbody) return;
-
-        if (atendimentos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhum atendimento encontrado</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = atendimentos.map(atendimento => `
+  /**
+   * Gera as linhas da tabela de atendimentos
+   */
+  generateAtendimentosRows(atendimentos) {
+    return atendimentos
+      .map(
+        (atendimento) => `
             <tr>
                 <td>${atendimento.id}</td>
                 <td>${atendimento.usuario_id}</td>
                 <td>${atendimento.tipo_atendimento}</td>
-                <td><span class="status-badge status-${atendimento.status}">${atendimento.status}</span></td>
-                <td>${new Date(atendimento.inicio_timestamp).toLocaleString('pt-BR')}</td>
-                <td>${atendimento.duracao_segundos ? `${atendimento.duracao_segundos}s` : '-'}</td>
+                <td><span class="status-badge status-${atendimento.status}">${
+          atendimento.status
+        }</span></td>
+                <td>${new Date(atendimento.inicio_timestamp).toLocaleString(
+                  "pt-BR"
+                )}</td>
+                <td>${this.formatDuracao(atendimento.duracao_segundos)}</td>
                 <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="dashboard.verDetalhesAtendimento(${atendimento.id})">
+                    <button class="btn btn-sm btn-outline-primary" onclick="dashboard.verDetalhesAtendimento(${
+                      atendimento.id
+                    })">
                         <i class="fas fa-eye"></i>
                     </button>
                 </td>
             </tr>
-        `).join('');
+        `
+      )
+      .join("");
+  }
+
+  /**
+   * Gera linha para tabela vazia
+   */
+  generateEmptyTableRow() {
+    return '<tr><td colspan="7" class="text-center">Nenhum atendimento encontrado</td></tr>';
+  }
+
+  /**
+   * Formata a duração do atendimento
+   */
+  formatDuracao(segundos) {
+    return segundos ? `${segundos}s` : "-";
+  }
+
+  /**
+   * Renderiza a paginação
+   */
+  renderPagination(pagination) {
+    const { nav, list } = this.getPaginationElements();
+    if (!nav || !list) return;
+
+    if (pagination.pages <= 1) {
+      nav.style.display = "none";
+      return;
     }
 
-    renderPagination(pagination) {
-        const nav = document.getElementById('paginationNav');
-        const list = document.getElementById('paginationList');
-        
-        if (!nav || !list) return;
+    nav.style.display = "block";
+    list.innerHTML = this.generatePaginationHTML(pagination);
+  }
 
-        if (pagination.pages <= 1) {
-            nav.style.display = 'none';
-            return;
-        }
+  /**
+   * Obtém os elementos de paginação
+   */
+  getPaginationElements() {
+    return {
+      nav: document.getElementById("paginationNav"),
+      list: document.getElementById("paginationList"),
+    };
+  }
 
-        nav.style.display = 'block';
-        
-        let paginationHTML = '';
-        
-        // Previous
-        if (pagination.page > 1) {
-            paginationHTML += `
-                <li class="page-item">
-                    <a class="page-link" href="#" onclick="dashboard.changePage(${pagination.page - 1})">Anterior</a>
-                </li>
-            `;
-        }
-        
-        // Pages
-        for (let i = 1; i <= pagination.pages; i++) {
-            if (i === pagination.page) {
-                paginationHTML += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
-            } else {
-                paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="dashboard.changePage(${i})">${i}</a></li>`;
-            }
-        }
-        
-        // Next
-        if (pagination.page < pagination.pages) {
-            paginationHTML += `
-                <li class="page-item">
-                    <a class="page-link" href="#" onclick="dashboard.changePage(${pagination.page + 1})">Próximo</a>
-                </li>
-            `;
-        }
-        
-        list.innerHTML = paginationHTML;
+  /**
+   * Gera o HTML da paginação
+   */
+  generatePaginationHTML(pagination) {
+    const { page, pages } = pagination;
+    let html = "";
+
+    // Botão "Anterior"
+    if (page > 1) {
+      html += this.createPaginationButton(page - 1, "Anterior");
     }
 
-    changePage(page) {
-        this.currentPage = page;
-        this.carregarAtendimentos();
+    // Números das páginas
+    for (let i = 1; i <= pages; i++) {
+      html += this.createPaginationItem(i, page === i);
     }
 
-    verDetalhesAtendimento(id) {
-        // Implementar modal de detalhes
-        alert(`Detalhes do atendimento ${id} - Em desenvolvimento`);
+    // Botão "Próximo"
+    if (page < pages) {
+      html += this.createPaginationButton(page + 1, "Próximo");
     }
 
-    async exportarRelatorio(tipo) {
-        try {
-            const response = await fetch(`${this.apiBase}/export?tipo=${tipo}`, {
-                headers: {
-                    'Authorization': `Bearer ${this.token}`
-                }
-            });
+    return html;
+  }
 
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `relatorio_${tipo}_${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            } else {
-                alert('Erro ao exportar relatório');
-            }
-        } catch (error) {
-            console.error('Erro ao exportar relatório:', error);
-            alert('Erro ao exportar relatório');
+  /**
+   * Cria um botão de paginação
+   */
+  createPaginationButton(page, text) {
+    return `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="dashboard.changePage(${page})">${text}</a>
+            </li>
+        `;
+  }
+
+  /**
+   * Cria um item de paginação
+   */
+  createPaginationItem(page, isActive) {
+    return isActive
+      ? `<li class="page-item active"><span class="page-link">${page}</span></li>`
+      : `<li class="page-item"><a class="page-link" href="#" onclick="dashboard.changePage(${page})">${page}</a></li>`;
+  }
+
+  /**
+   * Muda a página atual
+   */
+  changePage(page) {
+    this.state.currentPage = page;
+    this.carregarAtendimentos();
+  }
+
+  /**
+   * Exibe detalhes do atendimento
+   */
+  verDetalhesAtendimento(id) {
+    alert(`Detalhes do atendimento ${id} - Em desenvolvimento`);
+  }
+
+  /**
+   * Exporta relatório
+   */
+  async exportarRelatorio(tipo) {
+    try {
+      const response = await fetch(
+        `${this.state.apiBase}/export?tipo=${tipo}`,
+        {
+          headers: {
+            Authorization: `Bearer ${this.state.token}`,
+          },
         }
+      );
+
+      if (response.ok) {
+        await this.downloadRelatorio(response, tipo);
+      } else {
+        alert("Erro ao exportar relatório");
+      }
+    } catch (error) {
+      console.error("Erro ao exportar relatório:", error);
+      alert("Erro ao exportar relatório");
     }
+  }
+
+  /**
+   * Realiza o download do relatório
+   */
+  async downloadRelatorio(response, tipo) {
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = `relatorio_${tipo}_${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+
+    document.body.appendChild(a);
+    a.click();
+
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
 }
 
 // Inicializar dashboard
