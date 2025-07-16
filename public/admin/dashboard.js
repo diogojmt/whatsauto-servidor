@@ -293,6 +293,7 @@ class DashboardApp {
   async loadChartData() {
     try {
       const chartData = await this.apiRequest("/charts");
+      console.log("Dados recebidos da API:", chartData);
       if (chartData) {
         this.createCharts(chartData);
       }
@@ -305,11 +306,19 @@ class DashboardApp {
    * Cria ou atualiza os gráficos do dashboard
    */
   createCharts(data) {
+    console.log("Criando gráficos com dados:", data);
     const chartCreators = {
-      tiposPopulares: () =>
-        this.createTiposPopularesChart(data.tiposAtendimento),
-      atendimentosHora: () =>
-        this.createAtendimentosHoraChart(data.atendimentosPorHora),
+      tiposPopulares: () => {
+        console.log("Dados para tipos populares:", data.tiposAtendimento);
+        this.createTiposPopularesChart(data.tiposAtendimento);
+      },
+      atendimentosHora: () => {
+        console.log(
+          "Dados para atendimentos por hora:",
+          data.atendimentosPorHora
+        );
+        this.createAtendimentosHoraChart(data.atendimentosPorHora);
+      },
       atendimentosDia: () =>
         this.createAtendimentosDiaChart(data.atendimentosPorDia),
       performance: () => this.createPerformanceChart(data.tiposAtendimento),
